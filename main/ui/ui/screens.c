@@ -37,7 +37,7 @@ static void event_handler_cb_menu_menu(lv_event_t *e) {
     void *flowState = lv_event_get_user_data(e);
     (void)flowState;
     
-    if (event == LV_EVENT_SCROLL_END) {
+    if (event == LV_EVENT_GESTURE) {
         e->user_data = (void *)0;
         flowPropagateValueLVGLEvent(flowState, 1, 0, e);
     }
@@ -92,7 +92,7 @@ static void event_handler_cb_ustawienia_ustawienia(lv_event_t *e) {
     void *flowState = lv_event_get_user_data(e);
     (void)flowState;
     
-    if (event == LV_EVENT_SCROLL_END) {
+    if (event == LV_EVENT_GESTURE) {
         e->user_data = (void *)0;
         flowPropagateValueLVGLEvent(flowState, 1, 0, e);
     }
@@ -104,6 +104,17 @@ static void event_handler_cb_zasoby_systemu_zasoby_systemu(lv_event_t *e) {
     (void)flowState;
     
     if (event == LV_EVENT_SCROLL_END) {
+        e->user_data = (void *)0;
+        flowPropagateValueLVGLEvent(flowState, 1, 0, e);
+    }
+}
+
+static void event_handler_cb_ustawienia_wifi_ustawienia_wifi(lv_event_t *e) {
+    lv_event_code_t event = lv_event_get_code(e);
+    void *flowState = lv_event_get_user_data(e);
+    (void)flowState;
+    
+    if (event == LV_EVENT_GESTURE) {
         e->user_data = (void *)0;
         flowPropagateValueLVGLEvent(flowState, 1, 0, e);
     }
@@ -700,7 +711,7 @@ void create_screen_menu() {
     lv_obj_set_pos(obj, 0, 0);
     lv_obj_set_size(obj, 800, 480);
     lv_obj_add_event_cb(obj, event_handler_cb_menu_menu, LV_EVENT_ALL, flowState);
-    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLL_ELASTIC);
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICK_FOCUSABLE|LV_OBJ_FLAG_SNAPPABLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_ELASTIC|LV_OBJ_FLAG_SCROLL_CHAIN_HOR|LV_OBJ_FLAG_SCROLL_CHAIN_VER);
     lv_obj_set_scrollbar_mode(obj, LV_SCROLLBAR_MODE_AUTO);
     lv_obj_set_scroll_dir(obj, LV_DIR_BOTTOM);
     lv_obj_set_scroll_snap_y(obj, LV_SCROLL_SNAP_START);
@@ -998,7 +1009,7 @@ void create_screen_ustawienia() {
     lv_obj_set_pos(obj, 0, 0);
     lv_obj_set_size(obj, 800, 480);
     lv_obj_add_event_cb(obj, event_handler_cb_ustawienia_ustawienia, LV_EVENT_ALL, flowState);
-    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLL_ELASTIC);
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_ELASTIC);
     lv_obj_set_scrollbar_mode(obj, LV_SCROLLBAR_MODE_AUTO);
     lv_obj_set_scroll_dir(obj, LV_DIR_BOTTOM);
     lv_obj_set_scroll_snap_y(obj, LV_SCROLL_SNAP_START);
@@ -1814,6 +1825,8 @@ void create_screen_ustawienia_wifi() {
     objects.ustawienia_wifi = obj;
     lv_obj_set_pos(obj, 0, 0);
     lv_obj_set_size(obj, 800, 480);
+    lv_obj_add_event_cb(obj, event_handler_cb_ustawienia_wifi_ustawienia_wifi, LV_EVENT_ALL, flowState);
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_bg_color(obj, lv_color_hex(0x28252c), LV_PART_MAIN | LV_STATE_DEFAULT);
     {
         lv_obj_t *parent_obj = obj;

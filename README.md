@@ -1,54 +1,54 @@
-# ESP32-S3 JC8048W550 (Sunton) — LVGL demo
+# ESP32-S3 JC8048W550 (Gution) — LVGL
 
-Implementation for the Sunton 800×480 capacitive display using ESP32-S3, LVGL 9.x and FreeRTOS.
+Ten repozytorium to fork dostosowany do modułu Gution/kompatybilnego wyświetlacza 800×480 RGB z dotykiem GT911, oparty na projekcie upstream z ESP32-S3 i LVGL 9.
 
-Key points:
-- Target: ESP32-S3 (RGB LCD + GT911 touch controller support).
-- Uses LVGL for UI, EEZ framework for app structure, and esp_lcd_touch_gt911 for touch.
-- `sdkconfig.defaults` enables SPIRAM and configures LVGL memory (128 KB). Review and regenerate `sdkconfig` if you change memory settings.
+## Co znajdziesz w tym repo
+- ESP32-S3 z wyświetlaczem RGB 800×480
+- interfejs dotykowy GT911
+- silnik GUI LVGL 9.x
+- struktura aplikacji oparta na EEZ
+- wsparcie dla PSRAM i buforowania w pamięci zewnętrznej
 
-## Upstream & Credits
+## Stan forka
+- Ten repozytorium jest forkiem, a nie oryginalnym projektem Sunton.
+- Nazwy plików nadal mogą zawierać `sunton`, ponieważ pochodzą z upstreamu.
+- Fizyczną marką wyświetlacza jest Gution / kompatybilny moduł 800×480.
 
-This project is based on and adapted from https://github.com/mr-sven/esp32-8048S050C. Please check the upstream repository for additional context, contributions, and historical changes.
+## Wymagania
+- ESP-IDF 6.0 lub kompatybilny z 5.x
+- Python z narzędziami ESP-IDF
+- skonfigurowane środowisko ESP-IDF z `idf.py` dostępnym w PATH
 
-Requirements
- - ESP-IDF 6.0 (or compatible 5.x release)
- - Python (ESP-IDF tooling)
- - A configured ESP-IDF environment with `idf.py` on PATH
-
-Quick build & run
-1. Set IDF target:
+## Szybki start
+1. Ustaw target:
 
   idf.py set-target esp32s3
 
-2. Build the project:
+2. Zbuduj projekt:
 
   idf.py build
 
-3. Flash (replace `COMx` and `115200` as appropriate):
+3. Wgraj na urządzenie:
 
   idf.py -p COMx -b 115200 flash
 
-4. Monitor serial output:
+4. Otwórz monitor:
 
   idf.py -p COMx monitor
 
-Notes
-- LVGL: The project expects at least 128 KB LVGL heap for demo widgets (`CONFIG_LV_MEM_SIZE_KILOBYTES=128` in `sdkconfig.defaults`).
-- SPIRAM: The supplied `sdkconfig.defaults` enables PSRAM; keep this if you rely on framebuffer in PSRAM.
-- Touch: GT911 initialization maps touch coordinates to display coordinates. See `main/sunton_esp32_8048s050c.h` for mapping details.
+## Ważne informacje
+- `sdkconfig.defaults` w tym repo zawiera ustawienia PSRAM i konfigurację LVGL.
+- Jeśli zmienisz ustawienia pamięci, usuń `sdkconfig` i odbuduj projekt, aby wygenerować nowy plik konfiguracyjny.
+- Upewnij się, że wybrany target to `esp32s3` przed kompilacją.
 
-Project layout (important files)
-- `main/main.cpp` — application entry and initialization
-- `main/sunton_esp32_8048s050c.c/.h` — hardware init (LCD, backlight, touch, I2C)
-- `main/ui/` — LVGL UI sources, images and fonts
-- `main/eez-framework/` — included EEZ framework sources used by the UI
-- `CMakeLists.txt` / `sdkconfig.defaults` — build and default configuration
+## Najważniejsze pliki
+- `main/main.cpp` — punkt wejścia i inicjalizacja aplikacji
+- `main/sunton_esp32_8048s050c.c/.h` — inicjalizacja LCD, podświetlenia i dotyku
+- `main/ui/` — źródła interfejsu LVGL, obrazy, fonty
+- `main/eez-framework/` — biblioteki EEZ używane przez UI
+- `CMakeLists.txt` / `sdkconfig.defaults` — konfiguracja budowania
 
-Tips
-- If you change memory or PSRAM settings, run `idf.py reconfigure` (or delete `sdkconfig` and rebuild) to regenerate a config.
-- Ensure the IDF target is `esp32s3` before building: `idf.py set-target esp32s3`.
+## Upstream
+Projekt bazuje na: https://github.com/mr-sven/esp32-8048S050C
 
-## License
 
-Check for a `LICENSE` file in the repository. If none is present, assume no license is provided by default.
