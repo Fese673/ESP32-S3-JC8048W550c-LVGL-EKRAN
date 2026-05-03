@@ -1,0 +1,73 @@
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
+#include "driver/i2c_master.h"
+#include "lvgl.h"
+#include "esp_lvgl_port.h"
+#include "esp_timer.h"
+#include "ui.h"
+#include "logs/log.h"
+
+extern "C" {
+#include "sunton_esp32_8048s050c.h"
+}
+
+#define TAG "main"
+
+static void ui_tick_timer_cb(lv_timer_t *timer)
+{
+    (void)timer;
+
+    static int16_t last_screen_id = -1;
+    int16_t current_screen_id = eez_flow_get_current_screen();
+
+    if (current_screen_id != last_screen_id) {
+        log_ui_snapshot("screen change", current_screen_id);
+        last_screen_id = current_screen_id;
+    }
+
+    int64_t start_us = esp_timer_get_time();
+    log_ui_tick_begin(current_screen_id);
+    ui_tick();
+    log_ui_tick_end(current_screen_id, esp_timer_get_time() - start_us);
+}
+
+static void ui_heartbeat_timer_cb(lv_timer_t *timer)
+{
+    (void)timer;
+    log_ui_snapshot("heartbeat", eez_flow_get_current_screen());
+}
+
+extern "C" void app_main(void)
+{
+    log_init();
+    log_boot_snapshot("boot");
+
+    sunton_esp32s3_backlight_init();
+
+    lv_display_t *disp = sunton_esp32s3_lcd_init();
+    if (disp == NULL) {
+        ESP_LOGE(TAG, "Failed to initialize display");
+        return;
+    }
+
+    i2c_master_bus_handle_t i2c_master = sunton_esp32s3_i2c_master();
+    sunton_esp32s3_touch_init(i2c_master);
+
+    if (lvgl_port_lock(0)) {
+        ui_init();
+        log_ui_snapshot("ui_init done", eez_flow_get_current_screen());
+        lv_timer_create(ui_tick_timer_cb, 100, NULL);
+        lv_timer_create(ui_heartbeat_timer_cb, 1000, NULL);
+        lvgl_port_unlock();
+    } else {
+        ESP_LOGE(TAG, "Failed to lock LVGL during UI init");
+        return;
+    }
+
+    ESP_LOGI(TAG, "Application started");
+
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
