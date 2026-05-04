@@ -1,18 +1,24 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "clock_logic.h"
+#include "communication/CommunicationProtocol.h"
+#include "wifi_service.h"
+#include "sntp_service.h"
 #include "driver/i2c_master.h"
 #include "lvgl.h"
 #include "esp_lvgl_port.h"
 #include "esp_timer.h"
 #include "ui.h"
-#include "logs/log.h"
+#include "log.h"
 
 extern "C" {
 #include "sunton_esp32_8048s050c.h"
 }
 
 #define TAG "main"
+
+#include "screens.h"
 
 static void ui_tick_timer_cb(lv_timer_t *timer)
 {
@@ -24,11 +30,16 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
     if (current_screen_id != last_screen_id) {
         log_ui_snapshot("screen change", current_screen_id);
         last_screen_id = current_screen_id;
+
+        if (current_screen_id == SCREEN_ID_MENU || current_screen_id == SCREEN_ID_USTAWIENIA) {
+            CommunicationProtocol::requestDeviceSettings();
+        }
     }
 
     int64_t start_us = esp_timer_get_time();
     log_ui_tick_begin(current_screen_id);
     ui_tick();
+    CommunicationProtocol::updateUi();
     log_ui_tick_end(current_screen_id, esp_timer_get_time() - start_us);
 }
 
@@ -43,6 +54,9 @@ extern "C" void app_main(void)
     log_init();
     log_boot_snapshot("boot");
 
+    wifi_service_init();
+    sntp_service_init();
+
     sunton_esp32s3_backlight_init();
 
     lv_display_t *disp = sunton_esp32s3_lcd_init();
@@ -56,10 +70,13 @@ extern "C" void app_main(void)
 
     if (lvgl_port_lock(0)) {
         ui_init();
+        CommunicationProtocol::begin();
+        CommunicationProtocol::updateUi();
         log_ui_snapshot("ui_init done", eez_flow_get_current_screen());
         lv_timer_create(ui_tick_timer_cb, 100, NULL);
         lv_timer_create(ui_heartbeat_timer_cb, 1000, NULL);
         lvgl_port_unlock();
+        clock_logic_start();
     } else {
         ESP_LOGE(TAG, "Failed to lock LVGL during UI init");
         return;

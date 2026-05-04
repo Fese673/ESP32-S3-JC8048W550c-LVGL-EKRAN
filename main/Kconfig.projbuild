@@ -1,6 +1,4 @@
-menu "Sunton ESP32-S3 based display LVGL Package config"
-
-    orsource "$IDF_PATH/examples/common_components/env_caps/$IDF_TARGET/Kconfig.env_caps"
+menu "Sunton ESP32-S3 Package config"
 
     config SUNTON_ESP32_DOUBLE_FB
         bool "Use Double Frame Buffer"
@@ -26,4 +24,14 @@ menu "Sunton ESP32-S3 based display LVGL Package config"
     config LVGL_TASK_PRIORITY
         int "LVGL Port Task prio"
         default 3
+
+    menu "WiFi Configuration"
+        config WIFI_SSID
+            string "WiFi SSID"
+            default "Orange_Swiatlowod_98E2"
+        config WIFI_PASSWORD
+            string "WiFi Password"
+            default "x1Z6P(~8pry<St."
+    endmenu
+
 endmenu
