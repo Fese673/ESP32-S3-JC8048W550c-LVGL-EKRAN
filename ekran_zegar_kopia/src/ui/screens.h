@@ -141,6 +141,8 @@ typedef struct _objects_t {
     lv_obj_t *obj84;
     lv_obj_t *obj85;
     lv_obj_t *obj86;
+    lv_obj_t *connect;
+    lv_obj_t *disconnect;
     lv_obj_t *obj87;
     lv_obj_t *seconds_text_7;
     lv_obj_t *obj88;

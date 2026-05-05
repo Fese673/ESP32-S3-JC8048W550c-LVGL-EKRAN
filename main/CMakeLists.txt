@@ -42,6 +42,7 @@ idf_component_register(
                     "./hal/display"
                     "./ui/ui"
                     "./utils"
+                    "./utils/comm_log"
                     "./communication"
                     "./services/time"
                     "./services/wifi"

@@ -12,6 +12,7 @@
 #include "esp_timer.h"
 #include "ui.h"
 #include "log.h"
+#include "utils/comm_log/comm_log.h"
 
 extern "C" {
 #include "sunton_esp32_8048s050c.h"
@@ -52,7 +53,6 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
     int16_t current_screen_id = eez_flow_get_current_screen();
 
     if (current_screen_id != last_screen_id) {
-        log_ui_snapshot("screen change", current_screen_id);
         last_screen_id = current_screen_id;
 
         if (current_screen_id == SCREEN_ID_MENU || current_screen_id == SCREEN_ID_USTAWIENIA) {
@@ -62,6 +62,14 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
         if (current_screen_id == SCREEN_ID_USTAWIENIA) {
             init_custom_dropdown_hook();
         }
+        if (current_screen_id == SCREEN_ID_LOGI) {
+            log_clear();
+        }
+    }
+
+    if (current_screen_id == SCREEN_ID_LOGI) {
+        log_update_textarea();
+        comm_log_flush_if_needed();
     }
 
     int64_t start_us = esp_timer_get_time();
@@ -72,16 +80,10 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
     log_ui_tick_end(current_screen_id, esp_timer_get_time() - start_us);
 }
 
-static void ui_heartbeat_timer_cb(lv_timer_t *timer)
-{
-    (void)timer;
-    log_ui_snapshot("heartbeat", eez_flow_get_current_screen());
-}
-
 extern "C" void app_main(void)
 {
     log_init();
-    log_boot_snapshot("boot");
+    comm_log_init();
 
     wifi_service_init();
     sntp_service_init();
@@ -102,9 +104,7 @@ extern "C" void app_main(void)
         notification_logic_init();
         CommunicationProtocol::begin();
         CommunicationProtocol::updateUi();
-        log_ui_snapshot("ui_init done", eez_flow_get_current_screen());
         lv_timer_create(ui_tick_timer_cb, 100, NULL);
-        lv_timer_create(ui_heartbeat_timer_cb, 1000, NULL);
         lvgl_port_unlock();
         clock_logic_start();
     } else {

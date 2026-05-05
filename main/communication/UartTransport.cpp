@@ -2,6 +2,7 @@
 #include "communication/CommunicationProtocol.h"
 #include "communication/CobsFraming.h"
 #include "communication/CommunicationState.h"
+#include "utils/comm_log/comm_log.h"
 #include <stdio.h>
 #include <string.h>
 #include "driver/uart.h"
@@ -35,7 +36,7 @@ volatile bool s_started = false;
 void resetParser() { s_parser.length = 0; }
 
 void handleFrame(uint8_t type, const uint8_t *payload, uint16_t payloadLength) {
-  // Każda odebrana ramka danych aktualizuje znacznik keep-alive
+  comm_log_increment_rx(type);
   notifyFrameReceived();
 
   switch (type) {
@@ -129,6 +130,8 @@ void stopUart() {
 
 void sendRawFrame(uint8_t type, uint8_t sequence, const uint8_t *payload, uint16_t payloadLength) {
   if (!s_started || payloadLength > kMaxPayloadBytes) return;
+
+  comm_log_increment_tx(type);
 
   uint8_t frame[4 + kMaxPayloadBytes + 2] = {};
   uint8_t *cursor = frame;

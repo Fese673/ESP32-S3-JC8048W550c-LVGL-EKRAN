@@ -13,7 +13,7 @@
 objects_t objects;
 
 static const char *screen_names[] = { "Main", "Menu", "Ustawienia", "Statystyki", "Zasoby Systemu", "Ustawienia_Wifi", "Gry", "Zegar", "logi" };
-static const char *object_names[] = { "main", "menu", "ustawienia", "statystyki", "zasoby_systemu", "ustawienia_wifi", "gry", "zegar", "logi", "obj0", "obj1", "obj2", "obj3", "obj4", "obj5", "obj6", "obj7", "obj8", "hour_text", "minutes_text", "obj9", "obj10", "obj11", "obj12", "obj13", "obj14", "obj15", "obj16", "obj17", "obj18", "name_day_text", "name_day_text_1", "name_day_text_2", "name_month_date", "obj19", "obj20", "obj21", "obj22", "obj23", "obj24", "seconds_text_4", "obj25", "minutes_text_5", "obj26", "hour_text_5", "obj27", "obj28", "obj29", "obj30", "obj31", "obj32", "obj33", "obj34", "obj35", "obj36", "obj37", "obj38", "seconds_text_2", "obj39", "minutes_text_3", "obj40", "hour_text_3", "obj41", "obj42", "obj43", "obj44", "obj45", "obj46", "obj47", "seconds_text_3", "obj48", "minutes_text_4", "obj49", "hour_text_4", "obj50", "obj51", "obj52", "obj53", "obj54", "obj55", "obj56", "seconds_text_5", "obj57", "minutes_text_6", "obj58", "hour_text_6", "obj59", "obj60", "obj61", "obj62", "obj63", "obj64", "obj65", "obj66", "obj67", "obj68", "obj69", "obj70", "obj71", "obj72", "obj73", "obj74", "obj75", "obj76", "obj77", "seconds_text_6", "obj78", "minutes_text_7", "obj79", "hour_text_7", "obj80", "obj81", "obj82", "obj83", "obj84", "obj85", "obj86", "obj87", "seconds_text_7", "obj88", "minutes_text_8", "obj89", "hour_text_8", "obj90", "obj91", "obj92", "obj93", "obj94", "obj95", "obj96", "seconds_text_8", "obj97", "minutes_text_9", "obj98", "hour_text_9", "obj99", "obj100", "obj101", "obj102", "obj103", "obj104", "obj105", "seconds_text_9", "obj106", "minutes_text_10", "obj107", "hour_text_10", "obj108", "obj109", "obj110", "obj111", "obj112", "obj113", "log_terminal" };
+static const char *object_names[] = { "main", "menu", "ustawienia", "statystyki", "zasoby_systemu", "ustawienia_wifi", "gry", "zegar", "logi", "obj0", "obj1", "obj2", "obj3", "obj4", "obj5", "obj6", "obj7", "obj8", "hour_text", "minutes_text", "obj9", "obj10", "obj11", "obj12", "obj13", "obj14", "obj15", "obj16", "obj17", "obj18", "name_day_text", "name_day_text_1", "name_day_text_2", "name_month_date", "obj19", "obj20", "obj21", "obj22", "obj23", "obj24", "seconds_text_4", "obj25", "minutes_text_5", "obj26", "hour_text_5", "obj27", "obj28", "obj29", "obj30", "obj31", "obj32", "obj33", "obj34", "obj35", "obj36", "obj37", "obj38", "seconds_text_2", "obj39", "minutes_text_3", "obj40", "hour_text_3", "obj41", "obj42", "obj43", "obj44", "obj45", "obj46", "obj47", "seconds_text_3", "obj48", "minutes_text_4", "obj49", "hour_text_4", "obj50", "obj51", "obj52", "obj53", "obj54", "obj55", "obj56", "seconds_text_5", "obj57", "minutes_text_6", "obj58", "hour_text_6", "obj59", "obj60", "obj61", "obj62", "obj63", "obj64", "obj65", "obj66", "obj67", "obj68", "obj69", "obj70", "obj71", "obj72", "obj73", "obj74", "obj75", "obj76", "obj77", "seconds_text_6", "obj78", "minutes_text_7", "obj79", "hour_text_7", "obj80", "obj81", "obj82", "obj83", "obj84", "obj85", "obj86", "connect", "disconnect", "obj87", "seconds_text_7", "obj88", "minutes_text_8", "obj89", "hour_text_8", "obj90", "obj91", "obj92", "obj93", "obj94", "obj95", "obj96", "seconds_text_8", "obj97", "minutes_text_9", "obj98", "hour_text_9", "obj99", "obj100", "obj101", "obj102", "obj103", "obj104", "obj105", "seconds_text_9", "obj106", "minutes_text_10", "obj107", "hour_text_10", "obj108", "obj109", "obj110", "obj111", "obj112", "obj113", "log_terminal" };
 
 screen_logi_state_t screen_logi_state;
 
@@ -220,6 +220,28 @@ static void event_handler_cb_ustawienia_wifi_ustawienia_wifi(lv_event_t *e) {
     if (event == LV_EVENT_GESTURE) {
         e->user_data = (void *)0;
         flowPropagateValueLVGLEvent(flowState, 1, 0, e);
+    }
+}
+
+static void event_handler_cb_ustawienia_wifi_connect(lv_event_t *e) {
+    lv_event_code_t event = lv_event_get_code(e);
+    void *flowState = lv_event_get_user_data(e);
+    (void)flowState;
+    
+    if (event == LV_EVENT_PRESSED) {
+        e->user_data = (void *)0;
+        flowPropagateValueLVGLEvent(flowState, 17, 0, e);
+    }
+}
+
+static void event_handler_cb_ustawienia_wifi_disconnect(lv_event_t *e) {
+    lv_event_code_t event = lv_event_get_code(e);
+    void *flowState = lv_event_get_user_data(e);
+    (void)flowState;
+    
+    if (event == LV_EVENT_PRESSED) {
+        e->user_data = (void *)0;
+        flowPropagateValueLVGLEvent(flowState, 19, 0, e);
     }
 }
 
@@ -2453,6 +2475,55 @@ void create_screen_ustawienia_wifi() {
             lv_obj_set_style_align(obj, LV_ALIGN_DEFAULT, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_bg_color(obj, lv_color_hex(0x948b8b), LV_PART_MAIN | LV_STATE_DEFAULT);
         }
+        {
+            lv_obj_t *obj = lv_textarea_create(parent_obj);
+            lv_obj_set_pos(obj, 300, 66);
+            lv_obj_set_size(obj, 356, 174);
+            lv_textarea_set_max_length(obj, 128);
+            lv_textarea_set_one_line(obj, false);
+            lv_textarea_set_password_mode(obj, false);
+        }
+        {
+            lv_obj_t *obj = lv_list_create(parent_obj);
+            lv_obj_set_pos(obj, 23, 66);
+            lv_obj_set_size(obj, 254, 174);
+        }
+        {
+            // connect
+            lv_obj_t *obj = lv_button_create(parent_obj);
+            objects.connect = obj;
+            lv_obj_set_pos(obj, 671, 78);
+            lv_obj_set_size(obj, 100, 50);
+            lv_obj_add_event_cb(obj, event_handler_cb_ustawienia_wifi_connect, LV_EVENT_ALL, flowState);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text_static(obj, "Button");
+                }
+            }
+        }
+        {
+            // disconnect
+            lv_obj_t *obj = lv_button_create(parent_obj);
+            objects.disconnect = obj;
+            lv_obj_set_pos(obj, 672, 154);
+            lv_obj_set_size(obj, 100, 50);
+            lv_obj_add_event_cb(obj, event_handler_cb_ustawienia_wifi_disconnect, LV_EVENT_ALL, flowState);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text_static(obj, "Button");
+                }
+            }
+        }
     }
     
     tick_screen_ustawienia_wifi();
@@ -3080,7 +3151,7 @@ void create_screen_logi() {
             objects.log_terminal = obj;
             lv_obj_set_pos(obj, 67, 46);
             lv_obj_set_size(obj, 671, 361);
-            lv_textarea_set_max_length(obj, 4096);
+            lv_textarea_set_max_length(obj, 0);
             lv_textarea_set_one_line(obj, false);
             lv_textarea_set_password_mode(obj, false);
         }
