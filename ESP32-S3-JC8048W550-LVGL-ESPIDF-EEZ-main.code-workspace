@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../ZEGAR-ESP32"
+		}
+	],
+	"settings": {
+		"clangd.arguments": [
+			"--background-index",
+			"--query-driver=C:\\Users\\root\\.espressif\\tools\\xtensa-esp-elf\\esp-15.2.0_20251204\\xtensa-esp-elf\\bin\\xtensa-esp32s3-elf-gcc.exe",
+			"--compile-commands-dir=c:\\Users\\root\\Desktop\\SRC\\ESP32-S3-8048S050C\\build"
+		]
+	}
+}

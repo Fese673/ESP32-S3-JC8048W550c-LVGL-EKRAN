@@ -1,8 +1,8 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/0",
-    "selectedActionObject": "[ekran_zegar.eez-project]:/actions/-1",
-    "selectedGlobalVariableObject": "[ekran_zegar.eez-project]:/variables/globalVariables/2",
+    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/1",
+    "selectedActionObject": "[ekran_zegar.eez-project]:/actions/4",
+    "selectedGlobalVariableObject": "[ekran_zegar.eez-project]:/variables/globalVariables/19",
     "selectedFontObject": "[ekran_zegar.eez-project]:/fonts/3",
     "selectedBitmapObject": "[ekran_zegar.eez-project]:/bitmaps/37",
     "subnavigationSelectedItems": {
@@ -203,16 +203,50 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 50.631852188194514,
+              "selected": 3,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
                 {
                   "type": "tab",
-                  "id": "#53c0e66e-4d26-4dc3-bc17-ff2c4870417b",
-                  "name": "Main",
+                  "id": "#0358587b-6961-4cc3-8dd1-beba7c203546",
+                  "name": "action_toggle_touch",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[ekran_zegar.eez-project]:/userPages/0",
+                    "objectPath": "[ekran_zegar.eez-project]:/actions/4",
+                    "permanent": false
+                  },
+                  "icon": "material:code"
+                },
+                {
+                  "type": "tab",
+                  "id": "#849a8ab1-d359-4c87-9c1d-3e207c8ef891",
+                  "name": "action_toggle_music",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[ekran_zegar.eez-project]:/actions/5",
+                    "permanent": true
+                  },
+                  "icon": "material:code"
+                },
+                {
+                  "type": "tab",
+                  "id": "#7763639b-338f-46e7-8f87-78816385b36d",
+                  "name": "action_toggle_mqtt",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[ekran_zegar.eez-project]:/actions/2",
+                    "permanent": true
+                  },
+                  "icon": "material:code"
+                },
+                {
+                  "type": "tab",
+                  "id": "#53c0e66e-4d26-4dc3-bc17-ff2c4870417b",
+                  "name": "Menu",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[ekran_zegar.eez-project]:/userPages/1",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -506,7 +540,8 @@
                   },
                   "icon": "svg:page"
                 }
-              ]
+              ],
+              "active": true
             },
             {
               "type": "row",
@@ -535,8 +570,7 @@
                       "enableClose": false,
                       "icon": "svg:breakpoints_panel"
                     }
-                  ],
-                  "active": true
+                  ]
                 },
                 {
                   "type": "tabset",
@@ -1124,18 +1158,21 @@
           },
           "1": {
             "2": {},
-            "$selected": true
+            "3": {}
           },
           "2": {
             "0": {},
             "3": {}
           },
+          "5": {},
           "6": {
             "0": {},
             "1": {}
           }
         },
-        "1": {}
+        "1": {
+          "$selected": true
+        }
       },
       "transform": {
         "translate": {
@@ -1157,10 +1194,11 @@
         "0": {
           "0": {
             "0": {},
-            "2": {
+            "2": {},
+            "4": {},
+            "7": {
               "$selected": true
-            },
-            "4": {}
+            }
           }
         },
         "1": {},
@@ -1169,10 +1207,10 @@
       },
       "transform": {
         "translate": {
-          "x": -341.49062337599025,
-          "y": -210.11919785318344
+          "x": -464.49062337599025,
+          "y": -318.11919785318344
         },
-        "scale": 0.75
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1195,9 +1233,9 @@
       "transform": {
         "translate": {
           "x": -339.49899509379503,
-          "y": -190.36803520923525
+          "y": -290.36803520923525
         },
-        "scale": 0.75
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1284,7 +1322,7 @@
           "x": -242,
           "y": -282
         },
-        "scale": 0.75
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1321,6 +1359,56 @@
         },
         "scale": 1
       }
+    },
+    "[ekran_zegar.eez-project]:/actions/1[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": 1
+      }
+    },
+    "[ekran_zegar.eez-project]:/actions/2[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": 1
+      }
+    },
+    "[ekran_zegar.eez-project]:/actions/3[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": 1
+      }
+    },
+    "[ekran_zegar.eez-project]:/actions/4[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": 1
+      }
+    },
+    "[ekran_zegar.eez-project]:/actions/5[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": 1
+      }
     }
   },
   "activeOutputSection": 0,
@@ -1351,6 +1439,6 @@
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
   "flowZoom": 1,
-  "implementationLanguage": "C",
+  "implementationLanguage": "C++",
   "openDialogDefaultPath": "C:\\Users\\PC\\Desktop\\EKRAN_PROJEKT\\zdj_gotowe\\kfe_audio.png"
 }

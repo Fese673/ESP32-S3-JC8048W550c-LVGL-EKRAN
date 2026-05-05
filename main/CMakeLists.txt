@@ -14,8 +14,10 @@ file(GLOB_RECURSE SOURCES_UTILS_CXX
     ./utils/**/*.cpp
 )
 
-file(GLOB_RECURSE SOURCES_APP_CPP
-    ./app/*.cpp
+set(SOURCES_APP_CPP
+    ./app/clock_logic.cpp
+    ./app/notification_logic.cpp
+    ./app/main.cpp
 )
 
 set(SOURCES_COMMUNICATION_CPP

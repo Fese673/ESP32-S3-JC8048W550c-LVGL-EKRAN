@@ -2,6 +2,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "clock_logic.h"
+#include "notification_logic.h"
 #include "communication/CommunicationProtocol.h"
 #include "wifi_service.h"
 #include "sntp_service.h"
@@ -20,6 +21,29 @@ extern "C" {
 
 #include "screens.h"
 
+static void my_dropdown_event_cb(lv_event_t * e) {
+    lv_obj_t * dropdown = (lv_obj_t *)lv_event_get_target(e);
+    uint32_t selected = lv_dropdown_get_selected(dropdown);
+
+    CommunicationProtocol::DeviceSettings ds = CommunicationProtocol::currentSettings();
+    CommunicationProtocol::updateLocalSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, (int)selected);
+    CommunicationProtocol::sendDeviceSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, (int)selected);
+}
+
+static void init_custom_dropdown_hook() {
+    if (objects.ustawienia) {
+        lv_obj_t *container = lv_obj_get_child(objects.ustawienia, 0);
+        if (container) {
+            lv_obj_t *dropdown = lv_obj_get_child(container, 6);
+            if (dropdown) {
+                CommunicationProtocol::DeviceSettings ds = CommunicationProtocol::currentSettings();
+                lv_dropdown_set_selected(dropdown, ds.alarmMelodyIndex);
+                lv_obj_add_event_cb(dropdown, my_dropdown_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+            }
+        }
+    }
+}
+
 static void ui_tick_timer_cb(lv_timer_t *timer)
 {
     (void)timer;
@@ -33,12 +57,17 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
 
         if (current_screen_id == SCREEN_ID_MENU || current_screen_id == SCREEN_ID_USTAWIENIA) {
             CommunicationProtocol::requestDeviceSettings();
+            CommunicationProtocol::requestSystemResources();
+        }
+        if (current_screen_id == SCREEN_ID_USTAWIENIA) {
+            init_custom_dropdown_hook();
         }
     }
 
     int64_t start_us = esp_timer_get_time();
     log_ui_tick_begin(current_screen_id);
     ui_tick();
+    notification_logic_refresh();
     CommunicationProtocol::updateUi();
     log_ui_tick_end(current_screen_id, esp_timer_get_time() - start_us);
 }
@@ -70,6 +99,7 @@ extern "C" void app_main(void)
 
     if (lvgl_port_lock(0)) {
         ui_init();
+        notification_logic_init();
         CommunicationProtocol::begin();
         CommunicationProtocol::updateUi();
         log_ui_snapshot("ui_init done", eez_flow_get_current_screen());

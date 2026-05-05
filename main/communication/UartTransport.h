@@ -9,5 +9,6 @@ void beginUart();
 void stopUart();
 void sendRawFrame(uint8_t type, uint8_t sequence, const uint8_t *payload, uint16_t payloadLength);
 bool ingestByte(uint8_t byte);
+void onPeerHelloAckReceived(); // Wywoływane z UartTransport po odebraniu HELLO_ACK
 
 } // namespace CommunicationProtocol

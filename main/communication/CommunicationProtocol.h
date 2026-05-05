@@ -4,19 +4,52 @@
 #include <stdint.h>
 
 namespace CommunicationProtocol {
+ 
+ enum FrameType {
+   kTypeWeather = 0x01,
+   kTypePms = 0x02,
+   kTypeTime = 0x03,
+   kTypeSettings = 0x04,
+   kTypeSetSettings = 0x05,
+   kTypeSystemResources = 0x06,
+   kTypeRequest = 0x10,
+   kTypeConfig = 0x11,
+   kTypeHello    = 0x20,
+   kTypeHelloAck = 0x21,
+   kTypeAck = 0xFF
+ };
+
+ // Stany maszyny synchronizacji
+ enum PeerSyncState {
+   kSyncBooting          = 0,
+   kSyncUartReady        = 1,
+   kSyncPeerDetected     = 2,
+   kSyncFirstSyncSent    = 3,
+   kSyncFirstSyncConfirmed = 4,
+   kSyncSteadyState      = 5
+ };
+
+ // Payload ramki HELLO / HELLO_ACK
+ struct HelloPayload {
+   uint8_t  protocolVersion; // Aktualna wersja: 1
+   uint8_t  deviceRole;      // 0 = Display (Guition), 1 = Sensor (Zegar)
+   uint32_t bootId;          // Losowe ID generowane przy każdym starcie
+   uint32_t uptimeMs;        // Czas od startu w ms
+   uint8_t  syncState;       // PeerSyncState
+ };
 
 struct Snapshot {
-    float temperatureC = 23.2f;
-    uint8_t humidityPct = 32;
-    uint16_t pressureHpa = 1012;
-    uint16_t pm01UgM3 = 9;
-    uint16_t pm25UgM3 = 23;
-    uint16_t pm10UgM3 = 31;
+    float temperatureC = 0.0f;
+    uint8_t humidityPct = 0;
+    uint16_t pressureHpa = 0;
+    uint16_t pm01UgM3 = 0;
+    uint16_t pm25UgM3 = 0;
+    uint16_t pm10UgM3 = 0;
     uint32_t sampleAgeMs = 0;
     uint32_t timeUnixSeconds = 0;
-    uint8_t airQualityIndex = 1;
-    char airQualityText[16] = "Dobra";
-    bool valid = true;
+    uint8_t airQualityIndex = 0;
+    char airQualityText[16] = "";
+    bool valid = false;
     unsigned long updatedAtMs = 0;
 };
 
@@ -26,6 +59,23 @@ struct DeviceSettings {
     bool touchTestEnabled = true;
     bool backgroundMusicEnabled = true;
     bool pmsEnabled = true;
+    int alarmMelodyIndex = 0;
+    bool valid = false;
+};
+
+struct SystemResources {
+    uint32_t freeRam = 0;
+    uint32_t heapRam = 0;
+    uint32_t dmaRam = 0;
+    uint8_t core0Cpu = 0;
+    uint8_t core1Cpu = 0;
+    uint32_t freeFlash = 0;
+    uint32_t usedFlash = 0;
+    uint16_t underrunsAudio = 0;
+    uint16_t overflowAudio = 0;
+    uint16_t dropsAudio = 0;
+    uint16_t errorsI2c = 0;
+    uint16_t timeoutsI2c = 0;
     bool valid = false;
 };
 
@@ -34,11 +84,13 @@ void reset();
 void setSnapshot(const Snapshot& snapshot);
 const Snapshot& currentSnapshot();
 const DeviceSettings& currentSettings();
+const SystemResources& currentResources();
 bool ingestFrame(const uint8_t* data, size_t length);
 void updateUi();
 void requestDeviceSettings();
-void sendDeviceSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms);
-void updateLocalSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms);
+void requestSystemResources();
+void sendDeviceSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody);
+void updateLocalSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody);
 
 }  // namespace CommunicationProtocol
 

@@ -1,4 +1,5 @@
 #include "communication/UartTransport.h"
+#include "communication/CommunicationProtocol.h"
 #include "communication/CobsFraming.h"
 #include "communication/CommunicationState.h"
 #include <stdio.h>
@@ -21,13 +22,6 @@ constexpr size_t kRxBufferSize = 1024;
 constexpr size_t kTxBufferSize = 256;
 constexpr size_t kMaxPayloadBytes = 128;
 
-constexpr uint8_t kTypeWeather = 0x01;
-constexpr uint8_t kTypePms = 0x02;
-constexpr uint8_t kTypeTime = 0x03;
-constexpr uint8_t kTypeSettings = 0x04;
-constexpr uint8_t kTypeRequest = 0x10;
-constexpr uint8_t kTypeConfig = 0x11;
-constexpr uint8_t kTypeAck = 0xFF;
 
 struct FrameParser {
   uint8_t buffer[256] = {};
@@ -41,6 +35,9 @@ volatile bool s_started = false;
 void resetParser() { s_parser.length = 0; }
 
 void handleFrame(uint8_t type, const uint8_t *payload, uint16_t payloadLength) {
+  // Każda odebrana ramka danych aktualizuje znacznik keep-alive
+  notifyFrameReceived();
+
   switch (type) {
   case kTypeWeather:
     applyWeatherPayload(payload, payloadLength);
@@ -53,6 +50,18 @@ void handleFrame(uint8_t type, const uint8_t *payload, uint16_t payloadLength) {
     break;
   case kTypeSettings:
     applySettingsPayload(payload, payloadLength);
+    break;
+  case kTypeSystemResources:
+    applySystemResourcesPayload(payload, payloadLength);
+    break;
+  case kTypeHelloAck:
+    // Peer odpowiedział na HELLO – parsujemy i awansujemy stan sync
+    onHelloAckReceived(payload, payloadLength);
+    onPeerHelloAckReceived(); // poinformuj maszynę stanów w CommunicationProtocol
+    break;
+  case kTypeHello:
+    // Zegar może wysyłać HELLO jako keep-alive w steady-state – ignorujemy payload
+    ESP_LOGI(kTag, "Received HELLO from peer (keep-alive)");
     break;
   case kTypeRequest:
   case kTypeConfig:
@@ -105,7 +114,7 @@ void beginUart() {
   s_started = true;
 
   if (s_taskHandle == nullptr) {
-    if (xTaskCreate(communicationTask, "comm_uart1", 4096, nullptr, 4, &s_taskHandle) != pdPASS) {
+    if (xTaskCreatePinnedToCore(communicationTask, "comm_uart1", 4096, nullptr, 4, &s_taskHandle, 0) != pdPASS) {
       ESP_LOGE(kTag, "Failed to create UART receiver task");
     }
   }

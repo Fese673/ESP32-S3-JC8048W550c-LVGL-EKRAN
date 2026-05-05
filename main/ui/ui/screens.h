@@ -19,7 +19,8 @@ enum ScreensEnum {
     SCREEN_ID_USTAWIENIA_WIFI = 6,
     SCREEN_ID_GRY = 7,
     SCREEN_ID_ZEGAR = 8,
-    _SCREEN_ID_LAST = 8
+    SCREEN_ID_LOGI = 9,
+    _SCREEN_ID_LAST = 9
 };
 
 typedef struct _objects_t {
@@ -31,6 +32,7 @@ typedef struct _objects_t {
     lv_obj_t *ustawienia_wifi;
     lv_obj_t *gry;
     lv_obj_t *zegar;
+    lv_obj_t *logi;
     lv_obj_t *obj0;
     lv_obj_t *obj1;
     lv_obj_t *obj2;
@@ -114,11 +116,8 @@ typedef struct _objects_t {
     lv_obj_t *obj62;
     lv_obj_t *obj63;
     lv_obj_t *obj64;
-    lv_obj_t *seconds_text_6;
     lv_obj_t *obj65;
-    lv_obj_t *minutes_text_7;
     lv_obj_t *obj66;
-    lv_obj_t *hour_text_7;
     lv_obj_t *obj67;
     lv_obj_t *obj68;
     lv_obj_t *obj69;
@@ -127,32 +126,66 @@ typedef struct _objects_t {
     lv_obj_t *obj72;
     lv_obj_t *obj73;
     lv_obj_t *obj74;
-    lv_obj_t *seconds_text_7;
     lv_obj_t *obj75;
-    lv_obj_t *minutes_text_8;
     lv_obj_t *obj76;
-    lv_obj_t *hour_text_8;
+    lv_obj_t *seconds_text_6;
     lv_obj_t *obj77;
+    lv_obj_t *minutes_text_7;
     lv_obj_t *obj78;
+    lv_obj_t *hour_text_7;
     lv_obj_t *obj79;
     lv_obj_t *obj80;
     lv_obj_t *obj81;
     lv_obj_t *obj82;
     lv_obj_t *obj83;
-    lv_obj_t *seconds_text_8;
     lv_obj_t *obj84;
-    lv_obj_t *minutes_text_9;
     lv_obj_t *obj85;
-    lv_obj_t *hour_text_9;
     lv_obj_t *obj86;
+    lv_obj_t *seconds_text_7;
     lv_obj_t *obj87;
+    lv_obj_t *minutes_text_8;
     lv_obj_t *obj88;
+    lv_obj_t *hour_text_8;
     lv_obj_t *obj89;
     lv_obj_t *obj90;
     lv_obj_t *obj91;
+    lv_obj_t *obj92;
+    lv_obj_t *obj93;
+    lv_obj_t *obj94;
+    lv_obj_t *obj95;
+    lv_obj_t *seconds_text_8;
+    lv_obj_t *obj96;
+    lv_obj_t *minutes_text_9;
+    lv_obj_t *obj97;
+    lv_obj_t *hour_text_9;
+    lv_obj_t *obj98;
+    lv_obj_t *obj99;
+    lv_obj_t *obj100;
+    lv_obj_t *obj101;
+    lv_obj_t *obj102;
+    lv_obj_t *obj103;
+    lv_obj_t *obj104;
+    lv_obj_t *seconds_text_9;
+    lv_obj_t *obj105;
+    lv_obj_t *minutes_text_10;
+    lv_obj_t *obj106;
+    lv_obj_t *hour_text_10;
+    lv_obj_t *obj107;
+    lv_obj_t *obj108;
+    lv_obj_t *obj109;
+    lv_obj_t *obj110;
+    lv_obj_t *obj111;
+    lv_obj_t *obj112;
+    lv_obj_t *log_terminal;
 } objects_t;
 
 extern objects_t objects;
+
+typedef struct {
+    lv_span_t *span_0;
+} screen_logi_state_t;
+
+extern screen_logi_state_t screen_logi_state;
 
 void create_screen_main();
 void tick_screen_main();
@@ -177,6 +210,9 @@ void tick_screen_gry();
 
 void create_screen_zegar();
 void tick_screen_zegar();
+
+void create_screen_logi();
+void tick_screen_logi();
 
 void tick_screen_by_id(enum ScreensEnum screenId);
 void tick_screen(int screen_index);
