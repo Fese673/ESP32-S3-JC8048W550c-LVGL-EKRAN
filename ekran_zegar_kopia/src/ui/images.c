@@ -1,6 +1,6 @@
 #include "images.h"
 
-const ext_img_desc_t images[40] = {
+const ext_img_desc_t images[53] = {
     { "kfe_analiza", &img_kfe_analiza },
     { "kfe_czujniki", &img_kfe_czujniki },
     { "kfe_menu", &img_kfe_menu },
@@ -34,11 +34,24 @@ const ext_img_desc_t images[40] = {
     { "bell-of_icon", &img_bell_of_icon },
     { "ble-off_icon", &img_ble_off_icon },
     { "pressure_icon", &img_pressure_icon },
-    { "co2_icon", &img_co2_icon },
     { "kfe_clock", &img_kfe_clock },
+    { "co2_icon", &img_co2_icon },
     { "kfe_ram", &img_kfe_ram },
     { "kfe_flash", &img_kfe_flash },
     { "kfe_cpu", &img_kfe_cpu },
     { "kfe_12c", &img_kfe_12c },
     { "kfe_audio", &img_kfe_audio },
+    { "kfe_wind", &img_kfe_wind },
+    { "kfe_weather", &img_kfe_weather },
+    { "kfe_uvindex", &img_kfe_uvindex },
+    { "kfe_sunsetrise", &img_kfe_sunsetrise },
+    { "kfe_rainfall", &img_kfe_rainfall },
+    { "kfe_pressures", &img_kfe_pressures },
+    { "kfe_perceptible", &img_kfe_perceptible },
+    { "kfe_humiditys", &img_kfe_humiditys },
+    { "kfe_dustpm25", &img_kfe_dustpm25 },
+    { "kfe_czas", &img_kfe_czas },
+    { "kfe_budzik", &img_kfe_budzik },
+    { "kfe_stoper", &img_kfe_stoper },
+    { "kfe_minutnik", &img_kfe_minutnik },
 };

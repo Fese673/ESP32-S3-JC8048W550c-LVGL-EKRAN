@@ -8,6 +8,7 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 
 #include "ui.h"
 #include "screens.h"
@@ -26,9 +27,15 @@ static size_t log_buffer_pos = 0;
 static bool log_initialized = false;
 static int log_change_counter = 0;
 static int log_last_update_counter = 0;
+static size_t s_last_buffer_pos = 0;
+static bool s_force_full_refresh = false;
+static SemaphoreHandle_t s_logMutex = NULL;
 
 static void log_add_to_buffer(const char *tag, const char *message) {
     if (!log_initialized) return;
+
+    if (s_logMutex == NULL) s_logMutex = xSemaphoreCreateMutex();
+    if (s_logMutex) xSemaphoreTake(s_logMutex, portMAX_DELAY);
 
     log_change_counter++;
 
@@ -43,6 +50,8 @@ static void log_add_to_buffer(const char *tag, const char *message) {
     memcpy(log_buffer + log_buffer_pos, line, len);
     log_buffer_pos += len;
     log_buffer[log_buffer_pos] = '\0';
+
+    if (s_logMutex) xSemaphoreGive(s_logMutex);
 }
 
 void log_init(void) {
@@ -125,10 +134,15 @@ const char* log_get_all_text(void) {
 }
 
 void log_clear(void) {
+    if (s_logMutex == NULL) s_logMutex = xSemaphoreCreateMutex();
+    if (s_logMutex) xSemaphoreTake(s_logMutex, portMAX_DELAY);
     log_buffer[0] = '\0';
     log_buffer_pos = 0;
     log_change_counter = 0;
     log_last_update_counter = 0;
+    s_last_buffer_pos = 0;
+    s_force_full_refresh = true;
+    if (s_logMutex) xSemaphoreGive(s_logMutex);
 }
 
 void log_update_textarea(void) {
@@ -141,9 +155,25 @@ void log_update_textarea(void) {
     if (now - last_update < 500000) return;
     last_update = now;
 
+    if (s_logMutex == NULL) s_logMutex = xSemaphoreCreateMutex();
+    if (s_logMutex) xSemaphoreTake(s_logMutex, portMAX_DELAY);
+
     lv_textarea_set_max_length(objects.log_terminal, 0);
-    lv_textarea_set_text(objects.log_terminal, log_buffer);
+
+    if (s_force_full_refresh || log_buffer_pos < s_last_buffer_pos) {
+        // Buffer wrap lub clear - załaduj całość
+        s_force_full_refresh = false;
+        lv_textarea_set_text(objects.log_terminal, log_buffer);
+        s_last_buffer_pos = log_buffer_pos;
+    } else if (log_buffer_pos > s_last_buffer_pos) {
+        // Tylko nowe dane
+        lv_textarea_set_cursor_pos(objects.log_terminal, 0xFFFF);
+        lv_textarea_add_text(objects.log_terminal, log_buffer + s_last_buffer_pos);
+        s_last_buffer_pos = log_buffer_pos;
+    }
+
     log_last_update_counter = log_change_counter;
+    if (s_logMutex) xSemaphoreGive(s_logMutex);
 }
 
 void log_boot_snapshot(const char *where) {

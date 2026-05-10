@@ -1,12 +1,12 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/5",
+    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/0",
     "selectedActionObject": "[ekran_zegar.eez-project]:/actions/4",
-    "selectedGlobalVariableObject": "[ekran_zegar.eez-project]:/variables/globalVariables/32",
-    "selectedFontObject": "[ekran_zegar.eez-project]:/fonts/3",
-    "selectedBitmapObject": "[ekran_zegar.eez-project]:/bitmaps/37",
+    "selectedGlobalVariableObject": "[ekran_zegar.eez-project]:/variables/globalVariables/28",
+    "selectedFontObject": "[ekran_zegar.eez-project]:/fonts/8",
+    "selectedBitmapObject": "[ekran_zegar.eez-project]:/bitmaps/52",
     "subnavigationSelectedItems": {
-      "variables-tab/sub-navigation/selected-item": "Global"
+      "variables-tab/sub-navigation/selected-item": "Local"
     }
   },
   "layoutModel": {
@@ -28,7 +28,7 @@
           {
             "type": "border",
             "selected": 2,
-            "size": 16.5,
+            "size": 134.5,
             "location": "right",
             "children": [
               {
@@ -84,7 +84,7 @@
           {
             "type": "border",
             "selected": 0,
-            "size": 81.5,
+            "size": 205.5,
             "location": "bottom",
             "children": [
               {
@@ -168,7 +168,7 @@
                 {
                   "type": "tabset",
                   "id": "#007638b2-897d-45be-a1a2-acd1a62eb495",
-                  "weight": 1.1666666666666667,
+                  "weight": 2,
                   "enableClose": false,
                   "children": [
                     {
@@ -184,7 +184,7 @@
                 {
                   "type": "tabset",
                   "id": "#737399af-d009-488f-8777-692b16424980",
-                  "weight": 0.8333333333333334,
+                  "weight": 0,
                   "enableClose": false,
                   "children": [
                     {
@@ -202,11 +202,32 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 50.631852188194514,
-              "selected": 3,
+              "weight": 47.798804818015604,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
+                {
+                  "type": "tab",
+                  "id": "#68bdb60f-25d7-4fa4-9a2c-cd30ebaadb86",
+                  "name": "Main",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[ekran_zegar.eez-project]:/userPages/0",
+                    "permanent": false
+                  },
+                  "icon": "svg:page"
+                },
+                {
+                  "type": "tab",
+                  "id": "#007cd0e4-4592-4e73-8258-b12e20e7adce",
+                  "name": "Pogoda",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[ekran_zegar.eez-project]:/userPages/9",
+                    "permanent": true
+                  },
+                  "icon": "svg:page"
+                },
                 {
                   "type": "tab",
                   "id": "#0358587b-6961-4cc3-8dd1-beba7c203546",
@@ -239,17 +260,6 @@
                     "permanent": true
                   },
                   "icon": "material:code"
-                },
-                {
-                  "type": "tab",
-                  "id": "#53c0e66e-4d26-4dc3-bc17-ff2c4870417b",
-                  "name": "Ustawienia_Wifi",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[ekran_zegar.eez-project]:/userPages/5",
-                    "permanent": false
-                  },
-                  "icon": "svg:page"
                 },
                 {
                   "type": "tab",
@@ -290,12 +300,12 @@
             {
               "type": "row",
               "id": "#5514c50b-0b4d-4559-8aac-3a1042211599",
-              "weight": 33.432072251652855,
+              "weight": 36.265119621831765,
               "children": [
                 {
                   "type": "tabset",
                   "id": "#16edfb2a-95cc-47ac-a60c-57cf6051aaae",
-                  "weight": 1.863237139272271,
+                  "weight": 2.2718078381795195,
                   "children": [
                     {
                       "type": "tab",
@@ -311,7 +321,7 @@
                 {
                   "type": "tabset",
                   "id": "#2c92b63c-011b-4e1b-a4a5-1be33d645f11",
-                  "weight": 1.136762860727729,
+                  "weight": 0.7281921618204804,
                   "children": [
                     {
                       "type": "tab",
@@ -1152,37 +1162,31 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "0": {
-            "0": {},
-            "2": {
-              "0": {}
-            },
-            "3": {}
-          },
           "1": {
-            "2": {},
-            "3": {}
+            "2": {}
           },
           "2": {
-            "0": {},
-            "3": {
-              "$selected": true
-            }
-          },
-          "5": {},
-          "6": {
-            "0": {},
             "1": {}
+          },
+          "6": {},
+          "7": {
+            "1": {},
+            "2": {
+              "1": {
+                "$selected": true
+              }
+            }
           }
         },
-        "1": {}
+        "1": {},
+        "2": {}
       },
       "transform": {
         "translate": {
-          "x": -406.229200011076,
-          "y": -222.5739740382811
+          "x": -514.6597619047618,
+          "y": -303.08547619047636
         },
-        "scale": 0.9
+        "scale": 1.25
       },
       "timeline": {
         "isEditorActive": false,
@@ -1196,24 +1200,23 @@
       "selectionBack": {
         "0": {
           "0": {
-            "0": {
-              "$selected": true
-            },
-            "2": {},
-            "4": {},
-            "7": {}
-          }
+            "0": {}
+          },
+          "1": {}
         },
         "1": {},
         "2": {},
-        "3": {}
+        "3": {},
+        "7": {
+          "$selected": true
+        }
       },
       "transform": {
         "translate": {
-          "x": -464.49062337599025,
-          "y": -318.11919785318344
+          "x": -679.4906233759903,
+          "y": -328.11919785318344
         },
-        "scale": 0.9
+        "scale": 1.25
       },
       "timeline": {
         "isEditorActive": false,
@@ -1227,20 +1230,18 @@
       "selectionBack": {
         "0": {
           "0": {
-            "$selected": true
-          },
-          "1": {
-            "0": {}
+            "0": {},
+            "6": {}
           }
         },
         "1": {}
       },
       "transform": {
         "translate": {
-          "x": -339.49899509379503,
-          "y": -290.36803520923525
+          "x": -428.498995093795,
+          "y": -252.36803520923525
         },
-        "scale": 0.9
+        "scale": 1.25
       },
       "timeline": {
         "isEditorActive": false,
@@ -1253,10 +1254,7 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "0": {},
-          "2": {
-            "$selected": true
-          }
+          "0": {}
         }
       },
       "transform": {
@@ -1264,7 +1262,7 @@
           "x": -346.2824059360105,
           "y": -240.10709383640045
         },
-        "scale": 1
+        "scale": 1.25
       },
       "timeline": {
         "isEditorActive": false,
@@ -1277,20 +1275,21 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "2": {
+          "0": {
             "5": {}
+          },
+          "15": {
+            "1": {}
           }
         },
-        "1": {
-          "$selected": true
-        }
+        "1": {}
       },
       "transform": {
         "translate": {
-          "x": -423.1786363636367,
-          "y": -237.3350162337661
+          "x": -408.551741440378,
+          "y": -298.91877951593847
         },
-        "scale": 0.9
+        "scale": 1.25
       },
       "timeline": {
         "isEditorActive": false,
@@ -1306,10 +1305,10 @@
       },
       "transform": {
         "translate": {
-          "x": -265.44374999999997,
-          "y": -262.690625
+          "x": -408.44374999999997,
+          "y": -263.690625
         },
-        "scale": 0.9
+        "scale": 1.25
       },
       "timeline": {
         "isEditorActive": false,
@@ -1322,20 +1321,20 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "1": {},
-          "2": {
-            "$selected": true
-          },
-          "5": {},
-          "6": {}
-        }
+          "0": {},
+          "2": {},
+          "3": {},
+          "5": {}
+        },
+        "2": {},
+        "$selected": true
       },
       "transform": {
         "translate": {
-          "x": -454,
-          "y": -284
+          "x": -400,
+          "y": -240
         },
-        "scale": 0.9
+        "scale": 1.25
       },
       "timeline": {
         "isEditorActive": false,
@@ -1347,14 +1346,24 @@
     "[ekran_zegar.eez-project]:/userPages/7[flow-state]": {
       "selectionFront": {},
       "selectionBack": {
-        "0": {}
+        "0": {
+          "2": {
+            "0": {
+              "$selected": true
+            },
+            "1": {},
+            "6": {
+              "1": {}
+            }
+          }
+        }
       },
       "transform": {
         "translate": {
-          "x": -303.1656883116884,
-          "y": -294.7834058441558
+          "x": -236.03559458218547,
+          "y": -209.19479740587656
         },
-        "scale": 0.75
+        "scale": 1.25
       },
       "timeline": {
         "isEditorActive": false,
@@ -1435,6 +1444,65 @@
           "x": -400,
           "y": -240
         },
+        "scale": 1.25
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[ekran_zegar.eez-project]:/userPages/9[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {
+        "0": {
+          "0": {},
+          "3": {}
+        },
+        "1": {}
+      },
+      "transform": {
+        "translate": {
+          "x": -307.3891587038356,
+          "y": -327.1035966003317
+        },
+        "scale": 1.25
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[ekran_zegar.eez-project]:/userPages/10[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {
+        "0": {}
+      },
+      "transform": {
+        "translate": {
+          "x": -344,
+          "y": -248
+        },
+        "scale": 1.25
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[ekran_zegar.eez-project]:/userPages/11[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {},
+      "transform": {
+        "translate": {
+          "x": -400,
+          "y": -240
+        },
         "scale": 0.9
       },
       "timeline": {
@@ -1459,12 +1527,10 @@
   "selectedStylePropertyName": "",
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
-  "lvglExpandedPropertiesGroup": [
-    "TEXT"
-  ],
+  "lvglExpandedPropertiesGroup": [],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 0.9,
+  "flowZoom": 1.25,
   "implementationLanguage": "C++",
-  "openDialogDefaultPath": "C:\\Users\\PC\\Desktop\\EKRAN_PROJEKT\\zdj_gotowe\\kfe_audio.png"
+  "openDialogDefaultPath": "C:\\Users\\PC\\Desktop\\EKRAN_PROJEKT\\scaled\\ZEGAR\\kfe_minutniik.PNG"
 }

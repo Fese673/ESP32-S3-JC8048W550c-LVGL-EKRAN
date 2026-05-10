@@ -9,6 +9,7 @@ typedef struct {
     uint16_t hello;
     uint16_t hello_ack;
     uint16_t weather;
+    uint16_t outdoor;
     uint16_t pms;
     uint16_t time;
     uint16_t settings;
@@ -30,7 +31,8 @@ static void increment_counter(frame_counts_t *counts, uint8_t type) {
     switch (type) {
         case CommunicationProtocol::kTypeHello: counts->hello++; break;
         case CommunicationProtocol::kTypeHelloAck: counts->hello_ack++; break;
-        case CommunicationProtocol::kTypeWeather: counts->weather++; break;
+        case CommunicationProtocol::kTypeIndoorWeather: counts->weather++; break;
+        case CommunicationProtocol::kTypeOutdoorWeather: counts->outdoor++; break;
         case CommunicationProtocol::kTypePms: counts->pms++; break;
         case CommunicationProtocol::kTypeTime: counts->time++; break;
         case CommunicationProtocol::kTypeSettings: counts->settings++; break;
@@ -78,12 +80,12 @@ void comm_log_flush_now(void) {
     #define APPEND_RX(name) rx_pos += append_frame_if_nonzero(rx_buf + rx_pos, sizeof(rx_buf) - rx_pos, #name, s_state.rx.name)
 
     APPEND_TX(hello); APPEND_TX(hello_ack); APPEND_TX(weather);
-    APPEND_TX(pms); APPEND_TX(time); APPEND_TX(settings);
+    APPEND_TX(outdoor); APPEND_TX(pms); APPEND_TX(time); APPEND_TX(settings);
     APPEND_TX(set_settings); APPEND_TX(request); APPEND_TX(config);
     APPEND_TX(ack); APPEND_TX(unknown);
 
     APPEND_RX(hello); APPEND_RX(hello_ack); APPEND_RX(weather);
-    APPEND_RX(pms); APPEND_RX(time); APPEND_RX(settings);
+    APPEND_RX(outdoor); APPEND_RX(pms); APPEND_RX(time); APPEND_RX(settings);
     APPEND_RX(set_settings); APPEND_RX(request); APPEND_RX(config);
     APPEND_RX(ack); APPEND_RX(unknown);
 

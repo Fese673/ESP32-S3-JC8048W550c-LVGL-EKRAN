@@ -40,13 +40,26 @@ extern const lv_img_dsc_t img_wifi_off_icon;
 extern const lv_img_dsc_t img_bell_of_icon;
 extern const lv_img_dsc_t img_ble_off_icon;
 extern const lv_img_dsc_t img_pressure_icon;
-extern const lv_img_dsc_t img_co2_icon;
 extern const lv_img_dsc_t img_kfe_clock;
+extern const lv_img_dsc_t img_co2_icon;
 extern const lv_img_dsc_t img_kfe_ram;
 extern const lv_img_dsc_t img_kfe_flash;
 extern const lv_img_dsc_t img_kfe_cpu;
 extern const lv_img_dsc_t img_kfe_12c;
 extern const lv_img_dsc_t img_kfe_audio;
+extern const lv_img_dsc_t img_kfe_wind;
+extern const lv_img_dsc_t img_kfe_weather;
+extern const lv_img_dsc_t img_kfe_uvindex;
+extern const lv_img_dsc_t img_kfe_sunsetrise;
+extern const lv_img_dsc_t img_kfe_rainfall;
+extern const lv_img_dsc_t img_kfe_pressures;
+extern const lv_img_dsc_t img_kfe_perceptible;
+extern const lv_img_dsc_t img_kfe_humiditys;
+extern const lv_img_dsc_t img_kfe_dustpm25;
+extern const lv_img_dsc_t img_kfe_czas;
+extern const lv_img_dsc_t img_kfe_budzik;
+extern const lv_img_dsc_t img_kfe_stoper;
+extern const lv_img_dsc_t img_kfe_minutnik;
 
 #ifndef EXT_IMG_DESC_T
 #define EXT_IMG_DESC_T
@@ -56,7 +69,7 @@ typedef struct _ext_img_desc_t {
 } ext_img_desc_t;
 #endif
 
-extern const ext_img_desc_t images[40];
+extern const ext_img_desc_t images[53];
 
 #ifdef __cplusplus
 }

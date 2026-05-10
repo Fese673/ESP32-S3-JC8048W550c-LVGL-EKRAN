@@ -1,6 +1,7 @@
 #include "communication/CommunicationState.h"
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "esp_timer.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -13,21 +14,18 @@ constexpr char kTag[] = "COMM_STATE";
 SemaphoreHandle_t s_mutex = nullptr;
 
 Snapshot s_snapshot;
+OutdoorWeatherSnapshot s_outdoorWeather;
 DeviceSettings s_deviceSettings;
 SystemResources s_systemResources;
 
 volatile bool s_dirty = false;
+volatile bool s_outdoorDirty = false;
 volatile bool s_settingsDirty = false;
 volatile bool s_resourcesDirty = false;
+volatile bool s_resetUiPending = false;
 
 uint32_t currentMs() {
   return static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
-}
-
-void initMutex() {
-  if (s_mutex == nullptr) {
-    s_mutex = xSemaphoreCreateMutex();
-  }
 }
 
 void deriveAirQualityText(Snapshot &snapshot) {
@@ -45,10 +43,27 @@ void deriveAirQualityText(Snapshot &snapshot) {
   snprintf(snapshot.airQualityText, sizeof(snapshot.airQualityText), "Zla");
 }
 
+static void deriveOutdoorAirQualityText(OutdoorWeatherSnapshot &ow) {
+  if (ow.aqi <= 20) {
+    snprintf(ow.airQualityText, sizeof(ow.airQualityText), "Dobra");
+  } else if (ow.aqi <= 40) {
+    snprintf(ow.airQualityText, sizeof(ow.airQualityText), "Srednia");
+  } else if (ow.aqi <= 60) {
+    snprintf(ow.airQualityText, sizeof(ow.airQualityText), "Zla");
+  } else {
+    snprintf(ow.airQualityText, sizeof(ow.airQualityText), "Bardzo zla");
+  }
+}
+
 } // namespace
 
+void initCommunicationState() {
+  if (s_mutex == nullptr) {
+    s_mutex = xSemaphoreCreateMutex();
+  }
+}
+
 void lockSnapshot() {
-  initMutex();
   if (s_mutex != nullptr) {
     xSemaphoreTake(s_mutex, portMAX_DELAY);
   }
@@ -106,15 +121,95 @@ void setLocalResources(const SystemResources& sr) {
 bool isDirty() { return s_dirty; }
 void clearDirty() { s_dirty = false; }
 
+OutdoorWeatherSnapshot getLocalOutdoorWeather() {
+  lockSnapshot();
+  OutdoorWeatherSnapshot copy = s_outdoorWeather;
+  unlockSnapshot();
+  return copy;
+}
+
+void setLocalOutdoorWeather(const OutdoorWeatherSnapshot& ow) {
+  lockSnapshot();
+  s_outdoorWeather = ow;
+  s_outdoorDirty = true;
+  unlockSnapshot();
+}
+
+bool isOutdoorDirty() { return s_outdoorDirty; }
+void clearOutdoorDirty() { s_outdoorDirty = false; }
+
 bool isSettingsDirty() { return s_settingsDirty; }
 void clearSettingsDirty() { s_settingsDirty = false; }
 
 bool isResourcesDirty() { return s_resourcesDirty; }
 void clearResourcesDirty() { s_resourcesDirty = false; }
 
+bool consumeSnapshot(Snapshot &out) {
+  lockSnapshot();
+  bool dirty = s_dirty;
+  if (dirty) {
+    out = s_snapshot;
+    s_dirty = false;
+  }
+  unlockSnapshot();
+  return dirty;
+}
+
+bool consumeSettings(DeviceSettings &out) {
+  lockSnapshot();
+  bool dirty = s_settingsDirty;
+  if (dirty) {
+    out = s_deviceSettings;
+    s_settingsDirty = false;
+  }
+  unlockSnapshot();
+  return dirty;
+}
+
+bool consumeResources(SystemResources &out) {
+  lockSnapshot();
+  bool dirty = s_resourcesDirty;
+  if (dirty) {
+    out = s_systemResources;
+    s_resourcesDirty = false;
+  }
+  unlockSnapshot();
+  return dirty;
+}
+
+bool consumeOutdoorWeather(OutdoorWeatherSnapshot &out) {
+  lockSnapshot();
+  bool dirty = s_outdoorDirty;
+  if (dirty) {
+    out = s_outdoorWeather;
+    s_outdoorDirty = false;
+  }
+  unlockSnapshot();
+  return dirty;
+}
+
+bool isResetUiPending() {
+  lockSnapshot();
+  bool val = s_resetUiPending;
+  unlockSnapshot();
+  return val;
+}
+
+void setResetUiPending() {
+  lockSnapshot();
+  s_resetUiPending = true;
+  unlockSnapshot();
+}
+
+void clearResetUiPending() {
+  lockSnapshot();
+  s_resetUiPending = false;
+  unlockSnapshot();
+}
+
 void applyWeatherPayload(const uint8_t *payload, uint16_t payloadLength) {
-  if (payloadLength != 11U) {
-    ESP_LOGW(kTag, "Weather payload length invalid");
+  if (payloadLength != 13U && payloadLength != 11U) {
+    ESP_LOGW(kTag, "Weather payload length invalid (%u)", payloadLength);
     return;
   }
   Snapshot nextSnapshot = getLocalSnapshot();
@@ -122,11 +217,27 @@ void applyWeatherPayload(const uint8_t *payload, uint16_t payloadLength) {
   const int16_t tempCx100 = static_cast<int16_t>(payload[0] | (payload[1] << 8U));
   const uint16_t humPctX100 = static_cast<uint16_t>(payload[2] | (payload[3] << 8U));
   const uint16_t pressHpaX10 = static_cast<uint16_t>(payload[4] | (payload[5] << 8U));
-  const uint32_t sampleAgeMs = static_cast<uint32_t>(payload[6]) |
-                               (static_cast<uint32_t>(payload[7]) << 8U) |
-                               (static_cast<uint32_t>(payload[8]) << 16U) |
-                               (static_cast<uint32_t>(payload[9]) << 24U);
-  const uint8_t flags = payload[10];
+
+  uint32_t sampleAgeMs;
+  uint8_t flags;
+
+  if (payloadLength == 13U) {
+    const uint16_t eco2 = static_cast<uint16_t>(payload[6] | (payload[7] << 8U));
+    sampleAgeMs = static_cast<uint32_t>(payload[8]) |
+                  (static_cast<uint32_t>(payload[9]) << 8U) |
+                  (static_cast<uint32_t>(payload[10]) << 16U) |
+                  (static_cast<uint32_t>(payload[11]) << 24U);
+    flags = payload[12];
+    if ((flags & 0x40U) != 0U) {
+      nextSnapshot.eco2 = eco2;
+    }
+  } else {
+    sampleAgeMs = static_cast<uint32_t>(payload[6]) |
+                  (static_cast<uint32_t>(payload[7]) << 8U) |
+                  (static_cast<uint32_t>(payload[8]) << 16U) |
+                  (static_cast<uint32_t>(payload[9]) << 24U);
+    flags = payload[10];
+  }
 
   if ((flags & 0x01U) != 0U) {
     nextSnapshot.temperatureC = static_cast<float>(tempCx100) / 100.0f;
@@ -143,6 +254,78 @@ void applyWeatherPayload(const uint8_t *payload, uint16_t payloadLength) {
   nextSnapshot.updatedAtMs = currentMs();
 
   setLocalSnapshot(nextSnapshot);
+}
+
+void applyOutdoorWeatherPayload(const uint8_t *payload, uint16_t payloadLength) {
+  if (payloadLength < 27U) {
+    ESP_LOGW(kTag, "Outdoor weather payload too short (%u)", payloadLength);
+    return;
+  }
+
+  const bool extended = (payloadLength >= 33U);
+  const uint8_t flags = extended ? payload[32] : payload[26];
+
+  OutdoorWeatherSnapshot ow = getLocalOutdoorWeather();
+
+  if ((flags & 0x01U) != 0U) {
+    const int16_t tempCx100 = static_cast<int16_t>(payload[0] | (payload[1] << 8U));
+    const float t = static_cast<float>(tempCx100) / 100.0f;
+    if (isfinite(t) && t > -50.0f && t < 60.0f) { ow.temperatureC = t; }
+  }
+  if ((flags & 0x02U) != 0U) {
+    const uint16_t humPctX100 = static_cast<uint16_t>(payload[2] | (payload[3] << 8U));
+    const uint8_t h = static_cast<uint8_t>(humPctX100 / 100U);
+    if (h <= 100) { ow.humidityPct = h; }
+  }
+  if ((flags & 0x04U) != 0U) {
+    const uint16_t pressHpaX10 = static_cast<uint16_t>(payload[4] | (payload[5] << 8U));
+    const uint16_t p = static_cast<uint16_t>(pressHpaX10 / 10U);
+    if (p >= 800 && p <= 1100) { ow.pressureHpa = p; }
+  }
+  if ((flags & 0x08U) != 0U) {
+    const uint16_t windMsX100 = static_cast<uint16_t>(payload[6] | (payload[7] << 8U));
+    const float ws = static_cast<float>(windMsX100) / 100.0f;
+    if (isfinite(ws) && ws >= 0.0f && ws < 100.0f) { ow.windSpeedMs = ws; }
+    const uint16_t gustMsX100 = static_cast<uint16_t>(payload[8] | (payload[9] << 8U));
+    const float wg = static_cast<float>(gustMsX100) / 100.0f;
+    if (isfinite(wg) && wg >= 0.0f && wg < 150.0f) { ow.windGustMs = wg; }
+    if (payload[10] <= 180) { ow.windDeg = payload[10] * 2U; }
+  }
+  if ((flags & 0x10U) != 0U) {
+    if (payload[11] <= 99) { ow.weatherCode = payload[11]; }
+    if (payload[12] <= 100) { ow.cloudCover = payload[12]; }
+    const int16_t appTempCx100 = static_cast<int16_t>(payload[13] | (payload[14] << 8U));
+    const float at = static_cast<float>(appTempCx100) / 100.0f;
+    if (isfinite(at) && at > -50.0f && at < 60.0f) { ow.apparentTempC = at; }
+  }
+  if ((flags & 0x20U) != 0U) {
+    const uint16_t pm25x100 = static_cast<uint16_t>(payload[15] | (payload[16] << 8U));
+    const uint16_t p25 = static_cast<uint16_t>((pm25x100 + 50U) / 100U);
+    if (p25 <= 5000) { ow.pm25UgM3 = p25; }
+    const uint16_t pm10x100 = static_cast<uint16_t>(payload[17] | (payload[18] << 8U));
+    const uint16_t p10 = static_cast<uint16_t>((pm10x100 + 50U) / 100U);
+    if (p10 <= 10000) { ow.pm10UgM3 = p10; }
+    const uint16_t co2 = static_cast<uint16_t>(payload[19] | (payload[20] << 8U));
+    if (co2 >= 300 && co2 <= 5000) { ow.co2Ppm = co2; }
+    if (payload[21] <= 100) { ow.aqi = payload[21]; deriveOutdoorAirQualityText(ow); }
+  }
+  if ((flags & 0x40U) != 0U && extended) {
+    ow.precipitationMm = static_cast<float>(payload[22]) / 10.0f;
+    ow.uvIndex = static_cast<float>(payload[23]) / 10.0f;
+  }
+  if ((flags & 0x80U) != 0U && extended) {
+    if (payload[24] < 24) { ow.sunriseHour = payload[24]; }
+    if (payload[25] < 60) { ow.sunriseMin = payload[25]; }
+    if (payload[26] < 24) { ow.sunsetHour = payload[26]; }
+    if (payload[27] < 60) { ow.sunsetMin = payload[27]; }
+  }
+
+  if ((flags & 0x3FU) != 0U) {
+    ow.valid = true;
+  }
+  ow.updatedAtMs = currentMs();
+
+  setLocalOutdoorWeather(ow);
 }
 
 void applyPmsPayload(const uint8_t *payload, uint16_t payloadLength) {
@@ -277,8 +460,20 @@ void onHelloAckReceived(const uint8_t *payload, uint16_t payloadLength) {
   if (peerRestarted) {
     ESP_LOGW(kTag, "[HELLO_ACK] Peer restarted! oldBootId=0x%08X newBootId=0x%08X",
              (unsigned int)s_peerBootIdLocal, (unsigned int)peerBootId);
-    // Unieważniamy stare dane i czyścimy UI
-    reset(); 
+    // Clear data (mutex-protected, safe from any task)
+    {
+      Snapshot emptySnapshot{};
+      emptySnapshot.valid = false;
+      emptySnapshot.updatedAtMs = currentMs();
+      setLocalSnapshot(emptySnapshot);
+    }
+    {
+      SystemResources emptyResources{};
+      emptyResources.valid = false;
+      setLocalResources(emptyResources);
+    }
+    // Defer resetUi() (calls eez::flow::setGlobalVariable) to LVGL task
+    setResetUiPending();
   }
 
   s_peerBootIdLocal = peerBootId;

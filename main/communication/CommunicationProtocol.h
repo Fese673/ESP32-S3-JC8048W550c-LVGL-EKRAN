@@ -6,12 +6,14 @@
 namespace CommunicationProtocol {
  
  enum FrameType {
-   kTypeWeather = 0x01,
+   kTypeIndoorWeather = 0x01,
    kTypePms = 0x02,
    kTypeTime = 0x03,
    kTypeSettings = 0x04,
    kTypeSetSettings = 0x05,
    kTypeSystemResources = 0x06,
+   kTypeWifiStatus = 0x07,
+   kTypeOutdoorWeather = 0x08,
    kTypeRequest = 0x10,
    kTypeConfig = 0x11,
    kTypeHello    = 0x20,
@@ -45,10 +47,36 @@ struct Snapshot {
     uint16_t pm01UgM3 = 0;
     uint16_t pm25UgM3 = 0;
     uint16_t pm10UgM3 = 0;
+    uint16_t eco2 = 0;
     uint32_t sampleAgeMs = 0;
     uint32_t timeUnixSeconds = 0;
     uint8_t airQualityIndex = 0;
     char airQualityText[16] = "";
+    bool valid = false;
+    unsigned long updatedAtMs = 0;
+};
+
+struct OutdoorWeatherSnapshot {
+    float temperatureC = 0.0f;
+    uint8_t humidityPct = 0;
+    uint16_t pressureHpa = 0;
+    float windSpeedMs = 0.0f;
+    float windGustMs = 0.0f;
+    uint8_t windDeg = 0;
+    uint8_t weatherCode = 0;
+    uint8_t cloudCover = 0;
+    float apparentTempC = 0.0f;
+    uint16_t pm25UgM3 = 0;
+    uint16_t pm10UgM3 = 0;
+    uint16_t co2Ppm = 0;
+    uint8_t aqi = 0;
+    char airQualityText[16] = "";
+    float precipitationMm = 0.0f;
+    float uvIndex = 0.0f;
+    uint8_t sunriseHour = 0;
+    uint8_t sunriseMin = 0;
+    uint8_t sunsetHour = 0;
+    uint8_t sunsetMin = 0;
     bool valid = false;
     unsigned long updatedAtMs = 0;
 };

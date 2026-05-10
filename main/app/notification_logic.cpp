@@ -2,6 +2,7 @@
 #include "lvgl.h"
 #include "screens.h"
 #include "eez-flow.h"
+#include "esp_lvgl_port.h"
 
 extern "C" {
 
@@ -23,68 +24,76 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
   ScreenNotificationWidgets w = {NULL, NULL, NULL, NULL, NULL, NULL};
   switch (screen_id) {
     case SCREEN_ID_MAIN:
-      w.bell_on = objects.obj13;
-      w.bell_off = objects.obj14;
-      w.ble_on = objects.obj15;
-      w.ble_off = objects.obj16;
-      w.wifi_on = objects.obj17;
-      w.wifi_off = objects.obj18;
+      w.bell_on = objects.info_bell_of_icon_on;
+      w.bell_off = objects.info_bell_of_icon_off;
+      w.ble_on = objects.info_ble_on_icon;
+      w.ble_off = objects.info_ble_off_icon;
+      w.wifi_on = objects.info_wifi_on_icon;
+      w.wifi_off = objects.info_wifi_off_icon;
       break;
     case SCREEN_ID_MENU:
-      w.bell_on = objects.obj26;
-      w.bell_off = objects.obj27;
-      w.ble_on = objects.obj28;
-      w.ble_off = objects.obj29;
-      w.wifi_on = objects.obj30;
-      w.wifi_off = objects.obj31;
+      w.bell_on = objects.info_bell_of_icon_on_1;
+      w.bell_off = objects.info_bell_of_icon_off_1;
+      w.ble_on = objects.info_ble_on_icon_1;
+      w.ble_off = objects.info_ble_off_icon_1;
+      w.wifi_on = objects.info_wifi_on_icon_1;
+      w.wifi_off = objects.info_wifi_off_icon_1;
       break;
     case SCREEN_ID_USTAWIENIA:
-      w.bell_on = objects.obj40;
-      w.bell_off = objects.obj41;
-      w.ble_on = objects.obj42;
-      w.ble_off = objects.obj43;
-      w.wifi_on = objects.obj44;
-      w.wifi_off = objects.obj45;
+      w.bell_on = objects.info_bell_of_icon_on_2;
+      w.bell_off = objects.info_bell_of_icon_off_2;
+      w.ble_on = objects.info_ble_on_icon_2;
+      w.ble_off = objects.info_ble_off_icon_2;
+      w.wifi_on = objects.info_wifi_on_icon_2;
+      w.wifi_off = objects.info_wifi_off_icon_2;
       break;
     case SCREEN_ID_STATYSTYKI:
-      w.bell_on = objects.obj49;
-      w.bell_off = objects.obj50;
-      w.ble_on = objects.obj51;
-      w.ble_off = objects.obj52;
-      w.wifi_on = objects.obj53;
-      w.wifi_off = objects.obj54;
+      w.bell_on = objects.info_bell_of_icon_on_3;
+      w.bell_off = objects.info_bell_of_icon_off_3;
+      w.ble_on = objects.info_ble_on_icon_3;
+      w.ble_off = objects.info_ble_off_icon_3;
+      w.wifi_on = objects.info_wifi_on_icon_3;
+      w.wifi_off = objects.info_wifi_off_icon_3;
       break;
     case SCREEN_ID_ZASOBY_SYSTEMU:
-      w.bell_on = objects.obj58;
-      w.bell_off = objects.obj59;
-      w.ble_on = objects.obj60;
-      w.ble_off = objects.obj61;
-      w.wifi_on = objects.obj62;
-      w.wifi_off = objects.obj63;
+      w.bell_on = objects.info_bell_of_icon_on_4;
+      w.bell_off = objects.info_bell_of_icon_off_4;
+      w.ble_on = objects.info_ble_on_icon_4;
+      w.ble_off = objects.info_ble_off_icon_4;
+      w.wifi_on = objects.info_wifi_on_icon_4;
+      w.wifi_off = objects.info_wifi_off_icon_4;
       break;
     case SCREEN_ID_USTAWIENIA_WIFI:
-      w.bell_on = objects.obj67;
-      w.bell_off = objects.obj68;
-      w.ble_on = objects.obj69;
-      w.ble_off = objects.obj70;
-      w.wifi_on = objects.obj71;
-      w.wifi_off = objects.obj72;
+      w.bell_on = objects.info_bell_of_icon_on_5;
+      w.bell_off = objects.info_bell_of_icon_off_5;
+      w.ble_on = objects.info_ble_on_icon_5;
+      w.ble_off = objects.info_ble_off_icon_5;
+      w.wifi_on = objects.info_wifi_on_icon_5;
+      w.wifi_off = objects.info_wifi_off_icon_5;
       break;
     case SCREEN_ID_GRY:
-      w.bell_on = objects.obj77;
-      w.bell_off = objects.obj78;
-      w.ble_on = objects.obj79;
-      w.ble_off = objects.obj80;
-      w.wifi_on = objects.obj81;
-      w.wifi_off = objects.obj82;
+      w.bell_on = objects.info_bell_of_icon_on_6;
+      w.bell_off = objects.info_bell_of_icon_off_6;
+      w.ble_on = objects.info_ble_on_icon_6;
+      w.ble_off = objects.info_ble_off_icon_6;
+      w.wifi_on = objects.info_wifi_on_icon_6;
+      w.wifi_off = objects.info_wifi_off_icon_6;
       break;
     case SCREEN_ID_ZEGAR:
-      w.bell_on = objects.obj85;
-      w.bell_off = objects.obj86;
-      w.ble_on = objects.obj87;
-      w.ble_off = objects.obj88;
-      w.wifi_on = objects.obj89;
-      w.wifi_off = objects.obj90;
+      w.bell_on = objects.info_bell_of_icon_on_7;
+      w.bell_off = objects.info_bell_of_icon_off_7;
+      w.ble_on = objects.info_ble_on_icon_7;
+      w.ble_off = objects.info_ble_off_icon_7;
+      w.wifi_on = objects.info_wifi_on_icon_7;
+      w.wifi_off = objects.info_wifi_off_icon_7;
+      break;
+    case SCREEN_ID_LOGI:
+      w.bell_on = objects.info_bell_of_icon_on_8;
+      w.bell_off = objects.info_bell_of_icon_off_8;
+      w.ble_on = objects.info_ble_on_icon_8;
+      w.ble_off = objects.info_ble_off_icon_8;
+      w.wifi_on = objects.info_wifi_on_icon_8;
+      w.wifi_off = objects.info_wifi_off_icon_8;
       break;
     default:
       break;
@@ -121,6 +130,7 @@ void notification_logic_set_sun_moon(bool is_day) {
 }
 
 void notification_logic_refresh() {
+  if (!lvgl_port_lock(0)) return;
   int16_t screen_id = eez_flow_get_current_screen();
   ScreenNotificationWidgets w = get_widgets_for_screen(screen_id);
 
@@ -154,24 +164,21 @@ void notification_logic_refresh() {
     }
   }
 
-  if (screen_id == SCREEN_ID_MAIN && objects.hour_text) {
-    lv_obj_t *time_container = lv_obj_get_parent(objects.hour_text);
-    if (time_container) {
-      lv_obj_t *sun_obj = lv_obj_get_child(time_container, 5);
-      lv_obj_t *moon_obj = lv_obj_get_child(time_container, 6);
-      if (sun_obj && moon_obj) {
-        if (s_is_day) {
-          lv_obj_remove_flag(sun_obj, LV_OBJ_FLAG_HIDDEN);
-          lv_obj_add_flag(moon_obj, LV_OBJ_FLAG_HIDDEN);
-        } else {
-          lv_obj_add_flag(sun_obj, LV_OBJ_FLAG_HIDDEN);
-          lv_obj_remove_flag(moon_obj, LV_OBJ_FLAG_HIDDEN);
-        }
+  if (screen_id == SCREEN_ID_MAIN) {
+    if (objects.sun_icon && objects.moon_icon) {
+      if (s_is_day) {
+        lv_obj_remove_flag(objects.sun_icon, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(objects.moon_icon, LV_OBJ_FLAG_HIDDEN);
+      } else {
+        lv_obj_add_flag(objects.sun_icon, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(objects.moon_icon, LV_OBJ_FLAG_HIDDEN);
       }
     }
   }
+  lvgl_port_unlock();
 }
 
-}
+} // extern "C"
+
 
 
