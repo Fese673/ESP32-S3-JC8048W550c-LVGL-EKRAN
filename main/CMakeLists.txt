@@ -20,6 +20,8 @@ set(SOURCES_APP_CPP
     ./app/notification_logic.cpp
     ./app/stopwatch_logic.cpp
     ./app/stopwatch_ui.cpp
+    ./app/timer_logic.cpp
+    ./app/timer_ui.cpp
     ./app/main.cpp
 )
 
@@ -56,6 +58,7 @@ idf_component_register(
                     "./services/time"
                     "./services/wifi"
                     "./services/sntp"
+                    "./services/bpm"
                     "./utils/log"
                     "./app"
                     "./setting_wifi"

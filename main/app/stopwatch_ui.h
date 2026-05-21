@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 void stopwatch_ui_init(void);
+void stopwatch_ui_sync_start_stop_label(void);
 
 #ifdef __cplusplus
 }

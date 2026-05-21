@@ -1,4 +1,5 @@
 #include "communication/CommunicationState.h"
+#include "services/bpm/bpm_service.h"
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -23,6 +24,20 @@ volatile bool s_outdoorDirty = false;
 volatile bool s_settingsDirty = false;
 volatile bool s_resourcesDirty = false;
 volatile bool s_resetUiPending = false;
+
+// Sensor WiFi status
+bool s_sensorWifiConnected = false;
+int8_t s_sensorWifiRssi = 0;
+uint8_t s_sensorWifiIp[4] = {0, 0, 0, 0};
+volatile bool s_wifiDirty = false;
+
+// Sensor BLE status
+uint8_t s_sensorBleValue = 0;
+volatile bool s_bleDirty = false;
+
+// Sensor Bell status
+uint8_t s_sensorBellValue = 0;
+volatile bool s_bellDirty = false;
 
 uint32_t currentMs() {
   return static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
@@ -478,6 +493,93 @@ void onHelloAckReceived(const uint8_t *payload, uint16_t payloadLength) {
 
   s_peerBootIdLocal = peerBootId;
   ESP_LOGI(kTag, "[HELLO_ACK] Peer bootId=0x%08X uptime=%ums", (unsigned int)peerBootId, (unsigned int)peerUptime);
+}
+
+void applyPpgPayload(const uint8_t *payload, uint16_t payloadLength) {
+  // payload: [seq(1)] [diff_lo(1)] [diff_hi(1)] = 3 bajty
+  if (payload == nullptr || payloadLength != 3) return;
+
+  int16_t diff = static_cast<int16_t>(
+      static_cast<uint16_t>(payload[1]) |
+      (static_cast<uint16_t>(payload[2]) << 8U));
+  bpm_service_feed_sample(diff);
+}
+
+void applyBpmStatusPayload(const uint8_t *payload, uint16_t payloadLength) {
+  if (payload == nullptr || payloadLength != 2) return;
+  uint8_t bpm = payload[0];
+  uint8_t spo2 = payload[1];
+  if (bpm >= 30 && bpm <= 250) {
+    bpm_service_set_bpm(bpm);
+    bpm_service_set_spo2(spo2);
+  }
+}
+
+void applyWifiStatusPayload(const uint8_t *payload, uint16_t payloadLength) {
+  if (payload == nullptr || payloadLength < 6) return;
+  lockSnapshot();
+  s_sensorWifiConnected = (payload[0] != 0);
+  s_sensorWifiRssi = static_cast<int8_t>(payload[1]);
+  s_sensorWifiIp[0] = payload[2];
+  s_sensorWifiIp[1] = payload[3];
+  s_sensorWifiIp[2] = payload[4];
+  s_sensorWifiIp[3] = payload[5];
+  s_wifiDirty = true;
+  unlockSnapshot();
+}
+
+void applyStatusBlePayload(const uint8_t *payload, uint16_t payloadLength) {
+  if (payload == nullptr || payloadLength < 1) return;
+  lockSnapshot();
+  s_sensorBleValue = payload[0];
+  s_bleDirty = true;
+  unlockSnapshot();
+}
+
+void applyStatusBellPayload(const uint8_t *payload, uint16_t payloadLength) {
+  if (payload == nullptr || payloadLength < 1) return;
+  lockSnapshot();
+  s_sensorBellValue = payload[0];
+  s_bellDirty = true;
+  unlockSnapshot();
+}
+
+bool consumeWifiStatus(bool &connected, int8_t &rssi, uint8_t *ip) {
+  lockSnapshot();
+  bool dirty = s_wifiDirty;
+  if (dirty) {
+    connected = s_sensorWifiConnected;
+    rssi = s_sensorWifiRssi;
+    ip[0] = s_sensorWifiIp[0];
+    ip[1] = s_sensorWifiIp[1];
+    ip[2] = s_sensorWifiIp[2];
+    ip[3] = s_sensorWifiIp[3];
+    s_wifiDirty = false;
+  }
+  unlockSnapshot();
+  return dirty;
+}
+
+bool consumeStatusBle(uint8_t &value) {
+  lockSnapshot();
+  bool dirty = s_bleDirty;
+  if (dirty) {
+    value = s_sensorBleValue;
+    s_bleDirty = false;
+  }
+  unlockSnapshot();
+  return dirty;
+}
+
+bool consumeStatusBell(uint8_t &value) {
+  lockSnapshot();
+  bool dirty = s_bellDirty;
+  if (dirty) {
+    value = s_sensorBellValue;
+    s_bellDirty = false;
+  }
+  unlockSnapshot();
+  return dirty;
 }
 
 } // namespace CommunicationProtocol

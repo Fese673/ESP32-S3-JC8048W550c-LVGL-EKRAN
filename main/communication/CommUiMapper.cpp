@@ -1,5 +1,6 @@
 #include "communication/CommUiMapper.h"
 #include "communication/CommunicationState.h"
+#include "notification_logic.h"
 #include <stdio.h>
 #include <string.h>
 #include "esp_log.h"
@@ -68,6 +69,16 @@ void resetUi() {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_CORE1_CPU_SYS, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_FREE_FLASH_SYS, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_USED_FLASH_SYS, eez::Value("---"));
+
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_BPM_VALUE, eez::Value("---"));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_SPO2_VALUE, eez::Value("---"));
+
+  notification_logic_set_wifi(false);
+  notification_logic_set_ble(false);
+  notification_logic_set_bell(false);
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_WIFI_STATE, eez::Value(0));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_BLE_STATE, eez::Value(0));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_BELL_STATE, eez::Value(0));
 }
 
 void applySnapshotToMainScreen(const Snapshot &snapshot) {
@@ -211,12 +222,57 @@ void applyResourcesToUi(const SystemResources &sr) {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_ERRORS_I2C_SYS, eez::Value((int)sr.errorsI2c));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TIMEOUTS_I2C_SYS, eez::Value((int)sr.timeoutsI2c));
 
+  if (objects.cpu_core0_slider) {
+    lv_slider_set_value(objects.cpu_core0_slider, sr.core0Cpu, LV_ANIM_OFF);
+  }
+  if (objects.cpu_core1_slider) {
+    lv_slider_set_value(objects.cpu_core1_slider, sr.core1Cpu, LV_ANIM_OFF);
+  }
+  {
+    uint32_t totalFlash = sr.freeFlash + sr.usedFlash;
+    if (totalFlash > 0) {
+      if (objects.free_flash_slider) {
+        lv_slider_set_value(objects.free_flash_slider, (sr.freeFlash * 100) / totalFlash, LV_ANIM_OFF);
+      }
+      if (objects.used_flash_slider) {
+        lv_slider_set_value(objects.used_flash_slider, (sr.usedFlash * 100) / totalFlash, LV_ANIM_OFF);
+      }
+    }
+  }
+
   if (objects.menu_kfe_zasoby_4) {
     lv_obj_remove_state(objects.menu_kfe_zasoby_4, LV_STATE_DISABLED);
   }
   if (objects.menu_kfe_statystyk_1) {
     lv_obj_remove_state(objects.menu_kfe_statystyk_1, LV_STATE_DISABLED);
   }
+}
+
+void applyBpmStatusToUi(int bpm, int spo2) {
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_BPM_VALUE, eez::Value(bpm));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_SPO2_VALUE, eez::Value(spo2));
+}
+
+void applyWifiStatusToUi(bool connected, int8_t rssi, const uint8_t *ip) {
+  (void)rssi;
+  (void)ip;
+  ESP_LOGI(kTag, "Sensor WiFi: connected=%d rssi=%d", (int)connected, (int)rssi);
+  notification_logic_set_wifi(connected);
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_WIFI_STATE, eez::Value(connected ? 1 : 0));
+}
+
+void applyStatusBleToUi(uint8_t value) {
+  ESP_LOGI(kTag, "Sensor BLE: value=%d", (int)value);
+  bool connected = (value == 2);
+  notification_logic_set_ble(connected);
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_BLE_STATE, eez::Value((int)value));
+}
+
+void applyStatusBellToUi(uint8_t value) {
+  ESP_LOGI(kTag, "Sensor Bell: value=%d", (int)value);
+  bool active = (value > 0);
+  notification_logic_set_bell(active);
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_BELL_STATE, eez::Value((int)value));
 }
 
 void applySettingsToUi(const DeviceSettings &ds) {

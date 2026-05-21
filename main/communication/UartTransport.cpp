@@ -3,6 +3,7 @@
 #include "communication/CommHandshake.h"
 #include "communication/CobsFraming.h"
 #include "communication/CommunicationState.h"
+#include "services/bpm/bpm_service.h"
 #include "utils/comm_log/comm_log.h"
 #include <stdio.h>
 #include <string.h>
@@ -69,7 +70,20 @@ void handleFrame(uint8_t type, const uint8_t *payload, uint16_t payloadLength) {
     case kTypeOutdoorWeather:
         applyOutdoorWeatherPayload(payload, payloadLength);
         break;
+    case kTypePpg:
+        applyPpgPayload(payload, payloadLength);
+        break;
+    case kTypeBpmStatus:
+        applyBpmStatusPayload(payload, payloadLength);
+        break;
     case kTypeWifiStatus:
+        applyWifiStatusPayload(payload, payloadLength);
+        break;
+    case kTypeStatusBle:
+        applyStatusBlePayload(payload, payloadLength);
+        break;
+    case kTypeStatusBell:
+        applyStatusBellPayload(payload, payloadLength);
         break;
     case kTypeHelloAck:
         onHelloAckReceived(payload, payloadLength);

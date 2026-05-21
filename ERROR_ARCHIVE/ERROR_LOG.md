@@ -1,6 +1,20 @@
 # Archiwum Błędów - ZEGAR-ESP32
 
 ---
+### [ID: ERR_011] | CLOCK_WORLD_ZONES_CRASH | IMPACT: CRITICAL
+**Files:** `[clock_logic.cpp]`
+
+**PROBLEM:** Guru Meditation (LoadProhibited, NULL dereference) przy wejściu na ekran Zegar. Reboot po ~1s.
+
+**CAUSE:** `clock_logic.cpp` używał `assignStringProperty(fs, 72/78/84, 3, ...)` z hardkodowanymi indeksami komponentów EEZ Flow. Po re-eksporcie UI z EEZ Studio (dodanie BPM/SpO2 flow variables) indeksy na ekranie zegara uległy zmianie. `component->properties[3]->evalInstructions` → NULL → crash w `evalExpression()`.
+
+**LOGIC_CHANGE:**
+- Zastąpiono `assignStringProperty(fs, index, ...)` z getFlowState na `lv_label_set_text(objects.hour_text_N, ...)` używając nazwanych obiektów z `screens.h`
+- `getFlowState(0, 7)` i cały blok `if (fs)` usunięto — nie są potrzebne przy bezpośrednim LVGL API
+- Nazwane obiekty (`hour_text_23/24/25`) są stabilne między eksportami EEZ, w przeciwieństwie do indeksów komponentów flow
+
+**VERIFICATION:** Build OK (85/85). Brak zależności od EEZ Flow component indices dla światek stref czasowych.
+---
 ### [ID: ERR_007] | DROPDOWN_CALLBACK_LEAK | IMPACT: HIGH
 **Files:** `[main.cpp]`
 

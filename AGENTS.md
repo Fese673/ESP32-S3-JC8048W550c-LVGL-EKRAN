@@ -155,3 +155,20 @@ Auto-connect po resecie działa przez **worker task** (ta sama ścieżka co manu
 - **No tests, no CI**: verification is on-device only via ESP-IDF monitor logs.
 - **ESP-IDF version**: 6.0.1 (despite `main/idf_component.yml` declaring `>=5.2.0`; `.code-workspace` references 5.4 but this is stale).
 - **`.gitignore`** excludes `build/`, `managed_components/`, `sdkconfig`, `sdkconfig.old`.
+
+## BPM / PPG Pipeline
+
+Full protocol and architecture document in `docs/PROTOKOL_PPG_BPM.md`.
+
+Three services in `main/services/bpm/`:
+| File | Role |
+|------|------|
+| `bpm_service.h` | Public API: init, set_bpm, set_mock_mode, feed_sample |
+| `bpm_service.c` | PPG engine: mock generator (IR→filter→diff) + real data buffer |
+| `bpm_chart_handler.h` | Init (called once from main.cpp) |
+| `bpm_chart_handler.c` | LVGL timer 100ms, finds/creates chart, feeds data |
+
+Real data (default): `bpm_service_set_mock_mode(false)` — czeka na `bpm_service_feed_sample(diff)` z UART.  
+Mock (debug only): `bpm_service_set_mock_mode(true)` — jawnie włączany w kodzie do testów. Nie jest domyślny, nie jest fallbackiem.
+
+**PPG pipeline: per-sample, no batching.** Każda próbka z MAX30102 (50Hz) idzie osobno przez COBS → zero opóźnienia.

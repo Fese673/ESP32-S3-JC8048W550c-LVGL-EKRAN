@@ -5,8 +5,10 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 #include "esp_sntp.h"
+#include "esp_lvgl_port.h"
 #include <string.h>
 #include <time.h>
+#include <stdatomic.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -32,7 +34,7 @@ static char s_connecting_ssid[33];
 static wifi_connect_callback_t s_connect_cb;
 static TaskHandle_t s_worker_task;
 static QueueHandle_t s_work_queue;
-volatile bool g_wifi_nvs_save_complete = false;
+atomic_bool g_wifi_nvs_save_complete = false;
 static volatile bool s_worker_running;
 static volatile bool s_nvs_save_pending;
 static bool s_sntp_started;
@@ -81,7 +83,8 @@ static void save_config_to_nvs(void) {
         ESP_LOGE(TAG, "NVS save: commit failed: %d", ret);
     } else {
         ESP_LOGI(TAG, "Config saved to NVS (key=wifi.sta)");
-        g_wifi_nvs_save_complete = true;
+        atomic_store(&g_wifi_nvs_save_complete, true);
+        lvgl_port_task_wake(LVGL_PORT_EVENT_DISPLAY, NULL);
     }
     nvs_close(nvs);
 }

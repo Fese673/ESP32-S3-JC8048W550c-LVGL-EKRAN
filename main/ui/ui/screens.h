@@ -22,7 +22,8 @@ enum ScreensEnum {
     SCREEN_ID_LOGI = 9,
     SCREEN_ID_POGODA = 10,
     SCREEN_ID_POGODA_PROGNOZA = 11,
-    _SCREEN_ID_LAST = 11
+    SCREEN_ID_BPM = 12,
+    _SCREEN_ID_LAST = 12
 };
 
 typedef struct _objects_t {
@@ -37,6 +38,7 @@ typedef struct _objects_t {
     lv_obj_t *logi;
     lv_obj_t *pogoda;
     lv_obj_t *pogoda_prognoza;
+    lv_obj_t *bpm;
     lv_obj_t *weather_in;
     lv_obj_t *pressure_in_5;
     lv_obj_t *co2_in_6;
@@ -126,6 +128,10 @@ typedef struct _objects_t {
     lv_obj_t *minutes_text_21;
     lv_obj_t *obj19;
     lv_obj_t *hour_text_21;
+    lv_obj_t *free_flash_slider;
+    lv_obj_t *used_flash_slider;
+    lv_obj_t *cpu_core1_slider;
+    lv_obj_t *cpu_core0_slider;
     lv_obj_t *obj20;
     lv_obj_t *obj21;
     lv_obj_t *obj22;
@@ -192,29 +198,51 @@ typedef struct _objects_t {
     lv_obj_t *obj43;
     lv_obj_t *hour_text_14;
     lv_obj_t *obj44;
-    lv_obj_t *start_stop_stoper;
-    lv_obj_t *reset_stoper;
+    lv_obj_t *start_stop_minutnik_button;
+    lv_obj_t *start_stop_stoper_button;
+    lv_obj_t *reset_stoper_button;
+    lv_obj_t *plus_hour_minutnik;
+    lv_obj_t *plus_minutes_minutnik;
+    lv_obj_t *plus_seconds_minutnik;
+    lv_obj_t *minus_hour_minutnik;
+    lv_obj_t *minus_minutes_minutnik;
+    lv_obj_t *minus_seconds_minutnik;
+    lv_obj_t *before_hour_minutnik;
+    lv_obj_t *before_minutes_minutnik;
+    lv_obj_t *before_seconds_minutnik;
+    lv_obj_t *pick_hour_minutnik;
+    lv_obj_t *pick_minutes_minutnik;
+    lv_obj_t *pick_seconds_minutnik;
+    lv_obj_t *after_hour_minutnik;
+    lv_obj_t *after_minutes_minutnik;
+    lv_obj_t *after_seconds_minutnik;
+    lv_obj_t *minutes_stoper_label;
+    lv_obj_t *seconds_stoper_label;
     lv_obj_t *obj45;
+    lv_obj_t *ms_stoper_label;
     lv_obj_t *obj46;
     lv_obj_t *obj47;
+    lv_obj_t *start_stop_label_stoper;
+    lv_obj_t *start_stop_label_minutnik;
     lv_obj_t *obj48;
     lv_obj_t *obj49;
     lv_obj_t *obj50;
     lv_obj_t *obj51;
+    lv_obj_t *minutes_text_19;
     lv_obj_t *obj52;
+    lv_obj_t *hour_text_19;
+    lv_obj_t *usa;
+    lv_obj_t *minutes_text_23;
     lv_obj_t *obj53;
-    lv_obj_t *minutes_stoper_label;
-    lv_obj_t *seconds_stoper_label;
+    lv_obj_t *hour_text_23;
+    lv_obj_t *japan;
+    lv_obj_t *minutes_text_24;
     lv_obj_t *obj54;
-    lv_obj_t *ms_stoper_label;
+    lv_obj_t *hour_text_24;
+    lv_obj_t *russia;
+    lv_obj_t *minutes_text_25;
     lv_obj_t *obj55;
-    lv_obj_t *obj56;
-    lv_obj_t *obj57;
-    lv_obj_t *obj58;
-    lv_obj_t *obj59;
-    lv_obj_t *obj60;
-    lv_obj_t *obj61;
-    lv_obj_t *obj62;
+    lv_obj_t *hour_text_25;
     lv_obj_t *log_terminal;
     lv_obj_t *info_bell_of_icon_on_8;
     lv_obj_t *info_bell_of_icon_off_8;
@@ -222,17 +250,17 @@ typedef struct _objects_t {
     lv_obj_t *info_ble_off_icon_8;
     lv_obj_t *info_wifi_on_icon_8;
     lv_obj_t *info_wifi_off_icon_8;
-    lv_obj_t *obj63;
+    lv_obj_t *obj56;
     lv_obj_t *seconds_text_14;
-    lv_obj_t *obj64;
+    lv_obj_t *obj57;
     lv_obj_t *minutes_text_15;
-    lv_obj_t *obj65;
+    lv_obj_t *obj58;
     lv_obj_t *hour_text_15;
-    lv_obj_t *obj66;
+    lv_obj_t *obj59;
     lv_obj_t *seconds_text_10;
-    lv_obj_t *obj67;
+    lv_obj_t *obj60;
     lv_obj_t *minutes_text_11;
-    lv_obj_t *obj68;
+    lv_obj_t *obj61;
     lv_obj_t *hour_text_11;
     lv_obj_t *info_bell_of_icon_on_9;
     lv_obj_t *info_bell_of_icon_off_9;
@@ -257,12 +285,27 @@ typedef struct _objects_t {
     lv_obj_t *info_ble_off_icon_10;
     lv_obj_t *info_wifi_on_icon_10;
     lv_obj_t *info_wifi_off_icon_10;
-    lv_obj_t *obj69;
+    lv_obj_t *obj62;
     lv_obj_t *seconds_text_11;
-    lv_obj_t *obj70;
+    lv_obj_t *obj63;
     lv_obj_t *minutes_text_12;
-    lv_obj_t *obj71;
+    lv_obj_t *obj64;
     lv_obj_t *hour_text_12;
+    lv_obj_t *info_bell_of_icon_on_11;
+    lv_obj_t *info_bell_of_icon_off_11;
+    lv_obj_t *info_ble_on_icon_11;
+    lv_obj_t *info_ble_off_icon_11;
+    lv_obj_t *info_wifi_on_icon_11;
+    lv_obj_t *info_wifi_off_icon_11;
+    lv_obj_t *obj65;
+    lv_obj_t *seconds_text_17;
+    lv_obj_t *obj66;
+    lv_obj_t *minutes_text_18;
+    lv_obj_t *obj67;
+    lv_obj_t *hour_text_18;
+    lv_obj_t *bpm_chart;
+    lv_obj_t *bpm_value_label;
+    lv_obj_t *spo2_value_label;
 } objects_t;
 
 extern objects_t objects;
@@ -305,6 +348,9 @@ void tick_screen_pogoda();
 
 void create_screen_pogoda_prognoza();
 void tick_screen_pogoda_prognoza();
+
+void create_screen_bpm();
+void tick_screen_bpm();
 
 void tick_screen_by_id(enum ScreensEnum screenId);
 void tick_screen(int screen_index);

@@ -7,6 +7,7 @@
 #include "eez-flow.h"
 #include "esp_log.h"
 #include "esp_random.h"
+#include "services/bpm/bpm_service.h"
 
 namespace CommunicationProtocol {
 
@@ -144,6 +145,29 @@ void updateUi() {
     SystemResources sr;
     if (consumeResources(sr) && sr.valid) {
       applyResourcesToUi(sr);
+    }
+  }
+
+  applyBpmStatusToUi(bpm_service_get_bpm(), bpm_service_get_spo2());
+
+  {
+    bool connected;
+    int8_t rssi;
+    uint8_t ip[4];
+    if (consumeWifiStatus(connected, rssi, ip)) {
+      applyWifiStatusToUi(connected, rssi, ip);
+    }
+  }
+  {
+    uint8_t value;
+    if (consumeStatusBle(value)) {
+      applyStatusBleToUi(value);
+    }
+  }
+  {
+    uint8_t value;
+    if (consumeStatusBell(value)) {
+      applyStatusBellToUi(value);
     }
   }
 }

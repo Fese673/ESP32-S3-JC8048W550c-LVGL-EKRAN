@@ -44,14 +44,38 @@ static void clock_task(void *arg) {
             eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_HOUR_TIME, eez::Value(hour_buf));
             eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MINUTES_TIME, eez::Value(min_buf));
             eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_SECONDS_TIME, eez::Value(sec_buf));
-            
+
             // Data (tylko jeśli mamy synchronizację SNTP)
             if (sntp_service_is_synced()) {
                 eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_NUMBER_DAY_DATE, eez::Value(day_num_buf));
                 eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_NAME_DAY_DATE, eez::Value(DAY_NAMES_PL[t.day_of_week]));
                 eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_NAME_MONTH_DATE, eez::Value(MONTH_NAMES_PL[t.month]));
             }
-            
+
+            // Światowe strefy czasowe są kontrolowane przez EEZ Flow na ekranie zegara.
+            // Aktualizujemy właściwości tekstowe, żeby tick ekranu nie nadpisywał wartości.
+            if (eez_flow_get_current_screen() == SCREEN_ID_ZEGAR) {
+                void *fs = getFlowState(0, 7);
+                if (fs) {
+                    char world_buf[4];
+
+                    // USA Eastern (UTC-5)
+                    int usa_h = (t.hours - 5 + 24) % 24;
+                    snprintf(world_buf, sizeof(world_buf), "%02d", usa_h);
+                    assignStringProperty(fs, 68, 3, world_buf, "USA hour");
+
+                    // Japan (UTC+9)
+                    int japan_h = (t.hours + 9) % 24;
+                    snprintf(world_buf, sizeof(world_buf), "%02d", japan_h);
+                    assignStringProperty(fs, 72, 3, world_buf, "Japan hour");
+
+                    // Russia MSK (UTC+3)
+                    int russia_h = (t.hours + 3) % 24;
+                    snprintf(world_buf, sizeof(world_buf), "%02d", russia_h);
+                    assignStringProperty(fs, 76, 3, world_buf, "Russia hour");
+                }
+            }
+
             lvgl_port_unlock();
         }
     }

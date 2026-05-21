@@ -34,6 +34,11 @@ void applyTimePayload(const uint8_t *payload, uint16_t payloadLength);
 void applySettingsPayload(const uint8_t *payload, uint16_t payloadLength);
 void applySystemResourcesPayload(const uint8_t *payload, uint16_t payloadLength);
 void applyOutdoorWeatherPayload(const uint8_t *payload, uint16_t payloadLength);
+void applyPpgPayload(const uint8_t *payload, uint16_t payloadLength);
+void applyBpmStatusPayload(const uint8_t *payload, uint16_t payloadLength);
+void applyWifiStatusPayload(const uint8_t *payload, uint16_t payloadLength);
+void applyStatusBlePayload(const uint8_t *payload, uint16_t payloadLength);
+void applyStatusBellPayload(const uint8_t *payload, uint16_t payloadLength);
 
 OutdoorWeatherSnapshot getLocalOutdoorWeather();
 void setLocalOutdoorWeather(const OutdoorWeatherSnapshot& ow);
@@ -45,6 +50,9 @@ bool consumeSnapshot(Snapshot &out);
 bool consumeSettings(DeviceSettings &out);
 bool consumeResources(SystemResources &out);
 bool consumeOutdoorWeather(OutdoorWeatherSnapshot &out);
+bool consumeWifiStatus(bool &connected, int8_t &rssi, uint8_t *ip);
+bool consumeStatusBle(uint8_t &value);
+bool consumeStatusBell(uint8_t &value);
 
 // Handshake
 void onHelloAckReceived(const uint8_t *payload, uint16_t payloadLength);

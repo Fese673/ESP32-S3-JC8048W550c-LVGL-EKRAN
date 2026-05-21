@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdatomic.h>
 
 static const char *TAG = "WIFI_SET";
 static char selected_ssid[64] = "";
@@ -67,8 +68,7 @@ static void scan_timer_cb(lv_timer_t * t) {
 }
 
 static void connect_poll_cb(lv_timer_t * t) {
-    if (g_wifi_nvs_save_complete) {
-        g_wifi_nvs_save_complete = false;
+    if (atomic_exchange(&g_wifi_nvs_save_complete, false)) {
         lv_obj_invalidate(lv_scr_act());
     }
 
@@ -84,23 +84,22 @@ static void connect_poll_cb(lv_timer_t * t) {
                     break;
                 }
             }
-            set_status("Sukces! Po\u0142\u0105czy\u0142e\u015b si\u0119 z %s.\nJako\u015b\u0107 sygna\u0142u: %s.",
+            set_status("Po\u0142\u0105czono z %s (%s).",
                        selected_ssid, wifi_service_get_signal_desc(rssi));
         }
-        if (g_wifi_nvs_save_complete) {
-            g_wifi_nvs_save_complete = false;
+        if (atomic_exchange(&g_wifi_nvs_save_complete, false)) {
             lv_obj_invalidate(lv_scr_act());
             lv_timer_pause(connect_poll_timer);
         }
     } else if (state == WIFI_CONNECT_FAILED) {
-        set_status("Nie uda\u0142o si\u0119 po\u0142\u0105czy\u0107 z %s.\nSprawd\u017a has\u0142o i zasi\u0119g sieci.",
+        set_status("B\u0142\u0105d po\u0142\u0105czenia z %s.",
                    selected_ssid);
         lv_timer_pause(connect_poll_timer);
     } else if (state == WIFI_CONNECTING) {
         int elapsed_ms = (int)((esp_timer_get_time() - s_connect_start_us) / 1000);
         int remaining_s = (WIFI_CONNECT_TIMEOUT_MS - elapsed_ms + 500) / 1000;
         if (remaining_s <= 0) {
-            set_status("Timeout \u2013 nie uda\u0142o si\u0119 po\u0142\u0105czy\u0107 z %s.", selected_ssid);
+            set_status("Timeout \u2013 nie po\u0142\u0105czono z %s.", selected_ssid);
             wifi_service_disconnect();
             lv_timer_pause(connect_poll_timer);
         } else {

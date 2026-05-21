@@ -6,7 +6,7 @@
 
 extern "C" {
 
-static bool s_wifi_enabled = true;
+static bool s_wifi_enabled = false;
 static bool s_ble_enabled = false;
 static bool s_bell_enabled = false;
 static bool s_is_day = true;
@@ -95,6 +95,30 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_on = objects.info_wifi_on_icon_8;
       w.wifi_off = objects.info_wifi_off_icon_8;
       break;
+    case SCREEN_ID_POGODA:
+      w.bell_on = objects.info_bell_of_icon_on_9;
+      w.bell_off = objects.info_bell_of_icon_off_9;
+      w.ble_on = objects.info_ble_on_icon_9;
+      w.ble_off = objects.info_ble_off_icon_9;
+      w.wifi_on = objects.info_wifi_on_icon_9;
+      w.wifi_off = objects.info_wifi_off_icon_9;
+      break;
+    case SCREEN_ID_POGODA_PROGNOZA:
+      w.bell_on = objects.info_bell_of_icon_on_10;
+      w.bell_off = objects.info_bell_of_icon_off_10;
+      w.ble_on = objects.info_ble_on_icon_10;
+      w.ble_off = objects.info_ble_off_icon_10;
+      w.wifi_on = objects.info_wifi_on_icon_10;
+      w.wifi_off = objects.info_wifi_off_icon_10;
+      break;
+    case SCREEN_ID_BPM:
+      w.bell_on = objects.info_bell_of_icon_on_11;
+      w.bell_off = objects.info_bell_of_icon_off_11;
+      w.ble_on = objects.info_ble_on_icon_11;
+      w.ble_off = objects.info_ble_off_icon_11;
+      w.wifi_on = objects.info_wifi_on_icon_11;
+      w.wifi_off = objects.info_wifi_off_icon_11;
+      break;
     default:
       break;
   }
@@ -102,7 +126,7 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
 }
 
 void notification_logic_init() {
-  s_wifi_enabled = true;
+  s_wifi_enabled = false;
   s_ble_enabled = false;
   s_bell_enabled = false;
   s_is_day = true;

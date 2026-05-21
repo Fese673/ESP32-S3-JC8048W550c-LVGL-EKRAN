@@ -4,8 +4,10 @@
 #include "clock_logic.h"
 #include "notification_logic.h"
 #include "stopwatch_ui.h"
+#include "timer_ui.h"
 #include "communication/CommunicationProtocol.h"
 #include "wifi_service.h"
+#include "bpm_chart_handler.h"
 #include "sntp_service.h"
 #include "driver/i2c_master.h"
 #include "driver/gpio.h"
@@ -15,6 +17,7 @@
 #include "ui.h"
 #include "log.h"
 #include "utils/comm_log/comm_log.h"
+#include <stdatomic.h>
 
 extern "C" {
 #include "sunton_esp32_8048s050c.h"
@@ -53,6 +56,10 @@ static void init_custom_dropdown_hook() {
 static void ui_tick_timer_cb(lv_timer_t *timer)
 {
     (void)timer;
+
+    if (atomic_exchange(&g_wifi_nvs_save_complete, false)) {
+        lv_obj_invalidate(lv_scr_act());
+    }
 
     static int16_t last_screen_id = -1;
     int16_t current_screen_id = eez_flow_get_current_screen();
@@ -114,6 +121,8 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
     int64_t start_us = esp_timer_get_time();
     log_ui_tick_begin(current_screen_id);
     ui_tick();
+    stopwatch_ui_sync_start_stop_label();
+    timer_ui_sync_start_stop_label();
     notification_logic_refresh();
     CommunicationProtocol::updateUi();
 
@@ -150,7 +159,9 @@ extern "C" void app_main(void)
         CommunicationProtocol::begin();
         CommunicationProtocol::updateUi();
         stopwatch_ui_init();
+        timer_ui_init();
         lv_timer_create(ui_tick_timer_cb, 100, NULL);
+        bpm_chart_handler_init();
         lvgl_port_unlock();
         clock_logic_start();
     } else {

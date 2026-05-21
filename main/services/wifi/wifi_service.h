@@ -4,6 +4,7 @@
 #include "esp_err.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdatomic.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -12,7 +13,7 @@ extern "C" {
 #define MAX_SCAN_RESULTS 20
 #define WIFI_CONNECT_TIMEOUT_MS 15000
 
-extern volatile bool g_wifi_nvs_save_complete;
+extern atomic_bool g_wifi_nvs_save_complete;
 
 typedef enum {
     WIFI_IDLE,
