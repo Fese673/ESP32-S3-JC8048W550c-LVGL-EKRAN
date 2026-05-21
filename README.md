@@ -1,54 +1,53 @@
-# ESP32-S3 JC8048W550 (Gution) — LVGL
+# Guition JC8048W550 — Panel sterujący
 
-Ten repozytorium to fork dostosowany do modułu Gution/kompatybilnego wyświetlacza 800×480 RGB z dotykiem GT911, oparty na projekcie upstream z ESP32-S3 i LVGL 9.
+Firmware dla wyświetlacza **Guition JC8048W550** (800×480 RGB, GT911 touch) z **ESP32-S3** i **LVGL 9**, sterujący pracą systemu w składzie dwóch płyt ESP32.
 
-## Co znajdziesz w tym repo
-- ESP32-S3 z wyświetlaczem RGB 800×480
-- interfejs dotykowy GT911
-- silnik GUI LVGL 9.x
-- struktura aplikacji oparta na EEZ
-- wsparcie dla PSRAM i buforowania w pamięci zewnętrznej
+## Architektura
 
-## Stan forka
-- Ten repozytorium jest forkiem, a nie oryginalnym projektem Sunton.
-- Nazwy plików nadal mogą zawierać `sunton`, ponieważ pochodzą z upstreamu.
-- Fizyczną marką wyświetlacza jest Gution / kompatybilny moduł 800×480.
+```
+┌──────────────────────┐    UART 115200     ┌──────────────────────┐
+│   Guition ESP32-S3   │ ◄─── COBS/CRC ───► │   Sensor ESP32       │
+│   (panel, GUI, UI)   │                    │ (MAX30102, BME280,   │
+│                      │                    │  PMS5003, WiFi/BLE)  │
+└──────────────────────┘                    └──────────────────────┘
+```
+
+**Panel** — odpowiada za wyświetlanie GUI (LVGL + EEZ Flow), zarządzanie ekranami, animacje i interakcję z użytkownikiem.
+
+**Sensor** (osobne repo `ZEGAR-ESP32`) — zbiera dane z czujników (tętno, SpO₂, jakość powietrza, pogoda, WiFi/BLE) i przesyła je przez UART w ramkach COBS z sumą CRC16.
 
 ## Wymagania
-- ESP-IDF 6.0 lub kompatybilny z 5.x
-- Python z narzędziami ESP-IDF
-- skonfigurowane środowisko ESP-IDF z `idf.py` dostępnym w PATH
+
+- ESP-IDF ≥5.2 (docelowo 6.0.1)
+- Python + narzędzia ESP-IDF w PATH
+- Target: `esp32s3`
 
 ## Szybki start
-1. Ustaw target:
 
-  idf.py set-target esp32s3
+```bash
+idf.py set-target esp32s3
+idf.py build
+idf.py -p COMx -b 115200 flash
+idf.py -p COMx monitor
+```
 
-2. Zbuduj projekt:
+## Projektowanie UI
 
-  idf.py build
+Interfejs edytowany w **EEZ Studio** (projekt w `ekran_zegar_kopia/`).  
+Export → `copy_ui.py` → build.
 
-3. Wgraj na urządzenie:
+## Kluczowe pliki
 
-  idf.py -p COMx -b 115200 flash
+| Plik | Opis |
+|------|------|
+| `main/app/` | Logika aplikacji (zegar, powiadomienia, stany) |
+| `main/communication/` | Protokół UART COBS/CRC, parsowanie ramek, mapowanie na UI |
+| `main/services/` | PPG/BPM, WiFi |
+| `main/hal/` | Inicjalizacja LCD, dotyku, podświetlenia |
+| `main/ui/ui/` | Auto-generowane z EEZ Studio — nie edytować ręcznie |
 
-4. Otwórz monitor:
+## Uwagi
 
-  idf.py -p COMx monitor
-
-## Ważne informacje
-- `sdkconfig.defaults` w tym repo zawiera ustawienia PSRAM i konfigurację LVGL.
-- Jeśli zmienisz ustawienia pamięci, usuń `sdkconfig` i odbuduj projekt, aby wygenerować nowy plik konfiguracyjny.
-- Upewnij się, że wybrany target to `esp32s3` przed kompilacją.
-
-## Najważniejsze pliki
-- `main/main.cpp` — punkt wejścia i inicjalizacja aplikacji
-- `main/sunton_esp32_8048s050c.c/.h` — inicjalizacja LCD, podświetlenia i dotyku
-- `main/ui/` — źródła interfejsu LVGL, obrazy, fonty
-- `main/eez-framework/` — biblioteki EEZ używane przez UI
-- `CMakeLists.txt` / `sdkconfig.defaults` — konfiguracja budowania
-
-## Upstream
-Projekt bazuje na: https://github.com/mr-sven/esp32-8048S050C
-
-
+- Dwa rdzenie: Core 1 — wyłącznie LVGL, Core 0 — wszystko inne
+- Komunikacja UART z sensorami przez oddzielny task (RX/TX na Core 0)
+- PSRAM + RGB — flash write blokuje PSRAM; NVS zapisywany asynchronicznie w worker task

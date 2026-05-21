@@ -22,6 +22,7 @@ set(SOURCES_APP_CPP
     ./app/stopwatch_ui.cpp
     ./app/timer_logic.cpp
     ./app/timer_ui.cpp
+    ./app/game/flappy_bird.cpp
     ./app/main.cpp
 )
 
@@ -61,6 +62,7 @@ idf_component_register(
                     "./services/bpm"
                     "./utils/log"
                     "./app"
+                    "./app/game"
                     "./setting_wifi"
     REQUIRES        lvgl esp_lcd_touch_gt911 esp_timer esp_lcd esp_driver_ledc esp_driver_gpio esp_driver_uart esp_wifi esp_event nvs_flash esp_netif lwip
     )

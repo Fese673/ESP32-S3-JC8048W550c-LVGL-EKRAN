@@ -16,6 +16,7 @@ extern const lv_font_t ui_font_bebas_neue_regular52;
 extern const lv_font_t ui_font_bebas_neue58;
 extern const lv_font_t ui_font_bebas_neue30;
 extern const lv_font_t ui_font_bebas_neue35;
+extern const lv_font_t ui_font_consolai_13;
 
 #ifndef EXT_FONT_DESC_T
 #define EXT_FONT_DESC_T

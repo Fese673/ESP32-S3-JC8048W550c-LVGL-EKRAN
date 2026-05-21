@@ -9,6 +9,7 @@
 #include "wifi_service.h"
 #include "bpm_chart_handler.h"
 #include "sntp_service.h"
+#include "flappy_bird.h"
 #include "driver/i2c_master.h"
 #include "driver/gpio.h"
 #include "lvgl.h"
@@ -95,6 +96,9 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
         if (last_screen_id == SCREEN_ID_USTAWIENIA_WIFI) {
             wifi_timers_pause();
         }
+        if (last_screen_id == SCREEN_ID_GRY_TEST) {
+            flappy_bird_cleanup();
+        }
 
         last_screen_id = current_screen_id;
 
@@ -110,6 +114,9 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
         }
         if (current_screen_id == SCREEN_ID_USTAWIENIA_WIFI) {
             wifi_screen_init();
+        }
+        if (current_screen_id == SCREEN_ID_GRY_TEST) {
+            flappy_bird_init(objects.gry_test);
         }
     }
 

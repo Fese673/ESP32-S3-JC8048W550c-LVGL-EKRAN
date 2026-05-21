@@ -23,7 +23,8 @@ enum ScreensEnum {
     SCREEN_ID_POGODA = 10,
     SCREEN_ID_POGODA_PROGNOZA = 11,
     SCREEN_ID_BPM = 12,
-    _SCREEN_ID_LAST = 12
+    SCREEN_ID_GRY_TEST = 13,
+    _SCREEN_ID_LAST = 13
 };
 
 typedef struct _objects_t {
@@ -39,6 +40,7 @@ typedef struct _objects_t {
     lv_obj_t *pogoda;
     lv_obj_t *pogoda_prognoza;
     lv_obj_t *bpm;
+    lv_obj_t *gry_test;
     lv_obj_t *weather_in;
     lv_obj_t *pressure_in_5;
     lv_obj_t *co2_in_6;
@@ -351,6 +353,9 @@ void tick_screen_pogoda_prognoza();
 
 void create_screen_bpm();
 void tick_screen_bpm();
+
+void create_screen_gry_test();
+void tick_screen_gry_test();
 
 void tick_screen_by_id(enum ScreensEnum screenId);
 void tick_screen(int screen_index);

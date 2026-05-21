@@ -1,6 +1,23 @@
 # Archiwum Błędów - ZEGAR-ESP32
 
 ---
+### [ID: ERR_012] | FLAPPY_BIRD_REENTER_FREEZE | IMPACT: HIGH
+**Files:** `[main.cpp, flappy_bird.cpp]`
+
+**PROBLEM:** Po wyjściu z gry Flappy Bird do menu głównego i ponownym jej uruchomieniu, gra nie reagowała na tapnięcia i nie dało się grać.
+
+**CAUSE:**
+1. Brak wywołania `flappy_bird_cleanup()` podczas opuszczania ekranu `SCREEN_ID_GRY_TEST` w `main.cpp` powodował, że stary `s_game_container` oraz jego widgety nie były usuwane z pamięci.
+2. Przy ponownym wejściu do gry tworzony był nowy kontener, ale stary overlay Game Over (`s_gameover_overlay`) z poprzedniej rozgrywki wciąż istniał pod spodem i posiadał aktywną flagę `LV_OBJ_FLAG_CLICKABLE`. Swallowował on wszystkie kliknięcia, przez co nowa instancja gry nie otrzymywała zdarzeń dotykowych.
+3. Callback dotykowy był zarejestrowany na globalnym ekranie `parent_screen`, co powodowało nawarstwianie się callbacków i wycieki przy każdym przejściu ekranowym.
+
+**LOGIC_CHANGE:**
+- W `main.cpp` w `ui_tick_timer_cb()` dodano obsługę przejść dla ekranu gry: wywołanie `flappy_bird_cleanup()` przy opuszczaniu `SCREEN_ID_GRY_TEST` oraz `flappy_bird_init()` przy wejściu.
+- W `flappy_bird.cpp` w `flappy_bird_cleanup()` dodano jawne usuwanie kontenera gry `lv_obj_delete(s_game_container)` i zresetowanie flagi `s_game_initialized = false`.
+- Przeniesiono callback dotykowy z globalnego `parent_screen` na `s_game_container` z flagą `LV_OBJ_FLAG_CLICKABLE`, aby automatycznie sprzątał się przy usuwaniu kontenera.
+
+**VERIFICATION:** Gra poprawnie reaguje na dotyk po wielokrotnym wchodzeniu i wychodzeniu przez menu główne. Wszystkie obiekty są poprawnie usuwane i alokowane na nowo.
+---
 ### [ID: ERR_011] | CLOCK_WORLD_ZONES_CRASH | IMPACT: CRITICAL
 **Files:** `[clock_logic.cpp]`
 

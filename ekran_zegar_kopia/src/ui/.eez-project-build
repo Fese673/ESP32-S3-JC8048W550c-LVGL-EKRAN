@@ -21,6 +21,7 @@
     "ui_font_calibri.c",
     "ui_font_calibri_30.c",
     "ui_font_consola_18.c",
+    "ui_font_consolai_13.c",
     "ui_font_consolai_16.c",
     "ui_image_air_icon.c",
     "ui_image_bell_of_icon.c",

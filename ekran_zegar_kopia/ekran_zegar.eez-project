@@ -959,8 +959,8 @@
                       "type": "LVGLLabelWidget",
                       "left": 34,
                       "top": 23,
-                      "width": 32,
-                      "height": 18,
+                      "width": 30,
+                      "height": 19,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -994,7 +994,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "consola 18"
                             }
                           }
                         }
@@ -1012,8 +1012,8 @@
                       "type": "LVGLLabelWidget",
                       "left": 34,
                       "top": 71,
-                      "width": 50,
-                      "height": 18,
+                      "width": 40,
+                      "height": 19,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -1047,7 +1047,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "consola 18"
                             }
                           }
                         }
@@ -1065,8 +1065,8 @@
                       "type": "LVGLLabelWidget",
                       "left": 34,
                       "top": 119,
-                      "width": 69,
-                      "height": 18,
+                      "width": 70,
+                      "height": 19,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -1100,7 +1100,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "consola 18"
                             }
                           }
                         }
@@ -1159,8 +1159,8 @@
                       "type": "LVGLLabelWidget",
                       "left": 26,
                       "top": 23,
-                      "width": 11,
-                      "height": 18,
+                      "width": 10,
+                      "height": 19,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -1194,7 +1194,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "consola 18"
                             }
                           }
                         }
@@ -1212,8 +1212,8 @@
                       "type": "LVGLLabelWidget",
                       "left": 26,
                       "top": 167,
-                      "width": 6,
-                      "height": 18,
+                      "width": 10,
+                      "height": 19,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -1247,7 +1247,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "consola 18"
                             }
                           }
                         }
@@ -1265,8 +1265,8 @@
                       "type": "LVGLLabelWidget",
                       "left": 26,
                       "top": 71,
-                      "width": 11,
-                      "height": 18,
+                      "width": 10,
+                      "height": 19,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -1300,7 +1300,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "consola 18"
                             }
                           }
                         }
@@ -1318,8 +1318,8 @@
                       "type": "LVGLLabelWidget",
                       "left": 26,
                       "top": 119,
-                      "width": 69,
-                      "height": 18,
+                      "width": 70,
+                      "height": 19,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -1353,7 +1353,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "consola 18"
                             }
                           }
                         }
@@ -3261,56 +3261,6 @@
                       "previewValue": 0
                     },
                     {
-                      "objID": "f0b5c743-5926-4edf-d8bf-6815628d5b83",
-                      "type": "LVGLImageWidget",
-                      "left": 4,
-                      "top": 152,
-                      "width": 48,
-                      "height": 48,
-                      "customInputs": [],
-                      "customOutputs": [],
-                      "style": {
-                        "objID": "f67d6bab-65d6-4511-b5d5-f44312e4efe4",
-                        "useStyle": "default",
-                        "conditionalStyles": [],
-                        "childStyles": []
-                      },
-                      "hiddenInEditor": false,
-                      "timeline": [],
-                      "eventHandlers": [],
-                      "leftUnit": "px",
-                      "topUnit": "px",
-                      "widthUnit": "content",
-                      "heightUnit": "content",
-                      "children": [],
-                      "widgetFlags": "ADV_HITTEST|CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
-                      "hiddenFlagType": "literal",
-                      "clickableFlagType": "literal",
-                      "flagScrollbarMode": "",
-                      "flagScrollDirection": "",
-                      "scrollSnapX": "",
-                      "scrollSnapY": "",
-                      "checkedStateType": "literal",
-                      "disabledStateType": "literal",
-                      "states": "",
-                      "localStyles": {
-                        "objID": "1c9cf06b-0036-4ff0-c78e-f3e99a333883"
-                      },
-                      "group": "",
-                      "groupIndex": 0,
-                      "image": "air_icon",
-                      "setPivot": false,
-                      "pivotX": 0,
-                      "pivotY": 0,
-                      "zoom": 180,
-                      "angle": 0,
-                      "innerAlign": "CENTER",
-                      "sizeMode": "VIRTUAL",
-                      "value": 0,
-                      "valueType": "literal",
-                      "previewValue": 0
-                    },
-                    {
                       "objID": "68b240a3-f1da-4d77-ee0c-92be756211fb",
                       "type": "LVGLImageWidget",
                       "left": 4,
@@ -3406,8 +3356,8 @@
                       "type": "LVGLLabelWidget",
                       "left": 34,
                       "top": 23,
-                      "width": 18,
-                      "height": 18,
+                      "width": 318,
+                      "height": 32,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -3441,7 +3391,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "calibri 30"
                             }
                           }
                         }
@@ -3452,15 +3402,15 @@
                       "textType": "expression",
                       "longMode": "WRAP",
                       "recolor": false,
-                      "previewValue": "---"
+                      "previewValue": ""
                     },
                     {
                       "objID": "ea236f67-3029-4c6f-8baa-c2052988268c",
                       "type": "LVGLLabelWidget",
                       "left": 34,
                       "top": 71,
-                      "width": 18,
-                      "height": 18,
+                      "width": 30,
+                      "height": 19,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -3494,7 +3444,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "consola 18"
                             }
                           }
                         }
@@ -3512,8 +3462,8 @@
                       "type": "LVGLLabelWidget",
                       "left": 34,
                       "top": 119,
-                      "width": 18,
-                      "height": 18,
+                      "width": 37,
+                      "height": 17,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -3547,7 +3497,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "consolai 16"
                             }
                           }
                         }
@@ -3558,7 +3508,7 @@
                       "textType": "expression",
                       "longMode": "WRAP",
                       "recolor": false,
-                      "previewValue": "---"
+                      "previewValue": "012µ"
                     }
                   ],
                   "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE|OVERFLOW_VISIBLE|SCROLL_ON_FOCUS",
@@ -3606,8 +3556,8 @@
                       "type": "LVGLLabelWidget",
                       "left": 24,
                       "top": 23,
-                      "width": 18,
-                      "height": 18,
+                      "width": 30,
+                      "height": 19,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -3641,7 +3591,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "consola 18"
                             }
                           }
                         }
@@ -3659,8 +3609,8 @@
                       "type": "LVGLLabelWidget",
                       "left": 20,
                       "top": 167,
-                      "width": 48,
-                      "height": 18,
+                      "width": 50,
+                      "height": 19,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -3694,7 +3644,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "consola 18"
                             }
                           }
                         }
@@ -3712,8 +3662,8 @@
                       "type": "LVGLLabelWidget",
                       "left": 24,
                       "top": 74,
-                      "width": 18,
-                      "height": 18,
+                      "width": 30,
+                      "height": 19,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -3747,7 +3697,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "consola 18"
                             }
                           }
                         }
@@ -3765,8 +3715,8 @@
                       "type": "LVGLLabelWidget",
                       "left": 24,
                       "top": 119,
-                      "width": 18,
-                      "height": 18,
+                      "width": 30,
+                      "height": 19,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -3800,7 +3750,7 @@
                           "MAIN": {
                             "DEFAULT": {
                               "text_color": "#D0CECF",
-                              "text_font": "MONTSERRAT_16"
+                              "text_font": "consola 18"
                             }
                           }
                         }
@@ -4105,7 +4055,7 @@
                 "conditionalStyles": [],
                 "childStyles": []
               },
-              "hiddenInEditor": false,
+              "hiddenInEditor": true,
               "timeline": [],
               "eventHandlers": [],
               "identifier": "weather_in_label",
@@ -4519,7 +4469,15 @@
                     "childStyles": []
                   },
                   "timeline": [],
-                  "eventHandlers": [],
+                  "eventHandlers": [
+                    {
+                      "objID": "15f89a5d-3b65-4872-f99a-2b509a7bed84",
+                      "eventName": "PRESSED",
+                      "handlerType": "flow",
+                      "action": "action_refresh_settings",
+                      "userData": 0
+                    }
+                  ],
                   "identifier": "menu_kfe_harmonogram_8",
                   "leftUnit": "px",
                   "topUnit": "px",
@@ -5766,6 +5724,32 @@
               "useStackType": "literal"
             }
           ]
+        },
+        {
+          "objID": "85eb5161-250f-4771-ef23-c23b7fd6519f",
+          "type": "LVGLActionComponent",
+          "left": 916,
+          "top": 186,
+          "width": 280,
+          "height": 54,
+          "customInputs": [],
+          "customOutputs": [],
+          "actions": [
+            {
+              "objID": "966fa5a0-c717-47f4-8f4f-0a7c104d8b96",
+              "action": "changeScreen",
+              "screen": "GRY TEST",
+              "screenType": "literal",
+              "fadeMode": "NONE",
+              "fadeModeType": "literal",
+              "speed": 0,
+              "speedType": "literal",
+              "delay": 0,
+              "delayType": "literal",
+              "useStack": true,
+              "useStackType": "literal"
+            }
+          ]
         }
       ],
       "connectionLines": [
@@ -5816,6 +5800,13 @@
           "source": "11a6f41b-8ad9-4c91-addc-18512b7b9100",
           "output": "PRESSED",
           "target": "c71b0f52-c1a0-4ad1-a820-c6124c8cb61c",
+          "input": "@seqin"
+        },
+        {
+          "objID": "47e754aa-3108-4fc6-9565-a5dd3691bd23",
+          "source": "6f49a09b-5ea7-46d9-e94d-1830874412e3",
+          "output": "PRESSED",
+          "target": "85eb5161-250f-4771-ef23-c23b7fd6519f",
           "input": "@seqin"
         }
       ],
@@ -20650,6 +20641,57 @@
       "isUsedAsUserWidget": false,
       "createAtStart": true,
       "deleteOnScreenUnload": false
+    },
+    {
+      "objID": "7c793090-e7e9-47a0-91e7-9720e4f9416c",
+      "components": [
+        {
+          "objID": "56567172-14e7-4ba8-9e6a-39c4c2c917e4",
+          "type": "LVGLScreenWidget",
+          "left": 0,
+          "top": 0,
+          "width": 800,
+          "height": 480,
+          "customInputs": [],
+          "customOutputs": [],
+          "style": {
+            "objID": "7d5867a6-8c78-46d7-fe04-a5e5e7a0c103",
+            "useStyle": "default",
+            "conditionalStyles": [],
+            "childStyles": []
+          },
+          "timeline": [],
+          "eventHandlers": [],
+          "leftUnit": "px",
+          "topUnit": "px",
+          "widthUnit": "px",
+          "heightUnit": "px",
+          "children": [],
+          "widgetFlags": "CLICKABLE|PRESS_LOCK|CLICK_FOCUSABLE|GESTURE_BUBBLE|SNAPPABLE|SCROLLABLE|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER",
+          "hiddenFlagType": "literal",
+          "clickableFlag": true,
+          "clickableFlagType": "literal",
+          "checkedStateType": "literal",
+          "disabledStateType": "literal",
+          "states": "",
+          "localStyles": {
+            "objID": "f973efe4-4f71-4f83-e90f-5c50c0669e54"
+          },
+          "groupIndex": 0
+        }
+      ],
+      "connectionLines": [],
+      "localVariables": [],
+      "componentGroups": [],
+      "userProperties": [],
+      "name": "GRY TEST",
+      "left": 0,
+      "top": 0,
+      "width": 800,
+      "height": 480,
+      "isUsedAsUserWidget": false,
+      "createAtStart": true,
+      "deleteOnScreenUnload": false
     }
   ],
   "userWidgets": [],
@@ -20927,6 +20969,35 @@
         "symbols": ""
       },
       "embeddedFontFileIndex": 4
+    },
+    {
+      "objID": "36aac6da-85bb-4f0a-e948-e958c6f2131f",
+      "name": "consolai 13",
+      "renderingEngine": "LVGL",
+      "source": {
+        "objID": "96ef3d02-3035-454c-d654-283b390b86ac",
+        "filePath": "..\\..\\..\\consolai.ttf",
+        "size": 16
+      },
+      "bpp": 4,
+      "threshold": 128,
+      "height": 17,
+      "ascent": 13,
+      "descent": 4,
+      "glyphs": [],
+      "lvglRanges": "32-127",
+      "lvglSymbols": "ąćęłńóśźżĄĆĘŁŃÓŚŹŻ",
+      "lvglAdditionalSources": [],
+      "lvglGlyphs": {
+        "encodings": [
+          {
+            "from": 32,
+            "to": 127
+          }
+        ],
+        "symbols": "ąćęłńóśźżĄĆĘŁŃÓŚŹŻ"
+      },
+      "embeddedFontFileIndex": 2
     }
   ],
   "bitmaps": [
