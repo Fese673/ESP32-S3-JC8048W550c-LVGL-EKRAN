@@ -45,6 +45,7 @@ typedef struct _objects_t {
     lv_obj_t *pressure_in_5;
     lv_obj_t *co2_in_6;
     lv_obj_t *pm10_in_7;
+    lv_obj_t *tvoc_in_8;
     lv_obj_t *hm_in_1;
     lv_obj_t *txt_in_4;
     lv_obj_t *tm_in_2;
@@ -73,6 +74,7 @@ typedef struct _objects_t {
     lv_obj_t *pressure_out_5;
     lv_obj_t *co2_out_6;
     lv_obj_t *pm10_out_7;
+    lv_obj_t *no2_out_8;
     lv_obj_t *hm_out_1;
     lv_obj_t *txt_out_4;
     lv_obj_t *tm_out_2;
@@ -276,11 +278,11 @@ typedef struct _objects_t {
     lv_obj_t *humidity_weather;
     lv_obj_t *pressure_weather;
     lv_obj_t *uv_weather;
-    lv_obj_t *pm25_weather;
     lv_obj_t *sunrise__weather;
     lv_obj_t *sunset__weather;
     lv_obj_t *temp_sensor_out;
     lv_obj_t *text_weather;
+    lv_obj_t *pm25_weather;
     lv_obj_t *info_bell_of_icon_on_10;
     lv_obj_t *info_bell_of_icon_off_10;
     lv_obj_t *info_ble_on_icon_10;
@@ -306,8 +308,6 @@ typedef struct _objects_t {
     lv_obj_t *obj67;
     lv_obj_t *hour_text_18;
     lv_obj_t *bpm_chart;
-    lv_obj_t *bpm_value_label;
-    lv_obj_t *spo2_value_label;
 } objects_t;
 
 extern objects_t objects;

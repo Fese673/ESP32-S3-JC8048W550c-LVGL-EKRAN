@@ -52,6 +52,7 @@ struct Snapshot {
     uint16_t pm25UgM3 = 0;
     uint16_t pm10UgM3 = 0;
     uint16_t eco2 = 0;
+    uint16_t tvoc = 0;
     uint32_t sampleAgeMs = 0;
     uint32_t timeUnixSeconds = 0;
     uint8_t airQualityIndex = 0;
@@ -81,6 +82,7 @@ struct OutdoorWeatherSnapshot {
     uint8_t sunriseMin = 0;
     uint8_t sunsetHour = 0;
     uint8_t sunsetMin = 0;
+    uint16_t no2UgM3 = 0;
     bool valid = false;
     unsigned long updatedAtMs = 0;
 };

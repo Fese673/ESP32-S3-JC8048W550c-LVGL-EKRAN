@@ -102,6 +102,41 @@ static void on_start_stop_minutnik(lv_event_t *e) {
     timer_ui_cb(NULL);
 }
 
+static void on_timer_adjust_btn(lv_event_t *e) {
+    lv_event_code_t code = lv_event_get_code(e);
+    if (code != LV_EVENT_PRESSED && code != LV_EVENT_LONG_PRESSED_REPEAT) {
+        return;
+    }
+
+    lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
+    
+    if (btn == objects.plus_hour_minutnik) {
+        timer_add_hours(1);
+    } else if (btn == objects.plus_minutes_minutnik) {
+        timer_add_minutes(1);
+    } else if (btn == objects.plus_seconds_minutnik) {
+        timer_add_seconds(1);
+    } else if (btn == objects.minus_hour_minutnik) {
+        timer_add_hours(-1);
+    } else if (btn == objects.minus_minutes_minutnik) {
+        timer_add_minutes(-1);
+    } else if (btn == objects.minus_seconds_minutnik) {
+        timer_add_seconds(-1);
+    }
+
+    timer_ui_cb(NULL);
+}
+
+static void setup_adjust_button(lv_obj_t *btn) {
+    if (!btn) return;
+    uint32_t event_cnt = lv_obj_get_event_count(btn);
+    for (uint32_t i = event_cnt; i > 0; i--) {
+        lv_obj_remove_event(btn, i - 1);
+    }
+    lv_obj_add_event_cb(btn, on_timer_adjust_btn, LV_EVENT_PRESSED, NULL);
+    lv_obj_add_event_cb(btn, on_timer_adjust_btn, LV_EVENT_LONG_PRESSED_REPEAT, NULL);
+}
+
 void timer_ui_init(void) {
     // Hide original labels
     if (objects.before_hour_minutnik) lv_obj_add_flag(objects.before_hour_minutnik, LV_OBJ_FLAG_HIDDEN);
@@ -143,6 +178,13 @@ void timer_ui_init(void) {
         // Register direct C++ callback
         lv_obj_add_event_cb(objects.start_stop_minutnik_button, on_start_stop_minutnik, LV_EVENT_PRESSED, NULL);
     }
+
+    setup_adjust_button(objects.plus_hour_minutnik);
+    setup_adjust_button(objects.plus_minutes_minutnik);
+    setup_adjust_button(objects.plus_seconds_minutnik);
+    setup_adjust_button(objects.minus_hour_minutnik);
+    setup_adjust_button(objects.minus_minutes_minutnik);
+    setup_adjust_button(objects.minus_seconds_minutnik);
 
     s_timer = lv_timer_create(timer_ui_cb, 100, NULL);
 }

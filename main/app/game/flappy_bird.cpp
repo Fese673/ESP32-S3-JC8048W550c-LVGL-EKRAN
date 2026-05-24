@@ -8,6 +8,7 @@
 #include "esp_log.h"
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #define TAG "FlappyBird"
 
@@ -37,8 +38,10 @@ enum GameState {
 struct Pipe {
     float x;
     float gap_y;
+    float base_gap_y;
     lv_obj_t *top_pipe;
     lv_obj_t *bottom_pipe;
+    uint32_t color;
     bool passed;
 };
 
@@ -49,20 +52,70 @@ static float s_bird_y = 200.0f;
 static float s_bird_vy = 0.0f;
 static int s_score = 0;
 static int s_high_score = 0;
+static bool s_easter_egg_active = false;
+static float s_game_time = 0.0f;
+static float s_score_pulse_opa = 120.0f;
+
+#define STAR_COUNT 8
+struct Star {
+    lv_obj_t *obj;
+    float x;
+    float y;
+    float speed;
+    uint8_t size;
+};
+static Star s_stars[STAR_COUNT];
 
 static Pipe s_pipes[PIPE_COUNT];
 
+static const uint32_t NEON_COLORS[] = {
+    0x00FF66, // Neon Green
+    0x00FFFF, // Neon Cyan
+    0xFF007F, // Neon Pink/Rose
+    0x9D00FF, // Neon Purple
+    0xFFEA00  // Neon Yellow
+};
+static const int NEON_COLOR_COUNT = 5;
+
+static uint32_t get_random_neon_color() {
+    return NEON_COLORS[rand() % NEON_COLOR_COUNT];
+}
+
+static float get_gravity() {
+    return s_easter_egg_active ? 1300.0f : 850.0f;
+}
+
+static float get_jump_velocity() {
+    return s_easter_egg_active ? -350.0f : -280.0f;
+}
+
+static float get_terminal_velocity() {
+    return s_easter_egg_active ? 700.0f : 550.0f;
+}
+
 // Dynamic difficulty helpers
 static float get_pipe_speed() {
-    float speed = -150.0f - (s_score / 5) * 12.0f;
-    if (speed < -260.0f) speed = -260.0f;
-    return speed;
+    if (s_easter_egg_active) {
+        float speed = -240.0f - (s_score / 5) * 15.0f;
+        if (speed < -360.0f) speed = -360.0f;
+        return speed;
+    } else {
+        float speed = -150.0f - (s_score / 5) * 12.0f;
+        if (speed < -260.0f) speed = -260.0f;
+        return speed;
+    }
 }
 
 static int get_gap_height() {
-    int gap = 145 - (s_score / 5) * 6;
-    if (gap < 110) gap = 110;
-    return gap;
+    if (s_easter_egg_active) {
+        int gap = 135 - (s_score / 5) * 6;
+        if (gap < 105) gap = 105;
+        return gap;
+    } else {
+        int gap = 145 - (s_score / 5) * 6;
+        if (gap < 110) gap = 110;
+        return gap;
+    }
 }
 
 // Timing
@@ -74,6 +127,7 @@ static lv_obj_t *s_bird = NULL;
 static lv_obj_t *s_bird_eye = NULL;
 static lv_obj_t *s_bird_pupil = NULL;
 static lv_obj_t *s_bird_beak = NULL;
+static lv_obj_t *s_bird_wing = NULL;
 static lv_obj_t *s_ground = NULL;
 static lv_obj_t *s_score_label = NULL;
 
@@ -122,11 +176,95 @@ static void save_high_score() {
     }
 }
 
+static void bird_click_cb(lv_event_t *e) {
+    lv_event_code_t code = lv_event_get_code(e);
+    if (code == LV_EVENT_PRESSED) {
+        if (s_state == STATE_READY) {
+            if (!s_easter_egg_active) {
+                s_easter_egg_active = true;
+                ESP_LOGI(TAG, "Easter Egg activated!");
+                
+                // Visual feedback for bird
+                lv_obj_set_style_bg_color(s_bird, lv_color_hex(0xff1111), 0); // vibrant blood red
+                lv_obj_set_style_border_color(s_bird, lv_color_hex(0xffea00), 0); // neon gold/yellow rim
+                lv_obj_set_style_shadow_color(s_bird, lv_color_hex(0xff0055), 0); // neon red/magenta glow
+                lv_obj_set_style_shadow_width(s_bird, 18, 0);
+                lv_obj_set_style_shadow_opa(s_bird, 220, 0);
+
+                // Hot pink wing in Easter Egg
+                if (s_bird_wing) {
+                    lv_obj_set_style_bg_color(s_bird_wing, lv_color_hex(0xff00ff), 0);
+                }
+
+                // Update titles
+                lv_label_set_text(s_start_title, "NEON HELL");
+                lv_obj_set_style_text_color(s_start_title, lv_color_hex(0xff1111), 0);
+                lv_label_set_text(s_start_instructions, "TAPNIJ EKRAN ABY ROZPOCZĄĆ ZAGŁADĘ");
+                
+                // Update stars with random neon colors
+                for (int i = 0; i < STAR_COUNT; i++) {
+                    uint32_t star_color = NEON_COLORS[i % NEON_COLOR_COUNT];
+                    lv_obj_set_style_bg_color(s_stars[i].obj, lv_color_hex(star_color), 0);
+                    lv_obj_set_style_bg_opa(s_stars[i].obj, 200, 0);
+                }
+
+                // Update pipes colors
+                for (int i = 0; i < PIPE_COUNT; i++) {
+                    s_pipes[i].color = get_random_neon_color();
+                    lv_obj_set_style_border_color(s_pipes[i].top_pipe, lv_color_hex(s_pipes[i].color), 0);
+                    lv_obj_set_style_shadow_color(s_pipes[i].top_pipe, lv_color_hex(s_pipes[i].color), 0);
+                    lv_obj_set_style_border_color(s_pipes[i].bottom_pipe, lv_color_hex(s_pipes[i].color), 0);
+                    lv_obj_set_style_shadow_color(s_pipes[i].bottom_pipe, lv_color_hex(s_pipes[i].color), 0);
+                }
+
+                // Stop event bubbling so the game doesn't start on this tap
+                lv_event_stop_bubbling(e);
+            }
+        }
+    }
+}
+
 // Reset Game State (does not recreate objects)
 static void reset_game_state() {
     s_bird_y = 200.0f;
     s_bird_vy = 0.0f;
     s_score = 0;
+    s_easter_egg_active = false;
+    s_game_time = 0.0f;
+    s_score_pulse_opa = 120.0f;
+
+    // Reset container background (one-shot, not per-tick)
+    if (s_game_container) {
+        lv_obj_set_style_bg_color(s_game_container, lv_color_hex(0x110b1a), 0);
+    }
+
+    // Make bird clickable in start state
+    lv_obj_add_flag(s_bird, LV_OBJ_FLAG_CLICKABLE);
+
+    // Reset Bird styling to Neon Orange
+    lv_obj_set_style_bg_color(s_bird, lv_color_hex(0xff6f00), 0);
+    lv_obj_set_style_border_color(s_bird, lv_color_hex(0xffffff), 0);
+    lv_obj_set_style_shadow_color(s_bird, lv_color_hex(0xff6f00), 0);
+    lv_obj_set_style_shadow_width(s_bird, 10, 0);
+    lv_obj_set_style_shadow_opa(s_bird, 160, 0);
+
+    // Reset Bird Wing styling
+    if (s_bird_wing) {
+        lv_obj_set_style_bg_color(s_bird_wing, lv_color_hex(0xffd700), 0);
+        lv_obj_set_size(s_bird_wing, 12, 8);
+        lv_obj_set_pos(s_bird_wing, 4, 12);
+    }
+
+    // Reset Start screen texts
+    lv_label_set_text(s_start_title, "NEON FLAPPY");
+    lv_obj_set_style_text_color(s_start_title, lv_color_hex(0xff6f00), 0);
+    lv_label_set_text(s_start_instructions, "TAPNIJ EKRAN ABY ROZPOCZĄĆ GRĘ");
+
+    // Reset Star colors to dim purple/gray
+    for (int i = 0; i < STAR_COUNT; i++) {
+        lv_obj_set_style_bg_color(s_stars[i].obj, lv_color_hex(0x443a50), 0);
+        lv_obj_set_style_bg_opa(s_stars[i].obj, 150, 0);
+    }
     
     // Position bird
     lv_obj_set_pos(s_bird, BIRD_X, (int)s_bird_y - BIRD_RADIUS);
@@ -139,7 +277,17 @@ static void reset_game_state() {
     for (int i = 0; i < PIPE_COUNT; i++) {
         s_pipes[i].x = start_x + i * 290.0f;
         s_pipes[i].gap_y = (float)(140 + rand() % 160); // middle gap between 140 and 300
+        s_pipes[i].base_gap_y = s_pipes[i].gap_y;
         s_pipes[i].passed = false;
+        s_pipes[i].color = 0x00FF66; // Normal Neon Green
+
+        // Reset pipe styles
+        lv_obj_set_style_border_color(s_pipes[i].top_pipe, lv_color_hex(0x00FF66), 0);
+        lv_obj_set_style_shadow_color(s_pipes[i].top_pipe, lv_color_hex(0x00FF66), 0);
+        lv_obj_set_style_shadow_width(s_pipes[i].top_pipe, 8, 0);
+        lv_obj_set_style_border_color(s_pipes[i].bottom_pipe, lv_color_hex(0x00FF66), 0);
+        lv_obj_set_style_shadow_color(s_pipes[i].bottom_pipe, lv_color_hex(0x00FF66), 0);
+        lv_obj_set_style_shadow_width(s_pipes[i].bottom_pipe, 8, 0);
 
         // Top pipe height
         int top_h = (int)(s_pipes[i].gap_y - current_gap / 2);
@@ -160,6 +308,8 @@ static void reset_game_state() {
     s_last_time_us = esp_timer_get_time();
 
     // Refresh score display
+    lv_obj_set_style_text_opa(s_score_label, 120, 0);
+    lv_obj_set_style_text_color(s_score_label, lv_color_hex(0xffffff), 0);
     lv_label_set_text_fmt(s_score_label, "%d", s_score);
 }
 
@@ -167,6 +317,11 @@ static void reset_game_state() {
 static void trigger_game_over() {
     s_state = STATE_GAMEOVER;
     ESP_LOGI(TAG, "Game Over! Score: %d", s_score);
+
+    // Set container background to dark red tint on Easter Egg death (one-shot)
+    if (s_easter_egg_active && s_game_container) {
+        lv_obj_set_style_bg_color(s_game_container, lv_color_hex(0x2a0505), 0);
+    }
 
     // Save score if it is a new high score
     bool is_new_record = false;
@@ -176,7 +331,15 @@ static void trigger_game_over() {
         save_high_score();
     }
 
-    // Show game over screen
+    // Set Game Over screen texts & colors
+    if (s_easter_egg_active) {
+        lv_label_set_text(s_gameover_title, "ZAGŁADA");
+        lv_obj_set_style_text_color(s_gameover_title, lv_color_hex(0xff1111), 0);
+    } else {
+        lv_label_set_text(s_gameover_title, "KONIEC GRY");
+        lv_obj_set_style_text_color(s_gameover_title, lv_color_hex(0xff2a2a), 0);
+    }
+
     lv_label_set_text_fmt(s_gameover_score, "WYNIK: %d", s_score);
     if (is_new_record) {
         lv_label_set_text_fmt(s_gameover_best, "NOWY REKORD: %d !", s_high_score);
@@ -199,9 +362,13 @@ void flappy_bird_jump() {
         s_last_time_us = esp_timer_get_time(); // Reset delta timer
         lv_obj_add_flag(s_start_overlay, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(s_score_label, LV_OBJ_FLAG_HIDDEN);
-        s_bird_vy = JUMP_VELOCITY;
+        
+        // Remove bird clickability during play
+        lv_obj_remove_flag(s_bird, LV_OBJ_FLAG_CLICKABLE);
+        
+        s_bird_vy = get_jump_velocity();
     } else if (s_state == STATE_PLAYING) {
-        s_bird_vy = JUMP_VELOCITY;
+        s_bird_vy = get_jump_velocity();
     }
 }
 
@@ -226,16 +393,34 @@ static void flappy_bird_timer_cb(lv_timer_t *timer) {
         dt = 0.050f;
     }
 
+    // Move background stars — position-only, no style changes (cheap)
+    for (int i = 0; i < STAR_COUNT; i++) {
+        float speed_mult = s_easter_egg_active ? 5.5f : 1.0f;
+        s_stars[i].x -= s_stars[i].speed * speed_mult * dt;
+        if (s_stars[i].x < -10) {
+            s_stars[i].x = (float)(SCREEN_WIDTH + 5);
+            s_stars[i].y = (float)(20 + rand() % (GROUND_Y - 40));
+        }
+        lv_obj_set_pos(s_stars[i].obj, (int)s_stars[i].x, (int)s_stars[i].y);
+    }
+
+    static float s_ready_time = 0;
+    
     if (s_state == STATE_READY) {
         // High polish: sine floating animation on start screen
-        static float s_ready_time = 0;
-        s_ready_time += dt * 4.5f;
+        s_ready_time += dt * (s_easter_egg_active ? 8.5f : 4.5f);
         s_bird_y = 200.0f + sinf(s_ready_time) * 15.0f;
         lv_obj_set_pos(s_bird, BIRD_X, (int)s_bird_y - BIRD_RADIUS);
         
         // Wiggle beak slightly
         int beak_y = 13 + (int)(sinf(s_ready_time * 2.0f) * 2.0f);
         lv_obj_set_pos(s_bird_beak, 24, beak_y);
+
+        // Flapping wing (position only — no lv_obj_set_size to avoid relayout)
+        if (s_bird_wing) {
+            int wing_y = 12 + (int)(sinf(s_ready_time * 16.0f) * 3.0f);
+            lv_obj_set_pos(s_bird_wing, 4, wing_y);
+        }
         
         // Neon pulse start message opacity
         static float s_blink_time = 0;
@@ -249,10 +434,13 @@ static void flappy_bird_timer_cb(lv_timer_t *timer) {
         return;
     }
 
+    // Accumulate total gameplay time for oscillations
+    s_game_time += dt;
+
     // 1. Physics update: Bird
-    s_bird_vy += GRAVITY * dt;
-    if (s_bird_vy > TERMINAL_VELOCITY) {
-        s_bird_vy = TERMINAL_VELOCITY;
+    s_bird_vy += get_gravity() * dt;
+    if (s_bird_vy > get_terminal_velocity()) {
+        s_bird_vy = get_terminal_velocity();
     }
     s_bird_y += s_bird_vy * dt;
 
@@ -260,7 +448,7 @@ static void flappy_bird_timer_cb(lv_timer_t *timer) {
     lv_obj_set_pos(s_bird, BIRD_X, (int)s_bird_y - BIRD_RADIUS);
 
     // High polish: smooth interpolated pitch animation (based on vertical velocity)
-    float pitch_factor = (s_bird_vy - JUMP_VELOCITY) / (TERMINAL_VELOCITY - JUMP_VELOCITY);
+    float pitch_factor = (s_bird_vy - get_jump_velocity()) / (get_terminal_velocity() - get_jump_velocity());
     if (pitch_factor < 0.0f) pitch_factor = 0.0f;
     if (pitch_factor > 1.0f) pitch_factor = 1.0f;
 
@@ -268,6 +456,13 @@ static void flappy_bird_timer_cb(lv_timer_t *timer) {
     int eye_y = 5 + (int)(pitch_factor * 7.0f);   // 5 (up) to 12 (down)
     lv_obj_set_pos(s_bird_beak, 24, beak_y);
     lv_obj_set_pos(s_bird_eye, 18, eye_y);
+
+    // Flapping wing (position only — no lv_obj_set_size to avoid relayout)
+    if (s_bird_wing) {
+        float wing_speed = s_easter_egg_active ? 28.0f : 16.0f;
+        int wing_y = 12 + (int)(sinf(s_game_time * wing_speed) * 3.0f);
+        lv_obj_set_pos(s_bird_wing, 4, wing_y);
+    }
 
     // 2. Ceil & Floor collision check
     if (s_bird_y + BIRD_RADIUS >= GROUND_Y) {
@@ -294,6 +489,7 @@ static void flappy_bird_timer_cb(lv_timer_t *timer) {
             }
             s_pipes[i].x = max_x + 290.0f;
             s_pipes[i].gap_y = (float)(140 + rand() % 160);
+            s_pipes[i].base_gap_y = s_pipes[i].gap_y;
             s_pipes[i].passed = false;
 
             int current_gap = get_gap_height();
@@ -305,6 +501,28 @@ static void flappy_bird_timer_cb(lv_timer_t *timer) {
             int bottom_h = GROUND_Y - bottom_y;
             lv_obj_set_size(s_pipes[i].bottom_pipe, PIPE_WIDTH, bottom_h);
             lv_obj_set_pos(s_pipes[i].bottom_pipe, (int)s_pipes[i].x, bottom_y);
+
+            if (s_easter_egg_active) {
+                s_pipes[i].color = get_random_neon_color();
+                lv_obj_set_style_border_color(s_pipes[i].top_pipe, lv_color_hex(s_pipes[i].color), 0);
+                lv_obj_set_style_shadow_color(s_pipes[i].top_pipe, lv_color_hex(s_pipes[i].color), 0);
+                lv_obj_set_style_border_color(s_pipes[i].bottom_pipe, lv_color_hex(s_pipes[i].color), 0);
+                lv_obj_set_style_shadow_color(s_pipes[i].bottom_pipe, lv_color_hex(s_pipes[i].color), 0);
+            }
+        }
+
+        // Apply dynamic vertical bobbing in Easter Egg mode
+        if (s_easter_egg_active) {
+            float bobbing = sinf(s_game_time * 2.5f + i * 2.0f) * 35.0f;
+            s_pipes[i].gap_y = s_pipes[i].base_gap_y + bobbing;
+
+            int current_gap = get_gap_height();
+            int top_h = (int)(s_pipes[i].gap_y - current_gap / 2);
+            lv_obj_set_size(s_pipes[i].top_pipe, PIPE_WIDTH, top_h);
+
+            int bottom_y = (int)(s_pipes[i].gap_y + current_gap / 2);
+            int bottom_h = GROUND_Y - bottom_y;
+            lv_obj_set_size(s_pipes[i].bottom_pipe, PIPE_WIDTH, bottom_h);
         }
 
         // Apply updated pipe position
@@ -319,6 +537,7 @@ static void flappy_bird_timer_cb(lv_timer_t *timer) {
             s_score++;
             lv_label_set_text_fmt(s_score_label, "%d", s_score);
             s_pipes[i].passed = true;
+            s_score_pulse_opa = 255.0f; // flash/pulse score label
         }
 
         // Bounding Box Collision check
@@ -332,6 +551,15 @@ static void flappy_bird_timer_cb(lv_timer_t *timer) {
                 return;
             }
         }
+    }
+
+    // Decay score label opacity (fires only during brief pulse window — cheap)
+    if (s_score_pulse_opa > 120.0f) {
+        s_score_pulse_opa -= dt * 350.0f;
+        if (s_score_pulse_opa < 120.0f) {
+            s_score_pulse_opa = 120.0f;
+        }
+        lv_obj_set_style_text_opa(s_score_label, (int)s_score_pulse_opa, 0);
     }
 }
 
@@ -354,9 +582,9 @@ static void replay_btn_cb(lv_event_t *e) {
         ESP_LOGI(TAG, "Replay clicked!");
         lv_obj_add_flag(s_gameover_overlay, LV_OBJ_FLAG_HIDDEN);
         reset_game_state();
-        s_state = STATE_PLAYING;
-        lv_obj_remove_flag(s_score_label, LV_OBJ_FLAG_HIDDEN);
-        s_bird_vy = JUMP_VELOCITY;
+        s_state = STATE_READY;
+        lv_obj_remove_flag(s_start_overlay, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(s_score_label, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -400,6 +628,26 @@ void flappy_bird_init(lv_obj_t *parent_screen) {
         lv_obj_add_flag(s_game_container, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_add_event_cb(s_game_container, parent_screen_touch_cb, LV_EVENT_PRESSED, NULL);
 
+        // Starfield Setup (drawn first to stay in background)
+        for (int i = 0; i < STAR_COUNT; i++) {
+            s_stars[i].obj = lv_obj_create(s_game_container);
+            lv_obj_set_style_pad_all(s_stars[i].obj, 0, 0);
+            lv_obj_set_style_border_width(s_stars[i].obj, 0, 0);
+            lv_obj_set_style_radius(s_stars[i].obj, LV_RADIUS_CIRCLE, 0);
+            lv_obj_remove_flag(s_stars[i].obj, LV_OBJ_FLAG_SCROLLABLE);
+            lv_obj_remove_flag(s_stars[i].obj, LV_OBJ_FLAG_CLICKABLE);
+            
+            s_stars[i].size = 3 + (i % 4);
+            lv_obj_set_size(s_stars[i].obj, s_stars[i].size, s_stars[i].size);
+            s_stars[i].x = (float)(rand() % SCREEN_WIDTH);
+            s_stars[i].y = (float)(20 + rand() % (GROUND_Y - 40));
+            s_stars[i].speed = 15.0f + (s_stars[i].size - 3) * 15.0f;
+            
+            lv_obj_set_style_bg_color(s_stars[i].obj, lv_color_hex(0x443a50), 0);
+            lv_obj_set_style_bg_opa(s_stars[i].obj, 150, 0);
+            lv_obj_set_pos(s_stars[i].obj, (int)s_stars[i].x, (int)s_stars[i].y);
+        }
+
         // 2. Ground
         s_ground = lv_obj_create(s_game_container);
         lv_obj_set_pos(s_ground, 0, GROUND_Y);
@@ -430,7 +678,7 @@ void flappy_bird_init(lv_obj_t *parent_screen) {
             s_pipes[i].top_pipe = lv_obj_create(s_game_container);
             lv_obj_set_style_pad_all(s_pipes[i].top_pipe, 0, 0);
             lv_obj_set_style_radius(s_pipes[i].top_pipe, 6, 0);
-            lv_obj_set_style_bg_color(s_pipes[i].top_pipe, lv_color_hex(0x0c1a11), 0); // dark forest green
+            lv_obj_set_style_bg_color(s_pipes[i].top_pipe, lv_color_hex(0x151515), 0); // dark neutral background
             lv_obj_set_style_border_width(s_pipes[i].top_pipe, 3, 0);
             lv_obj_set_style_border_color(s_pipes[i].top_pipe, lv_color_hex(0x00FF66), 0); // Neon green
             // Glow effect
@@ -444,7 +692,7 @@ void flappy_bird_init(lv_obj_t *parent_screen) {
             s_pipes[i].bottom_pipe = lv_obj_create(s_game_container);
             lv_obj_set_style_pad_all(s_pipes[i].bottom_pipe, 0, 0);
             lv_obj_set_style_radius(s_pipes[i].bottom_pipe, 6, 0);
-            lv_obj_set_style_bg_color(s_pipes[i].bottom_pipe, lv_color_hex(0x0c1a11), 0);
+            lv_obj_set_style_bg_color(s_pipes[i].bottom_pipe, lv_color_hex(0x151515), 0); // dark neutral background
             lv_obj_set_style_border_width(s_pipes[i].bottom_pipe, 3, 0);
             lv_obj_set_style_border_color(s_pipes[i].bottom_pipe, lv_color_hex(0x00FF66), 0);
             // Glow effect
@@ -469,6 +717,9 @@ void flappy_bird_init(lv_obj_t *parent_screen) {
         lv_obj_set_style_shadow_opa(s_bird, 160, 0);
         lv_obj_remove_flag(s_bird, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_remove_flag(s_bird, LV_OBJ_FLAG_CLICKABLE);
+
+        // Add bird event callback for Easter Egg activation
+        lv_obj_add_event_cb(s_bird, bird_click_cb, LV_EVENT_PRESSED, NULL);
 
         // Eye
         s_bird_eye = lv_obj_create(s_bird);
@@ -502,6 +753,17 @@ void flappy_bird_init(lv_obj_t *parent_screen) {
         lv_obj_set_pos(s_bird_beak, 24, 13);
         lv_obj_remove_flag(s_bird_beak, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_remove_flag(s_bird_beak, LV_OBJ_FLAG_CLICKABLE);
+
+        // Wing
+        s_bird_wing = lv_obj_create(s_bird);
+        lv_obj_set_size(s_bird_wing, 12, 8);
+        lv_obj_set_style_pad_all(s_bird_wing, 0, 0);
+        lv_obj_set_style_radius(s_bird_wing, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(s_bird_wing, lv_color_hex(0xffd700), 0); // gold
+        lv_obj_set_style_border_width(s_bird_wing, 0, 0);
+        lv_obj_set_pos(s_bird_wing, 4, 12);
+        lv_obj_remove_flag(s_bird_wing, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_remove_flag(s_bird_wing, LV_OBJ_FLAG_CLICKABLE);
 
         // 6. Start Overlay
         s_start_overlay = lv_obj_create(s_game_container);
@@ -645,6 +907,7 @@ void flappy_bird_cleanup() {
     s_bird_eye = NULL;
     s_bird_pupil = NULL;
     s_bird_beak = NULL;
+    s_bird_wing = NULL;
     s_ground = NULL;
     s_score_label = NULL;
     s_start_overlay = NULL;
@@ -662,5 +925,11 @@ void flappy_bird_cleanup() {
         s_pipes[i].bottom_pipe = NULL;
     }
 
+    for (int i = 0; i < STAR_COUNT; i++) {
+        s_stars[i].obj = NULL;
+    }
+
+    s_easter_egg_active = false;
+    s_score_pulse_opa = 120.0f;
     s_game_initialized = false;
 }

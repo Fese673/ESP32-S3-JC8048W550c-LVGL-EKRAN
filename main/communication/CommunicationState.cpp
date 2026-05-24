@@ -51,22 +51,22 @@ void deriveAirQualityText(Snapshot &snapshot) {
   }
   if (snapshot.pm25UgM3 <= 35) {
     snapshot.airQualityIndex = 2;
-    snprintf(snapshot.airQualityText, sizeof(snapshot.airQualityText), "Srednia");
+    snprintf(snapshot.airQualityText, sizeof(snapshot.airQualityText), "\u015arednia");
     return;
   }
   snapshot.airQualityIndex = 3;
-  snprintf(snapshot.airQualityText, sizeof(snapshot.airQualityText), "Zla");
+  snprintf(snapshot.airQualityText, sizeof(snapshot.airQualityText), "Z\u0142a");
 }
 
 static void deriveOutdoorAirQualityText(OutdoorWeatherSnapshot &ow) {
   if (ow.aqi <= 20) {
     snprintf(ow.airQualityText, sizeof(ow.airQualityText), "Dobra");
   } else if (ow.aqi <= 40) {
-    snprintf(ow.airQualityText, sizeof(ow.airQualityText), "Srednia");
+    snprintf(ow.airQualityText, sizeof(ow.airQualityText), "\u015arednia");
   } else if (ow.aqi <= 60) {
-    snprintf(ow.airQualityText, sizeof(ow.airQualityText), "Zla");
+    snprintf(ow.airQualityText, sizeof(ow.airQualityText), "Z\u0142a");
   } else {
-    snprintf(ow.airQualityText, sizeof(ow.airQualityText), "Bardzo zla");
+    snprintf(ow.airQualityText, sizeof(ow.airQualityText), "Bardzo z\u0142a");
   }
 }
 
@@ -223,8 +223,8 @@ void clearResetUiPending() {
 }
 
 void applyWeatherPayload(const uint8_t *payload, uint16_t payloadLength) {
-  if (payloadLength != 13U && payloadLength != 11U) {
-    ESP_LOGW(kTag, "Weather payload length invalid (%u)", payloadLength);
+  if (payloadLength < 11U) {
+    ESP_LOGW(kTag, "Weather payload too short (%u)", payloadLength);
     return;
   }
   Snapshot nextSnapshot = getLocalSnapshot();
@@ -236,7 +236,7 @@ void applyWeatherPayload(const uint8_t *payload, uint16_t payloadLength) {
   uint32_t sampleAgeMs;
   uint8_t flags;
 
-  if (payloadLength == 13U) {
+  if (payloadLength >= 13U) {
     const uint16_t eco2 = static_cast<uint16_t>(payload[6] | (payload[7] << 8U));
     sampleAgeMs = static_cast<uint32_t>(payload[8]) |
                   (static_cast<uint32_t>(payload[9]) << 8U) |
@@ -245,6 +245,9 @@ void applyWeatherPayload(const uint8_t *payload, uint16_t payloadLength) {
     flags = payload[12];
     if ((flags & 0x40U) != 0U) {
       nextSnapshot.eco2 = eco2;
+    }
+    if (payloadLength >= 15U && (flags & 0x80U) != 0U) {
+      nextSnapshot.tvoc = static_cast<uint16_t>(payload[13] | (payload[14] << 8U));
     }
   } else {
     sampleAgeMs = static_cast<uint32_t>(payload[6]) |
@@ -278,6 +281,7 @@ void applyOutdoorWeatherPayload(const uint8_t *payload, uint16_t payloadLength) 
   }
 
   const bool extended = (payloadLength >= 33U);
+  const bool hasNo2 = (payloadLength >= 35U);
   const uint8_t flags = extended ? payload[32] : payload[26];
 
   OutdoorWeatherSnapshot ow = getLocalOutdoorWeather();
@@ -323,6 +327,9 @@ void applyOutdoorWeatherPayload(const uint8_t *payload, uint16_t payloadLength) 
     const uint16_t co2 = static_cast<uint16_t>(payload[19] | (payload[20] << 8U));
     if (co2 >= 300 && co2 <= 5000) { ow.co2Ppm = co2; }
     if (payload[21] <= 100) { ow.aqi = payload[21]; deriveOutdoorAirQualityText(ow); }
+    if (hasNo2) {
+      ow.no2UgM3 = static_cast<uint16_t>(payload[33] | (payload[34] << 8U));
+    }
   }
   if ((flags & 0x40U) != 0U && extended) {
     ow.precipitationMm = static_cast<float>(payload[22]) / 10.0f;
@@ -335,7 +342,7 @@ void applyOutdoorWeatherPayload(const uint8_t *payload, uint16_t payloadLength) 
     if (payload[27] < 60) { ow.sunsetMin = payload[27]; }
   }
 
-  if ((flags & 0x3FU) != 0U) {
+  if ((flags & 0xFFU) != 0U) {
     ow.valid = true;
   }
   ow.updatedAtMs = currentMs();

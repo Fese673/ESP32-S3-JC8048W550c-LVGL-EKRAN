@@ -1,6 +1,6 @@
 #include "images.h"
 
-const ext_img_desc_t images[53] = {
+const ext_img_desc_t images[54] = {
     { "kfe_analiza", &img_kfe_analiza },
     { "kfe_czujniki", &img_kfe_czujniki },
     { "kfe_menu", &img_kfe_menu },
@@ -15,6 +15,7 @@ const ext_img_desc_t images[53] = {
     { "water_icon", &img_water_icon },
     { "temp_icon", &img_temp_icon },
     { "pm_icon", &img_pm_icon },
+    { "tvoc_icon", &img_tvoc_icon },
     { "air_icon", &img_air_icon },
     { "kfe_harmonogram", &img_kfe_harmonogram },
     { "kfe_info", &img_kfe_info },

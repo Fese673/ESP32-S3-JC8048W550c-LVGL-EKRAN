@@ -22,24 +22,53 @@ void formatWithComma(char *buffer, size_t bufferSize, float value,
 }
 
 const char* wmoCodeToText(uint8_t code) {
-  if (code == 0) return "Slonecznie";
-  if (code <= 3) return "Czesc. zachm.";
+  if (code == 0) return "S\u0142onecznie";
+  if (code <= 3) return "Cz\u0119\u015b\u0107. zachm.";
   if (code <= 9) return "Zachmurzenie";
-  if (code <= 19) return "Mgla";
+  if (code <= 19) return "Mg\u0142a";
   if (code <= 29) return "Burza piaskowa";
   if (code <= 35) return "Sucho";
-  if (code <= 39) return "Mraz";
-  if (code <= 49) return "Mgla gesta";
-  if (code <= 59) return "Mzawka";
+  if (code <= 39) return "Mr\u00f3z";
+  if (code <= 49) return "Mg\u0142a g\u0119sta";
+  if (code <= 59) return "M\u017cawka";
   if (code <= 69) return "Deszcz";
-  if (code <= 79) return "Snieg";
-  if (code <= 84) return "Deszcz snieg";
-  if (code <= 89) return "Deszcz snieg";
+  if (code <= 79) return "\u015anieg";
+  if (code <= 84) return "Deszcz ze \u015bniegiem";
+  if (code <= 89) return "Deszcz ze \u015bniegiem";
   if (code <= 99) return "Burza";
   return "N/A";
 }
 
+static void initLabelScroll() {
+  static bool s_scrollInited = false;
+  if (s_scrollInited) return;
+  s_scrollInited = true;
+
+  lv_obj_t* scrollLabels[] = {
+    objects.tvoc_in_8, objects.co2_in_6, objects.pm10_in_7,
+    objects.pm25_in_3, objects.hm_in_1, objects.txt_in_4,
+    objects.tm_in_2, objects.pressure_in_5,
+    objects.no2_out_8, objects.co2_out_6, objects.pm10_out_7,
+    objects.pm25_out_3, objects.hm_out_1, objects.txt_out_4,
+    objects.tm_out_2, objects.pressure_out_5,
+    objects.weather_in_label, objects.weather_out_label
+  };
+  for (unsigned i = 0; i < sizeof(scrollLabels) / sizeof(scrollLabels[0]); ++i) {
+    lv_obj_t *label = scrollLabels[i];
+    if (!label) continue;
+    lv_obj_t *parent = lv_obj_get_parent(label);
+    lv_coord_t parentW = lv_obj_get_width(parent);
+    lv_coord_t labelX = lv_obj_get_x(label);
+    lv_coord_t w = parentW - labelX - 4;
+    if (w < 40) w = 40;
+    lv_obj_set_width(label, w);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL);
+  }
+}
+
 void resetUi() {
+  initLabelScroll();
+
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PRESSURE_SENSOR_IN, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_AIR_QUALITY_TEXT_IN, eez::Value("Oczekiwanie..."));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM1_0_SENSOR_IN, eez::Value("---"));
@@ -48,6 +77,7 @@ void resetUi() {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TEMP_SENSOR_IN, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM2_5_SENSOR_IN, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_CO2_SENSOR_IN, eez::Value("---"));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TVOC_SENSOR_IN, eez::Value("---"));
 
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_HUMIDITY_SENSOR_OUT, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TEMP_SENSOR_OUT, eez::Value("---"));
@@ -57,6 +87,9 @@ void resetUi() {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_CO2_SENSOR_OUT, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM10_SENSOR_OUT, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM1_0_SENSOR_OUT, eez::Value("---"));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_NO2_SENSOR_OUT, eez::Value("---"));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_SUNRISE__WEATHER_TIME, eez::Value("--:--"));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_SUNSET__WEATHER_TIME, eez::Value("--:--"));
 
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TM_ODCZUWALNA_WEATHER_OUT, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_WIND_WEATHER_OUT, eez::Value("---"));
@@ -87,20 +120,22 @@ void applySnapshotToMainScreen(const Snapshot &snapshot) {
   static char temperatureBuffer[24];
   static char humidityBuffer[16];
   static char pressureBuffer[16];
-  static char pm01Buffer[16];
-  static char pm10Buffer[16];
-  static char pm25Buffer[16];
+  static char pm01Buffer[24];
+  static char pm10Buffer[24];
+  static char pm25Buffer[24];
   static char co2Buffer[16];
   static char airQualityTextBuffer[24];
+  static char tvocBuffer[16];
 
   snprintf(pressureBuffer, sizeof(pressureBuffer), "%uhPa", snapshot.pressureHpa);
-  snprintf(pm01Buffer, sizeof(pm01Buffer), "PM1 %u", snapshot.pm01UgM3);
-  snprintf(pm10Buffer, sizeof(pm10Buffer), "PM10 %u", snapshot.pm10UgM3);
-  snprintf(pm25Buffer, sizeof(pm25Buffer), "PM2.5 %u", snapshot.pm25UgM3);
+  snprintf(pm01Buffer, sizeof(pm01Buffer), "[1.0] %u \u00b5g/m\u00b3", snapshot.pm01UgM3);
+  snprintf(pm10Buffer, sizeof(pm10Buffer), "[10] %u \u00b5g/m\u00b3", snapshot.pm10UgM3);
+  snprintf(pm25Buffer, sizeof(pm25Buffer), "[2.5] %u \u00b5g/m\u00b3", snapshot.pm25UgM3);
   snprintf(humidityBuffer, sizeof(humidityBuffer), "%u%%", snapshot.humidityPct);
   snprintf(co2Buffer, sizeof(co2Buffer), "%u ppm", snapshot.eco2);
   snprintf(airQualityTextBuffer, sizeof(airQualityTextBuffer), "%s", snapshot.airQualityText);
-  formatWithComma(temperatureBuffer, sizeof(temperatureBuffer), snapshot.temperatureC, "°C");
+  formatWithComma(temperatureBuffer, sizeof(temperatureBuffer), snapshot.temperatureC, "\u00b0C");
+  snprintf(tvocBuffer, sizeof(tvocBuffer), "%u ppb", snapshot.tvoc);
 
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PRESSURE_SENSOR_IN, eez::Value(pressureBuffer));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_AIR_QUALITY_TEXT_IN, eez::Value(airQualityTextBuffer));
@@ -110,6 +145,7 @@ void applySnapshotToMainScreen(const Snapshot &snapshot) {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TEMP_SENSOR_IN, eez::Value(temperatureBuffer));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM2_5_SENSOR_IN, eez::Value(pm25Buffer));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_CO2_SENSOR_IN, eez::Value(co2Buffer));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TVOC_SENSOR_IN, eez::Value(tvocBuffer));
 }
 
 void applyOutdoorSnapshotToMainScreen(const OutdoorWeatherSnapshot &ow) {
@@ -118,15 +154,16 @@ void applyOutdoorSnapshotToMainScreen(const OutdoorWeatherSnapshot &ow) {
   static char temperatureBuffer[24];
   static char humidityBuffer[16];
   static char pressureBuffer[16];
-  static char pm25Buffer[16];
-  static char pm10Buffer[16];
+  static char pm25Buffer[24];
+  static char pm10Buffer[24];
   static char co2Buffer[16];
   static char airQualityTextBuffer[24];
+  static char no2Buffer[24];
 
-  formatWithComma(temperatureBuffer, sizeof(temperatureBuffer), ow.temperatureC, "°C");
+  formatWithComma(temperatureBuffer, sizeof(temperatureBuffer), ow.temperatureC, "\u00b0C");
   snprintf(humidityBuffer, sizeof(humidityBuffer), "%u%%", ow.humidityPct);
   snprintf(pressureBuffer, sizeof(pressureBuffer), "%uhPa", ow.pressureHpa);
-  snprintf(pm25Buffer, sizeof(pm25Buffer), "PM2.5 %u", ow.pm25UgM3);
+  snprintf(pm25Buffer, sizeof(pm25Buffer), "[2.5] %u \u00b5g/m\u00b3", ow.pm25UgM3);
 
   const char* status = wmoCodeToText(ow.weatherCode);
   snprintf(airQualityTextBuffer, sizeof(airQualityTextBuffer), "%s", status);
@@ -136,13 +173,16 @@ void applyOutdoorSnapshotToMainScreen(const OutdoorWeatherSnapshot &ow) {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PRESSURE_SENSOR_OUT, eez::Value(pressureBuffer));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM2_5_SENSOR_OUT, eez::Value(pm25Buffer));
 
-  snprintf(pm10Buffer, sizeof(pm10Buffer), "PM10 %u", ow.pm10UgM3);
+  snprintf(pm10Buffer, sizeof(pm10Buffer), "[10] %u \u00b5g/m\u00b3", ow.pm10UgM3);
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM10_SENSOR_OUT, eez::Value(pm10Buffer));
 
   snprintf(co2Buffer, sizeof(co2Buffer), "%u ppm", ow.co2Ppm);
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_CO2_SENSOR_OUT, eez::Value(co2Buffer));
 
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_AIR_QUALITY_TEXT_OUT, eez::Value(airQualityTextBuffer));
+
+  snprintf(no2Buffer, sizeof(no2Buffer), "[NO\u2082] %u \u00b5g/m\u00b3", ow.no2UgM3);
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_NO2_SENSOR_OUT, eez::Value(no2Buffer));
 }
 
 void applySnapshotToWeatherScreen(const OutdoorWeatherSnapshot &ow) {

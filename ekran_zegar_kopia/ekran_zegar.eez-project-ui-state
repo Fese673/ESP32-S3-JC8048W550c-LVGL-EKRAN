@@ -1,12 +1,12 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/7",
+    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/0",
     "selectedActionObject": "[ekran_zegar.eez-project]:/actions/12",
-    "selectedGlobalVariableObject": "[ekran_zegar.eez-project]:/variables/globalVariables/28",
-    "selectedFontObject": "[ekran_zegar.eez-project]:/fonts/8",
-    "selectedBitmapObject": "[ekran_zegar.eez-project]:/bitmaps/52",
+    "selectedGlobalVariableObject": "[ekran_zegar.eez-project]:/variables/globalVariables/54",
+    "selectedFontObject": "[ekran_zegar.eez-project]:/fonts/11",
+    "selectedBitmapObject": "[ekran_zegar.eez-project]:/bitmaps/-1",
     "subnavigationSelectedItems": {
-      "variables-tab/sub-navigation/selected-item": "Local"
+      "variables-tab/sub-navigation/selected-item": "Global"
     }
   },
   "layoutModel": {
@@ -178,8 +178,7 @@
                       "enableClose": false,
                       "icon": "svg:hierarchy"
                     }
-                  ],
-                  "active": true
+                  ]
                 },
                 {
                   "type": "tabset",
@@ -221,10 +220,10 @@
                 {
                   "type": "tab",
                   "id": "#68bdb60f-25d7-4fa4-9a2c-cd30ebaadb86",
-                  "name": "Zegar",
+                  "name": "Main",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[ekran_zegar.eez-project]:/userPages/7",
+                    "objectPath": "[ekran_zegar.eez-project]:/userPages/0",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -327,7 +326,8 @@
                       "enableClose": false,
                       "icon": "svg:properties"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -1173,20 +1173,16 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "1": {
-            "2": {}
-          },
-          "2": {
-            "1": {}
-          },
-          "6": {},
-          "7": {
+          "0": {
+            "0": {},
             "1": {},
-            "2": {
-              "1": {
-                "$selected": true
-              }
-            }
+            "2": {},
+            "3": {}
+          },
+          "7": {
+            "0": {},
+            "1": {},
+            "2": {}
           }
         },
         "1": {},
@@ -1194,10 +1190,10 @@
       },
       "transform": {
         "translate": {
-          "x": -481.01403896103886,
-          "y": -233.8912857142858
+          "x": -346.10631553631555,
+          "y": -294.7681914381915
         },
-        "scale": 0.9
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1274,7 +1270,7 @@
           "x": -346.2824059360105,
           "y": -240.10709383640045
         },
-        "scale": 1.1
+        "scale": 0.9
       },
       "timeline": {
         "isEditorActive": false,
@@ -1290,9 +1286,7 @@
           "0": {
             "5": {}
           },
-          "2": {
-            "$selected": true
-          },
+          "2": {},
           "15": {
             "1": {}
           }
@@ -1301,10 +1295,10 @@
       },
       "transform": {
         "translate": {
-          "x": -408.551741440378,
-          "y": -298.91877951593847
+          "x": -315.8199962434264,
+          "y": -262.882442980573
         },
-        "scale": 1.1
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1323,7 +1317,7 @@
           "x": -408.44374999999997,
           "y": -263.690625
         },
-        "scale": 1.1
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1458,7 +1452,7 @@
           "x": -400,
           "y": -240
         },
-        "scale": 0.9
+        "scale": 1.1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1472,16 +1466,19 @@
       "selectionBack": {
         "0": {
           "0": {},
-          "3": {}
+          "2": {},
+          "3": {},
+          "12": {},
+          "13": {}
         },
         "1": {}
       },
       "transform": {
         "translate": {
           "x": -307.3891587038356,
-          "y": -327.1035966003317
+          "y": -427.1035966003317
         },
-        "scale": 1.1
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1498,9 +1495,9 @@
       "transform": {
         "translate": {
           "x": -344,
-          "y": -248
+          "y": -348
         },
-        "scale": 0.9
+        "scale": 1.1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1513,16 +1510,19 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
+          "1": {
+            "$selected": true
+          },
           "2": {}
         },
         "1": {}
       },
       "transform": {
         "translate": {
-          "x": -339,
-          "y": -272
+          "x": -405,
+          "y": -364
         },
-        "scale": 0.9
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1600,6 +1600,23 @@
         },
         "scale": 1
       }
+    },
+    "[ekran_zegar.eez-project]:/userPages/12[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {},
+      "transform": {
+        "translate": {
+          "x": -400,
+          "y": -240
+        },
+        "scale": 1.1
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
     }
   },
   "activeOutputSection": 0,
@@ -1619,7 +1636,7 @@
   "lvglExpandedPropertiesGroup": [],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 1.1,
+  "flowZoom": 1,
   "implementationLanguage": "C++",
-  "openDialogDefaultPath": "C:\\Users\\PC\\Desktop\\EKRAN_PROJEKT\\scaled\\ZEGAR\\kfe_minutniik.PNG"
+  "openDialogDefaultPath": "C:\\Users\\PC\\Desktop\\EKRAN_PROJEKT\\bpm\\scaled\\kfe_o2.png"
 }
