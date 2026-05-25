@@ -1,5 +1,5 @@
 # idf_component_register(SRCS main.c)
-# Force re-scan for new UI images
+# Force re-scan for new UI images and services
 
 file(GLOB_RECURSE SOURCES_C
     ./hal/**/*.c

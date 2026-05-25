@@ -22,6 +22,12 @@
 
 extern "C" {
 #include "sunton_esp32_8048s050c.h"
+void music_ui_handler_init(void);
+}
+
+extern "C" void get_flow_global_variable_text(uint32_t var_id, char *buf, size_t buf_size) {
+    eez::Value val = eez::flow::getGlobalVariable(var_id);
+    val.toText(buf, buf_size);
 }
 
 #define TAG "main"
@@ -169,6 +175,7 @@ extern "C" void app_main(void)
         timer_ui_init();
         lv_timer_create(ui_tick_timer_cb, 100, NULL);
         bpm_chart_handler_init();
+        music_ui_handler_init();
         lvgl_port_unlock();
         clock_logic_start();
     } else {
