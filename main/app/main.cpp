@@ -5,11 +5,15 @@
 #include "notification_logic.h"
 #include "stopwatch_ui.h"
 #include "timer_ui.h"
+#include "alarm_ui.h"
+#include "main_handler.h"
 #include "communication/CommunicationProtocol.h"
 #include "wifi_service.h"
 #include "bpm_chart_handler.h"
+#include "weather_icon_handler.h"
 #include "sntp_service.h"
 #include "flappy_bird.h"
+#include "services/sensor/sensors_wiki.h"
 #include "driver/i2c_master.h"
 #include "driver/gpio.h"
 #include "lvgl.h"
@@ -19,6 +23,7 @@
 #include "log.h"
 #include "utils/comm_log/comm_log.h"
 #include <stdatomic.h>
+#include "nvs.h"
 
 extern "C" {
 #include "sunton_esp32_8048s050c.h"
@@ -33,6 +38,7 @@ extern "C" void get_flow_global_variable_text(uint32_t var_id, char *buf, size_t
 #define TAG "main"
 
 #include "screens.h"
+#include "gesture.h"
 
 #include "set_wifi.h"
 
@@ -45,8 +51,58 @@ static void my_dropdown_event_cb(lv_event_t * e) {
     CommunicationProtocol::sendDeviceSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, (int)selected);
 }
 
+static void style_premium_switch(lv_obj_t *sw) {
+    if (!sw) return;
+
+    // 1. Tło switcha wyłączonego (MAIN) - ciemnografitowe
+    lv_obj_set_style_bg_color(sw, lv_color_hex(0x28252c), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(sw, LV_OPA_COVER, LV_PART_MAIN);
+    
+    // Usuwamy outline/border z domyślnego wygenerowanego szablonu EEZ
+    lv_obj_set_style_outline_width(sw, 0, LV_PART_MAIN);
+    lv_obj_set_style_border_width(sw, 0, LV_PART_MAIN);
+    
+    // 2. Tło switcha włączonego (INDICATOR w stanie CHECKED) - stonowany szary
+    lv_obj_set_style_bg_color(sw, lv_color_hex(0x85808a), (lv_style_selector_t)((uint32_t)LV_PART_INDICATOR | (uint32_t)LV_STATE_CHECKED));
+    lv_obj_set_style_bg_opa(sw, LV_OPA_COVER, (lv_style_selector_t)((uint32_t)LV_PART_INDICATOR | (uint32_t)LV_STATE_CHECKED));
+    
+    // 3. Suwak / Gałka (KNOB) - biała z ramką
+    lv_obj_set_style_bg_color(sw, lv_color_hex(0xffffff), LV_PART_KNOB);
+    lv_obj_set_style_bg_opa(sw, LV_OPA_COVER, LV_PART_KNOB);
+    lv_obj_set_style_border_color(sw, lv_color_hex(0x7a7580), LV_PART_KNOB);
+    lv_obj_set_style_border_width(sw, 1, LV_PART_KNOB);
+    lv_obj_set_style_pad_all(sw, -1, LV_PART_KNOB);
+}
+
+static void style_system_slider(lv_obj_t *slider) {
+    if (!slider) return;
+
+    // 1. Tło suwaka głównego (MAIN) - ciemnografitowe
+    lv_obj_set_style_bg_color(slider, lv_color_hex(0x28252c), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(slider, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_width(slider, 0, LV_PART_MAIN);
+    lv_obj_set_style_outline_width(slider, 0, LV_PART_MAIN);
+
+    // 2. Tło aktywnego paska postępu (INDICATOR) - stonowany szary premium
+    lv_obj_set_style_bg_color(slider, lv_color_hex(0x85808a), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(slider, LV_OPA_COVER, LV_PART_INDICATOR);
+    lv_obj_set_style_border_width(slider, 0, LV_PART_INDICATOR);
+
+    // 3. Gałka (KNOB) - ukrywamy wskaźniki dotykowe
+    lv_obj_set_style_bg_opa(slider, LV_OPA_TRANSP, LV_PART_KNOB);
+    lv_obj_set_style_border_width(slider, 0, LV_PART_KNOB);
+    lv_obj_set_style_pad_all(slider, 0, LV_PART_KNOB);
+}
+
 static void init_custom_dropdown_hook() {
     static bool s_dropdown_hook_inited = false;
+
+    // Aplikowanie stylistyki premium na przełączniki ekranu Ustawienia
+    style_premium_switch(objects.obj12);
+    style_premium_switch(objects.obj13);
+    style_premium_switch(objects.obj14);
+    style_premium_switch(objects.obj15);
+    style_premium_switch(objects.obj16);
 
     if (objects.settings_melody_dropdown) {
         CommunicationProtocol::DeviceSettings ds = CommunicationProtocol::currentSettings();
@@ -105,8 +161,17 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
         if (last_screen_id == SCREEN_ID_GRY_TEST) {
             flappy_bird_cleanup();
         }
+        if (last_screen_id == SCREEN_ID_CZUJNIKI) {
+            sensors_wiki_deinit();
+        }
 
         last_screen_id = current_screen_id;
+
+        // Dynamiczna rejestracja gestu Swipe Up na każdym załadowanym subekranie
+        if (current_screen_id != SCREEN_ID_MAIN) {
+            ESP_LOGI(TAG, "Zarejestrowano gesty Swipe Up na aktywnym ekranie ID: %d", (int)current_screen_id);
+            gesture_register_recursive(lv_scr_act());
+        }
 
         if (current_screen_id == SCREEN_ID_MENU || current_screen_id == SCREEN_ID_USTAWIENIA) {
             CommunicationProtocol::requestDeviceSettings();
@@ -114,6 +179,12 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
         }
         if (current_screen_id == SCREEN_ID_USTAWIENIA) {
             init_custom_dropdown_hook();
+        }
+        if (current_screen_id == SCREEN_ID_ZASOBY_SYSTEMU) {
+            style_system_slider(objects.free_flash_slider);
+            style_system_slider(objects.used_flash_slider);
+            style_system_slider(objects.cpu_core1_slider);
+            style_system_slider(objects.cpu_core0_slider);
         }
         if (current_screen_id == SCREEN_ID_LOGI) {
             log_clear();
@@ -124,11 +195,17 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
         if (current_screen_id == SCREEN_ID_GRY_TEST) {
             flappy_bird_init(objects.gry_test);
         }
+        if (current_screen_id == SCREEN_ID_CZUJNIKI) {
+            sensors_wiki_init(objects.czujniki);
+        }
     }
 
     if (current_screen_id == SCREEN_ID_LOGI) {
         log_update_textarea();
         comm_log_flush_if_needed();
+    }
+    if (current_screen_id == SCREEN_ID_CZUJNIKI) {
+        sensors_wiki_update();
     }
 
     int64_t start_us = esp_timer_get_time();
@@ -173,9 +250,12 @@ extern "C" void app_main(void)
         CommunicationProtocol::updateUi();
         stopwatch_ui_init();
         timer_ui_init();
+        alarm_ui_init();
         lv_timer_create(ui_tick_timer_cb, 100, NULL);
         bpm_chart_handler_init();
+        weather_icon_handler_init();
         music_ui_handler_init();
+        main_ui_init();
         lvgl_port_unlock();
         clock_logic_start();
     } else {
@@ -187,5 +267,19 @@ extern "C" void app_main(void)
 
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(1000));
+
+        // Deferred brightness NVS save — runs on Core 0 (idle, prio 1),
+        // safely outside LVGL task to avoid SPI1/PSRAM bus contention and RGB tearing.
+        // Dirty flag is set from LVGL task (Core 1) when popup closes.
+        if (main_ui_brt_needs_save()) {
+            uint8_t pct = main_ui_get_brt_pct();
+            nvs_handle_t h;
+            if (nvs_open("display", NVS_READWRITE, &h) == ESP_OK) {
+                nvs_set_u8(h, "brightness", pct);
+                nvs_commit(h);
+                nvs_close(h);
+                ESP_LOGI(TAG, "Brightness %d%% saved to NVS", (int)pct);
+            }
+        }
     }
 }

@@ -26,7 +26,6 @@ void log_info(const char *tag, const char *format, ...);
 void log_warn(const char *tag, const char *format, ...);
 void log_error(const char *tag, const char *format, ...);
 
-const char* log_get_all_text(void);
 void log_clear(void);
 void log_update_textarea(void);
 

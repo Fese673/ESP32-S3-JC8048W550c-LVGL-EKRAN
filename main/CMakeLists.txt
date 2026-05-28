@@ -6,6 +6,10 @@ file(GLOB_RECURSE SOURCES_C
     ./services/**/*.c
 )
 
+file(GLOB_RECURSE SOURCES_CUSTOM_ICONS
+    ./custom_icons/*.c
+)
+
 file(GLOB_RECURSE SOURCES_UI_C
     ./ui/ui/*.c
     ./ui/ui/**/*.c
@@ -22,8 +26,13 @@ set(SOURCES_APP_CPP
     ./app/stopwatch_ui.cpp
     ./app/timer_logic.cpp
     ./app/timer_ui.cpp
+    ./app/alarm_logic.cpp
+    ./app/alarm_ui.cpp
     ./app/game/flappy_bird.cpp
+    ./app/main_handler.cpp
     ./app/main.cpp
+    ./app/weather_icon_handler.c
+    ./services/sensor/sensors_wiki.cpp
 )
 
 set(SOURCES_COMMUNICATION_CPP
@@ -49,17 +58,20 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEEZ_PLATFORM_ESP32 -DEEZ_FOR_LVGL -DLV
 
 
 idf_component_register(
-    SRCS ${SOURCES_C} ${SOURCES_UI_C} ${SOURCES_UTILS_CXX} ${SOURCES_APP_CPP} ${SOURCES_COMMUNICATION_CPP} ${SOURCES_UI_CPP} ${SOURCES_WIFI_SET_C}
+    SRCS ${SOURCES_C} ${SOURCES_CUSTOM_ICONS} ${SOURCES_UI_C} ${SOURCES_UTILS_CXX} ${SOURCES_APP_CPP} ${SOURCES_COMMUNICATION_CPP} ${SOURCES_UI_CPP} ${SOURCES_WIFI_SET_C}
     INCLUDE_DIRS    "."
+                    "./custom_icons"
                     "./hal/display"
                     "./ui/ui"
                     "./utils"
                     "./utils/comm_log"
+                    "./utils/gesture"
                     "./communication"
                     "./services/time"
                     "./services/wifi"
                     "./services/sntp"
                     "./services/bpm"
+                    "./services/sensor"
                     "./utils/log"
                     "./app"
                     "./app/game"

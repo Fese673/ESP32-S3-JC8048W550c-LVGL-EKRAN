@@ -1,9 +1,9 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/7",
-    "selectedActionObject": "[ekran_zegar.eez-project]:/actions/12",
-    "selectedGlobalVariableObject": "[ekran_zegar.eez-project]:/variables/globalVariables/51",
-    "selectedFontObject": "[ekran_zegar.eez-project]:/fonts/11",
+    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/14",
+    "selectedActionObject": "[ekran_zegar.eez-project]:/actions/13",
+    "selectedGlobalVariableObject": "[ekran_zegar.eez-project]:/variables/globalVariables/55",
+    "selectedFontObject": "[ekran_zegar.eez-project]:/fonts/10",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
     }
@@ -26,7 +26,7 @@
           },
           {
             "type": "border",
-            "selected": 2,
+            "selected": 1,
             "size": 134.5,
             "location": "right",
             "children": [
@@ -207,23 +207,34 @@
               "children": [
                 {
                   "type": "tab",
-                  "id": "#4ab10382-4604-4420-81b9-aeadd9da21a2",
-                  "name": "action_toggle_music_1",
+                  "id": "#175bd6ca-4b90-41de-a6d2-a841d157cf88",
+                  "name": "action_swipe_up",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[ekran_zegar.eez-project]:/actions/12",
+                    "objectPath": "[ekran_zegar.eez-project]:/actions/13",
                     "permanent": false
                   },
                   "icon": "material:code"
                 },
                 {
                   "type": "tab",
-                  "id": "#68bdb60f-25d7-4fa4-9a2c-cd30ebaadb86",
-                  "name": "Zegar",
+                  "id": "#4fb4834e-07f8-40da-b84d-4df08e1b0e9e",
+                  "name": "Czujniki",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[ekran_zegar.eez-project]:/userPages/7",
+                    "objectPath": "[ekran_zegar.eez-project]:/userPages/14",
                     "permanent": false
+                  },
+                  "icon": "svg:page"
+                },
+                {
+                  "type": "tab",
+                  "id": "#db3e3b88-2e0e-46fc-a9b8-6e29777e957e",
+                  "name": "Main",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[ekran_zegar.eez-project]:/userPages/0",
+                    "permanent": true
                   },
                   "icon": "svg:page"
                 },
@@ -1179,14 +1190,16 @@
             "3": {}
           },
           "1": {
-            "2": {
-              "$selected": true
-            }
+            "2": {}
           },
+          "2": {},
           "7": {
             "0": {},
             "1": {},
             "2": {}
+          },
+          "8": {
+            "$selected": true
           }
         },
         "1": {},
@@ -1194,10 +1207,10 @@
       },
       "transform": {
         "translate": {
-          "x": -346.10631553631555,
-          "y": -294.7681914381915
+          "x": -338.42783603228054,
+          "y": -259.0161701672813
         },
-        "scale": 1
+        "scale": 0.8
       },
       "timeline": {
         "isEditorActive": false,
@@ -1213,22 +1226,22 @@
           "0": {
             "0": {}
           },
-          "1": {}
+          "1": {},
+          "3": {
+            "$selected": true
+          }
         },
         "1": {},
         "2": {},
-        "3": {},
-        "7": {},
-        "8": {
-          "$selected": true
-        }
+        "6": {},
+        "7": {}
       },
       "transform": {
         "translate": {
-          "x": -557.4906233759903,
-          "y": -332.11919785318344
+          "x": -516.4815616875997,
+          "y": -253.0690975848313
         },
-        "scale": 1
+        "scale": 0.8
       },
       "timeline": {
         "isEditorActive": false,
@@ -1253,7 +1266,7 @@
           "x": -428.498995093795,
           "y": -252.36803520923525
         },
-        "scale": 0.9
+        "scale": 0.8
       },
       "timeline": {
         "isEditorActive": false,
@@ -1274,7 +1287,7 @@
           "x": -346.2824059360105,
           "y": -240.10709383640045
         },
-        "scale": 0.9
+        "scale": 0.8
       },
       "timeline": {
         "isEditorActive": false,
@@ -1290,7 +1303,6 @@
           "0": {
             "5": {}
           },
-          "2": {},
           "15": {
             "1": {}
           }
@@ -1302,7 +1314,7 @@
           "x": -315.8199962434264,
           "y": -262.882442980573
         },
-        "scale": 1
+        "scale": 0.8
       },
       "timeline": {
         "isEditorActive": false,
@@ -1321,7 +1333,7 @@
           "x": -408.44374999999997,
           "y": -263.690625
         },
-        "scale": 1
+        "scale": 0.8
       },
       "timeline": {
         "isEditorActive": false,
@@ -1335,19 +1347,19 @@
       "selectionBack": {
         "0": {
           "0": {},
+          "1": {
+            "$selected": true
+          },
           "2": {},
-          "3": {},
-          "5": {}
-        },
-        "2": {},
-        "$selected": true
+          "4": {}
+        }
       },
       "transform": {
         "translate": {
-          "x": -400,
-          "y": -240
+          "x": -359,
+          "y": -146
         },
-        "scale": 0.9
+        "scale": 0.8
       },
       "timeline": {
         "isEditorActive": false,
@@ -1360,22 +1372,26 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "1": {
-            "$selected": true
-          },
+          "1": {},
           "2": {
             "10": {
               "3": {}
+            },
+            "12": {}
+          },
+          "3": {
+            "2": {
+              "$selected": true
             }
           }
         }
       },
       "transform": {
         "translate": {
-          "x": -429.14109427609424,
-          "y": -334.51982984607923
+          "x": -369.14109427609424,
+          "y": -348.51982984607923
         },
-        "scale": 1
+        "scale": 0.9
       },
       "timeline": {
         "isEditorActive": false,
@@ -1456,7 +1472,7 @@
           "x": -400,
           "y": -240
         },
-        "scale": 1.1
+        "scale": 0.9
       },
       "timeline": {
         "isEditorActive": false,
@@ -1482,7 +1498,7 @@
           "x": -307.3891587038356,
           "y": -427.1035966003317
         },
-        "scale": 1
+        "scale": 0.8
       },
       "timeline": {
         "isEditorActive": false,
@@ -1501,7 +1517,7 @@
           "x": -344,
           "y": -348
         },
-        "scale": 1.1
+        "scale": 0.9
       },
       "timeline": {
         "isEditorActive": false,
@@ -1526,7 +1542,7 @@
           "x": -405,
           "y": -364
         },
-        "scale": 1
+        "scale": 0.9
       },
       "timeline": {
         "isEditorActive": false,
@@ -1613,13 +1629,59 @@
           "x": -400,
           "y": -240
         },
-        "scale": 1.1
+        "scale": 0.9
       },
       "timeline": {
         "isEditorActive": false,
         "position": 0,
         "secondToPx": 200,
         "scrollLeft": 0
+      }
+    },
+    "[ekran_zegar.eez-project]:/userPages/13[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {
+        "1": {}
+      },
+      "transform": {
+        "translate": {
+          "x": -331.80000000000007,
+          "y": -278.4
+        },
+        "scale": 0.8
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[ekran_zegar.eez-project]:/userPages/14[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {},
+      "transform": {
+        "translate": {
+          "x": -518,
+          "y": -240
+        },
+        "scale": 0.8
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[ekran_zegar.eez-project]:/actions/13[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": 1
       }
     }
   },
@@ -1642,7 +1704,7 @@
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 1,
+  "flowZoom": 0.8,
   "implementationLanguage": "C++",
   "openDialogDefaultPath": "C:\\Users\\PC\\Desktop\\EKRAN_PROJEKT\\bpm\\scaled\\kfe_o2.png"
 }

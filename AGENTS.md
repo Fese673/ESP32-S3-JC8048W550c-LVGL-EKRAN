@@ -6,16 +6,20 @@ ESP32-S3 firmware for Gution JC8048W550 800×480 RGB display (GT911 touch), LVGL
 
 ## Build & flash
 
+Windows builds outside the ESP-IDF PowerShell environment use the Python script (hardcodes IDF 6.0.1 paths, Ninja, CMake, toolchains):
+
 ```bash
-idf.py set-target esp32s3
-idf.py build
-idf.py -p COM12 -b 115200 flash
-idf.py -p COM12 monitor
+python build_guition.py        # build
+python build_guition_flash.py  # build + flash (if exists)
 ```
 
-Default COM port in `.vscode/settings.json` is COM12. Change as needed.
+Default COM port in `.vscode/settings.json` is COM12. Manual flash:
 
-Python helper `build_guition.py` exists for Windows builds outside the ESP-IDF PowerShell environment (hardcodes IDF 6.0.1 paths, Ninja, CMake, toolchains).
+```bash
+python -m esptool --chip esp32s3 -b 460800 --before default-reset --after hard-reset write-flash --flash-mode dio --flash-size 16MB --flash-freq 80m 0x0 build\bootloader\bootloader.bin 0x8000 build\partition_table\partition-table.bin 0xe000 build\ota_data_initial.bin 0x10000 build\ESP32-8048S050C.bin
+```
+
+> `idf.py` commands do NOT work outside the ESP-IDF PowerShell environment. Always use `python build_guition.py`.
 
 ## EEZ Studio UI workflow
 

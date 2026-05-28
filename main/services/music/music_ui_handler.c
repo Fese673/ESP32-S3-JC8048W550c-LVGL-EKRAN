@@ -1,15 +1,22 @@
 #include "music_ui_handler.h"
 #include "screens.h"
+#include "vars.h"
 #include "fonts.h"
 #include "lvgl.h"
 #include "esp_timer.h"
 #include "eez-flow.h"
+#include "esp_random.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-// --- MACRO FLAG TO ENABLE/DISABLE SIMULATOR ---
-#define MUSIC_SIMULATOR_ENABLE 1
+// --- C-linkage wrappers (declared in CommunicationProtocol.h extern "C" block) ---
+void action_send_music_command(uint8_t cmd);
+void action_send_music_volume(uint8_t vol);
+void action_send_music_eq(uint8_t bass, uint8_t mid, uint8_t treble);
+void action_request_music_state();
+int action_get_flow_variable_int(uint32_t var_id);
+void action_get_flow_variable_text(uint32_t var_id, char *buf, size_t buf_size);
 
 // Static state variables
 static lv_timer_t *s_timer = NULL;
@@ -42,25 +49,11 @@ static lv_obj_t *s_flat_btn = NULL;
 static lv_obj_t *s_bass_btn = NULL;
 static lv_obj_t *s_vocal_btn = NULL;
 
-// Playback Simulation Variables
-static bool s_is_playing = false;
-static int s_current_time_s = 84;
-static int s_total_time_s = 222;
+// Persistent buffers for music labels (bypasses safe_label.h 64B limit)
+static char s_music_title_buf[256] = "";
+static char s_music_artist_buf[256] = "";
 
-static const char *s_mock_songs[][2] = {
-    {"Adventure Of A Lifetime", "Coldplay"},
-    {"Get Lucky", "Daft Punk"},
-    {"Billie Jean", "Michael Jackson"}
-};
-static int s_current_song_idx = 0;
-
-// Typewriter revealing animation state variables
-static char s_target_title[128] = "";
-static char s_target_artist[128] = "";
-static int s_current_title_len = 0;
-static int s_current_artist_len = 0;
-static bool s_title_anim_active = false;
-static bool s_artist_anim_active = false;
+// Playback state (local mirror of EEZ flow variables)
 static lv_obj_t *s_status_label = NULL;
 
 static void style_premium_slider(lv_obj_t *slider) {
@@ -125,152 +118,113 @@ static void highlight_preset(int active_idx) {
 static void slider_cb(lv_event_t * e) {
     if (lv_event_get_code(e) == LV_EVENT_VALUE_CHANGED) {
         update_eq_labels();
-#if MUSIC_SIMULATOR_ENABLE
         lv_obj_t *target = lv_event_get_target(e);
+        if (target == s_volume_slider) {
+            action_send_music_volume((uint8_t)lv_slider_get_value(target));
+        } else if (target == s_bass_slider || target == s_mid_slider || target == s_treble_slider) {
+            action_send_music_eq(
+                (uint8_t)lv_slider_get_value(s_bass_slider),
+                (uint8_t)lv_slider_get_value(s_mid_slider),
+                (uint8_t)lv_slider_get_value(s_treble_slider));
+        }
         if (target != s_volume_slider) {
             highlight_preset(-1);
         }
-#endif
     }
+}
+
+static void send_current_eq() {
+    action_send_music_eq(
+        (uint8_t)lv_slider_get_value(s_bass_slider),
+        (uint8_t)lv_slider_get_value(s_mid_slider),
+        (uint8_t)lv_slider_get_value(s_treble_slider));
 }
 
 // Preset FLAT callback
 static void preset_flat_cb(lv_event_t * e) {
     if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
-#if MUSIC_SIMULATOR_ENABLE
         lv_slider_set_value(s_bass_slider, 50, LV_ANIM_ON);
         lv_slider_set_value(s_mid_slider, 50, LV_ANIM_ON);
         lv_slider_set_value(s_treble_slider, 50, LV_ANIM_ON);
         update_eq_labels();
         highlight_preset(0);
-#endif
+        send_current_eq();
     }
 }
 
 // Preset BASS callback
 static void preset_bass_cb(lv_event_t * e) {
     if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
-#if MUSIC_SIMULATOR_ENABLE
         lv_slider_set_value(s_bass_slider, 90, LV_ANIM_ON);
         lv_slider_set_value(s_mid_slider, 60, LV_ANIM_ON);
         lv_slider_set_value(s_treble_slider, 40, LV_ANIM_ON);
         update_eq_labels();
         highlight_preset(1);
-#endif
+        send_current_eq();
     }
 }
 
 // Preset VOCAL callback
 static void preset_vocal_cb(lv_event_t * e) {
     if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
-#if MUSIC_SIMULATOR_ENABLE
         lv_slider_set_value(s_bass_slider, 40, LV_ANIM_ON);
         lv_slider_set_value(s_mid_slider, 80, LV_ANIM_ON);
         lv_slider_set_value(s_treble_slider, 60, LV_ANIM_ON);
         update_eq_labels();
         highlight_preset(2);
-#endif
+        send_current_eq();
     }
 }
 
 // Play/Pause button callback
 static void play_btn_cb(lv_event_t * e) {
     if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
-#if MUSIC_SIMULATOR_ENABLE
-        s_is_playing = !s_is_playing;
-        if (s_is_playing) {
-            lv_label_set_text_static(s_play_btn_label, LV_SYMBOL_PAUSE);
-        } else {
-            lv_label_set_text_static(s_play_btn_label, LV_SYMBOL_PLAY);
-        }
-#endif
-    }
-}
-
-static int get_next_utf8_boundary(const char *str, int current_pos) {
-    if (str[current_pos] == '\0') {
-        return current_pos;
-    }
-    int pos = current_pos + 1;
-    while (str[pos] != '\0' && ((str[pos] & 0xC0) == 0x80)) {
-        pos++;
-    }
-    return pos;
-}
-
-// Updates title and artist label texts (starts the typewriter reveal animation)
-static void update_song_info(void) {
-    snprintf(s_target_title, sizeof(s_target_title), "%s", s_mock_songs[s_current_song_idx][0]);
-    snprintf(s_target_artist, sizeof(s_target_artist), "%s", s_mock_songs[s_current_song_idx][1]);
-    
-    s_current_title_len = 0;
-    s_current_artist_len = 0;
-    s_title_anim_active = true;
-    s_artist_anim_active = true;
-
-    if (s_song_title_label) {
-        lv_label_set_text(s_song_title_label, "Tytuł: ");
-    }
-    if (s_song_artist_label) {
-        lv_label_set_text(s_song_artist_label, "Artysta: ");
+        int playing = action_get_flow_variable_int(FLOW_GLOBAL_VARIABLE_MUSIC_PLAYING);
+        action_send_music_command(playing ? 1 : 0);
     }
 }
 
 // Prev song callback
 static void prev_btn_cb(lv_event_t * e) {
     if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
-#if MUSIC_SIMULATOR_ENABLE
-        s_current_song_idx--;
-        if (s_current_song_idx < 0) s_current_song_idx = 2;
-        s_current_time_s = 0;
-        update_song_info();
-#endif
+        action_send_music_command(3);
     }
 }
 
 // Next song callback
 static void next_btn_cb(lv_event_t * e) {
     if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
-#if MUSIC_SIMULATOR_ENABLE
-        s_current_song_idx++;
-        if (s_current_song_idx > 2) s_current_song_idx = 0;
-        s_current_time_s = 0;
-        update_song_info();
-#endif
+        action_send_music_command(2);
     }
 }
 
 // Standard 100ms timer callback managing UI updates and simulator loops
 static void music_timer_cb(lv_timer_t *timer) {
     (void)timer;
+    static bool s_was_on_screen = false;
+    static uint16_t s_requestCount = 0;
 
     if (eez_flow_get_current_screen() != SCREEN_ID_MUZYKA || !objects.muzyka) {
-        s_player_panel = NULL;
-        s_equalizer_panel = NULL;
-        s_song_title_label = NULL;
-        s_song_artist_label = NULL;
-        s_time_current_label = NULL;
-        s_time_total_label = NULL;
-        s_progress_slider = NULL;
-        s_play_btn_label = NULL;
-        s_bass_slider = NULL;
-        s_mid_slider = NULL;
-        s_treble_slider = NULL;
-        s_volume_slider = NULL;
-        s_bass_val_label = NULL;
-        s_mid_val_label = NULL;
-        s_treble_val_label = NULL;
-        s_volume_val_label = NULL;
-        s_flat_btn = NULL;
-        s_bass_btn = NULL;
-        s_vocal_btn = NULL;
-        s_status_label = NULL;
-        for (int i = 0; i < 4; i++) {
-            s_vis_bars[i] = NULL;
-        }
-        s_title_anim_active = false;
-        s_artist_anim_active = false;
+        s_was_on_screen = false;
+        s_requestCount = 0;
+        // Panels są persistentne (jak wszystkie inne ekrany).
+        // ERR_017: delete/recreate powodował fragmentację SRAM i widoczne zacięcie UI.
         return;
+    }
+
+    // Screen enter detection — request full music state from ZEGAR
+    if (!s_was_on_screen) {
+        s_was_on_screen = true;
+        s_requestCount = 0;
+        action_request_music_state();
+    }
+
+    // Periodic re-request every 30s (300 ticks × 100ms) — Guition is always the active
+    // sync initiator regardless of ZEGAR WiFi/BT mode.
+    s_requestCount++;
+    if (s_requestCount >= 300) {
+        s_requestCount = 0;
+        action_request_music_state();
     }
 
     if (!s_player_panel) {
@@ -296,6 +250,8 @@ static void music_timer_cb(lv_timer_t *timer) {
         // Song Title
         s_song_title_label = lv_label_create(s_player_panel);
         lv_obj_set_pos(s_song_title_label, 20, 45);
+        lv_obj_set_width(s_song_title_label, 370);
+        lv_label_set_long_mode(s_song_title_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
         lv_obj_set_style_text_color(s_song_title_label, lv_color_hex(0xffffff), LV_PART_MAIN);
         lv_obj_set_style_text_font(s_song_title_label, &ui_font_montserrat_regular_20, LV_PART_MAIN);
         lv_label_set_text_static(s_song_title_label, "Tytuł: Adventure Of A Lifetime");
@@ -303,6 +259,8 @@ static void music_timer_cb(lv_timer_t *timer) {
         // Artist Info
         s_song_artist_label = lv_label_create(s_player_panel);
         lv_obj_set_pos(s_song_artist_label, 20, 75);
+        lv_obj_set_width(s_song_artist_label, 370);
+        lv_label_set_long_mode(s_song_artist_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
         lv_obj_set_style_text_color(s_song_artist_label, lv_color_hex(0xb0acb5), LV_PART_MAIN);
         lv_obj_set_style_text_font(s_song_artist_label, &ui_font_montserrat_regular_16, LV_PART_MAIN);
         lv_label_set_text_static(s_song_artist_label, "Artysta: Coldplay");
@@ -411,7 +369,7 @@ static void music_timer_cb(lv_timer_t *timer) {
         s_progress_slider = lv_slider_create(s_player_panel);
         lv_obj_set_pos(s_progress_slider, 160, 140);
         lv_obj_set_size(s_progress_slider, 280, 6);
-        lv_slider_set_range(s_progress_slider, 0, s_total_time_s);
+        lv_slider_set_range(s_progress_slider, 0, 100);
         style_premium_slider(s_progress_slider);
 
         // Current time label
@@ -419,21 +377,22 @@ static void music_timer_cb(lv_timer_t *timer) {
         lv_obj_set_pos(s_time_current_label, 160, 155);
         lv_obj_set_style_text_color(s_time_current_label, lv_color_hex(0x85808a), LV_PART_MAIN);
         lv_obj_set_style_text_font(s_time_current_label, &ui_font_montserrat_regular_14, LV_PART_MAIN);
-        lv_label_set_text_static(s_time_current_label, "1:24");
+        lv_label_set_text_static(s_time_current_label, "-:--");
 
         // Total time label
         s_time_total_label = lv_label_create(s_player_panel);
         lv_obj_set_pos(s_time_total_label, 405, 155);
         lv_obj_set_style_text_color(s_time_total_label, lv_color_hex(0x85808a), LV_PART_MAIN);
         lv_obj_set_style_text_font(s_time_total_label, &ui_font_montserrat_regular_14, LV_PART_MAIN);
-        lv_label_set_text_static(s_time_total_label, "3:42");
+        lv_label_set_text_static(s_time_total_label, "-:--");
 
         // Minimalist Connected Audio Status Spec
         s_status_label = lv_label_create(s_player_panel);
         lv_obj_set_pos(s_status_label, 160, 185);
+        lv_obj_set_width(s_status_label, 280); // Sztywna szerokość dla przewijanego marquee
         lv_obj_set_style_text_color(s_status_label, lv_color_hex(0x85808a), LV_PART_MAIN);
         lv_obj_set_style_text_font(s_status_label, &ui_font_montserrat_regular_14, LV_PART_MAIN);
-        lv_label_set_text_static(s_status_label, "POŁĄCZONO");
+        lv_label_set_text_static(s_status_label, "PO\u0141\u0104CZONO");
 
         // --- 5. CONTROL BUTTONS (y = 265 - 345) ---
         // Prev button
@@ -636,95 +595,102 @@ static void music_timer_cb(lv_timer_t *timer) {
         lv_obj_set_style_text_color(vocal_lbl, lv_color_hex(0xb0acb5), LV_PART_MAIN);
         lv_label_set_text_static(vocal_lbl, "VOCAL");
 
-        // Set FLAT preset active initially
-        highlight_preset(0);
+        // Initialize sliders from last-known EEZ flow values (avoid default-50 flash)
+        if (s_bass_slider)   lv_slider_set_value(s_bass_slider,   action_get_flow_variable_int(FLOW_GLOBAL_VARIABLE_MUSIC_BASS),   LV_ANIM_OFF);
+        if (s_mid_slider)    lv_slider_set_value(s_mid_slider,    action_get_flow_variable_int(FLOW_GLOBAL_VARIABLE_MUSIC_MID),    LV_ANIM_OFF);
+        if (s_treble_slider) lv_slider_set_value(s_treble_slider, action_get_flow_variable_int(FLOW_GLOBAL_VARIABLE_MUSIC_TREBLE), LV_ANIM_OFF);
+        if (s_volume_slider) lv_slider_set_value(s_volume_slider, action_get_flow_variable_int(FLOW_GLOBAL_VARIABLE_MUSIC_VOLUME), LV_ANIM_OFF);
         update_eq_labels();
-
-        // Start initial typewriter animation for the first song
-        update_song_info();
-    }
-
-    // --- ANIMATE TYPEWRITER EFFECT ---
-    if (s_title_anim_active && s_song_title_label) {
-        s_current_title_len = get_next_utf8_boundary(s_target_title, s_current_title_len);
-        
-        char temp_buf[128];
-        snprintf(temp_buf, sizeof(temp_buf), "Tytuł: %.*s", s_current_title_len, s_target_title);
-        
-        lv_label_set_text(s_song_title_label, temp_buf);
-        
-        if (s_target_title[s_current_title_len] == '\0') {
-            s_title_anim_active = false;
+        // Preset highlight from current EQ (no preset shown if custom values)
+        {
+            int b = (int)lv_slider_get_value(s_bass_slider);
+            int m = (int)lv_slider_get_value(s_mid_slider);
+            int t = (int)lv_slider_get_value(s_treble_slider);
+            int p = -1;
+            if (b == 50 && m == 50 && t == 50) p = 0;
+            else if (b == 90 && m == 60 && t == 40) p = 1;
+            else if (b == 40 && m == 80 && t == 60) p = 2;
+            if (p >= 0) highlight_preset(p);
         }
     }
 
-    if (s_artist_anim_active && s_song_artist_label) {
-        s_current_artist_len = get_next_utf8_boundary(s_target_artist, s_current_artist_len);
-        
-        char temp_buf[128];
-        snprintf(temp_buf, sizeof(temp_buf), "Artysta: %.*s", s_current_artist_len, s_target_artist);
-        
-        lv_label_set_text(s_song_artist_label, temp_buf);
-        
-        if (s_target_artist[s_current_artist_len] == '\0') {
-            s_artist_anim_active = false;
-        }
+    // --- UPDATE TITLE & ARTIST FROM EEZ FLOW ---
+    if (s_song_title_label && s_song_artist_label) {
+        char title[128], artist[128];
+        action_get_flow_variable_text(FLOW_GLOBAL_VARIABLE_MUSIC_TITLE, title, sizeof(title));
+        action_get_flow_variable_text(FLOW_GLOBAL_VARIABLE_MUSIC_ARTIST, artist, sizeof(artist));
+
+        snprintf(s_music_title_buf, sizeof(s_music_title_buf), "Tytu\u0142: %s", title);
+        snprintf(s_music_artist_buf, sizeof(s_music_artist_buf), "Artysta: %s", artist);
+        lv_label_set_text_static(s_song_title_label, s_music_title_buf);
+        lv_label_set_text_static(s_song_artist_label, s_music_artist_buf);
     }
 
-    // --- DYNAMIC STATUS UPDATE ---
+    // --- STATUS FROM EEZ FLOW ---
     if (s_status_label) {
-        if (s_is_playing) {
-            lv_label_set_text_static(s_status_label, "POŁĄCZONO");
-            lv_obj_set_style_text_color(s_status_label, lv_color_hex(0x85808a), LV_PART_MAIN);
-        } else {
-            lv_label_set_text_static(s_status_label, "ROZŁĄCZONO");
-            lv_obj_set_style_text_color(s_status_label, lv_color_hex(0x5a5760), LV_PART_MAIN);
-        }
-    }
-
-#if MUSIC_SIMULATOR_ENABLE
-    // --- SIMULATED PLAYBACK LOOPS ---
-    if (s_is_playing) {
-        s_current_time_s += 1; // Simulated advance (since cb is called 1s in logic or 100ms?)
-        // Wait, timer is called every 100ms, so every 10 ticks is 1 second!
-        static int sub_sec = 0;
-        sub_sec++;
-        if (sub_sec >= 10) {
-            sub_sec = 0;
-            s_current_time_s++;
-            if (s_current_time_s > s_total_time_s) {
-                // Loop song
-                s_current_time_s = 0;
+        int connected = action_get_flow_variable_int(FLOW_GLOBAL_VARIABLE_MUSIC_CONNECTED);
+        static int s_prev_connected = -1;
+        if (connected != s_prev_connected) {
+            s_prev_connected = connected;
+            if (connected) {
+                lv_label_set_long_mode(s_status_label, LV_LABEL_LONG_CLIP);
+                lv_label_set_text_static(s_status_label, "PO\u0141\u0104CZONO");
+                lv_obj_set_style_text_color(s_status_label, lv_color_hex(0x85808a), LV_PART_MAIN);
+            } else {
+                lv_label_set_long_mode(s_status_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+                lv_label_set_text_static(s_status_label, "ROZ\u0141\u0104CZONO Aby po\u0142\u0105czy\u0107 si\u0119, w\u0142\u0105cz tryb bluetooth za pomoc\u0105 przycisku BLT na ekranie g\u0142\u00f3wnym.       ");
+                lv_obj_set_style_text_color(s_status_label, lv_color_hex(0x5a5760), LV_PART_MAIN);
             }
-            
-            // Update Progress Slider
-            lv_slider_set_value(s_progress_slider, s_current_time_s, LV_ANIM_ON);
-
-            // Update Current Time Label
-            char cur_buf[16];
-            snprintf(cur_buf, sizeof(cur_buf), "%d:%02d", s_current_time_s / 60, s_current_time_s % 60);
-            lv_label_set_text(s_time_current_label, cur_buf);
-        }
-
-        // Bouncing Spectrum Visualizer animation (every 100ms)
-        for (int i = 0; i < 4; i++) {
-            int h = rand() % 20 + 4;
-            lv_obj_set_height(s_vis_bars[i], h);
-            // Move y slightly to keep bars bottom-aligned or just keep standard top-align
-        }
-    } else {
-        // Music is paused: drop visualizer bars to minimum height
-        for (int i = 0; i < 4; i++) {
-            lv_obj_set_height(s_vis_bars[i], 4);
         }
     }
-#endif
+
+    // --- PLAY/PAUSE ICON FROM EEZ FLOW ---
+    if (s_play_btn_label) {
+        int playing = action_get_flow_variable_int(FLOW_GLOBAL_VARIABLE_MUSIC_PLAYING);
+        lv_label_set_text_static(s_play_btn_label, playing ? LV_SYMBOL_PAUSE : LV_SYMBOL_PLAY);
+    }
+
+    // Bouncing Spectrum Visualizer animation (every 100ms) — only when playing
+    int playing = action_get_flow_variable_int(FLOW_GLOBAL_VARIABLE_MUSIC_PLAYING);
+    for (int i = 0; i < 4; i++) {
+        if (s_vis_bars[i]) {
+            int h = playing ? (rand() % 20 + 4) : 4;
+            lv_obj_set_height(s_vis_bars[i], h);
+        }
+    }
 }
 
-// Public API Initialization
+// ─── Public API ────────────────────────────────────────────────────────────
+
+void music_ui_set_volume(uint8_t vol) {
+    if (vol > 100) vol = 100;
+    if (s_volume_slider) {
+        lv_slider_set_value(s_volume_slider, vol, LV_ANIM_OFF);
+    }
+    update_eq_labels();
+}
+
+void music_ui_set_eq(uint8_t bass, uint8_t mid, uint8_t treble) {
+    if (s_bass_slider)   lv_slider_set_value(s_bass_slider,   bass,   LV_ANIM_OFF);
+    if (s_mid_slider)    lv_slider_set_value(s_mid_slider,    mid,    LV_ANIM_OFF);
+    if (s_treble_slider) lv_slider_set_value(s_treble_slider, treble, LV_ANIM_OFF);
+    update_eq_labels();
+}
+
+void music_ui_reset(void) {
+    if (s_volume_slider) lv_slider_set_value(s_volume_slider, 50, LV_ANIM_OFF);
+    if (s_bass_slider)   lv_slider_set_value(s_bass_slider,   50, LV_ANIM_OFF);
+    if (s_mid_slider)    lv_slider_set_value(s_mid_slider,    50, LV_ANIM_OFF);
+    if (s_treble_slider) lv_slider_set_value(s_treble_slider, 50, LV_ANIM_OFF);
+    update_eq_labels();
+    highlight_preset(0);
+    action_request_music_state();
+}
+
 void music_ui_handler_init(void) {
     if (s_timer) {
         return;
     }
+    srand(esp_random());
     s_timer = lv_timer_create(music_timer_cb, 100, NULL);
 }

@@ -155,10 +155,13 @@ void bpm_service_init(void) {
 }
 
 void bpm_service_set_mock_mode(bool enabled) {
+    portENTER_CRITICAL(&s_ctx.mux);
     s_ctx.mock_enabled = enabled;
+    portEXIT_CRITICAL(&s_ctx.mux);
 }
 
 bool bpm_service_get_mock_mode(void) {
+    // bool = 1 bajt, atomic read na Xtensa — spinlock niepotrzebny
     return s_ctx.mock_enabled;
 }
 
@@ -182,6 +185,8 @@ void bpm_service_set_bpm(int bpm) {
     if (bpm < 30) bpm = 30;
     if (bpm > 220) bpm = 220;
 
+    portENTER_CRITICAL(&s_ctx.mux);
+
     uint32_t new_period = 60000000 / (uint32_t)bpm;
 
     if (s_ctx.beat_period_us > 0) {
@@ -193,24 +198,28 @@ void bpm_service_set_bpm(int bpm) {
 
     s_ctx.bpm = bpm;
     s_ctx.beat_period_us = new_period;
+
+    portEXIT_CRITICAL(&s_ctx.mux);
 }
 
 int bpm_service_get_bpm(void) {
+    // int = 4 bajty, aligned, atomic read na Xtensa LX7 — spinlock niepotrzebny.
+    // Setter (set_bpm) używa spinlocka dla multi-field atomic write (bpm + beat_period_us + phase_us).
     return s_ctx.bpm;
 }
 
 void bpm_service_set_spo2(uint8_t spo2) {
     if (spo2 > 100) spo2 = 100;
+    portENTER_CRITICAL(&s_ctx.mux);
     s_ctx.spo2 = spo2;
+    portEXIT_CRITICAL(&s_ctx.mux);
 }
 
 int bpm_service_get_spo2(void) {
+    // uint8_t = 1 bajt, atomic read na Xtensa — spinlock niepotrzebny
     return s_ctx.spo2;
 }
 
-int16_t bpm_service_current_diff(void) {
-    return s_ctx.last_diff;
-}
 
 uint16_t bpm_service_update(uint32_t now_ms) {
     if (!s_ctx.initialized) {

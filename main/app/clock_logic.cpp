@@ -11,6 +11,51 @@
 #include "vars.h"
 #include <stdio.h>
 
+// Persistent buffers dla światowych stref czasowych
+// Używamy lv_label_set_text_static() z pominięciem safe_label.h
+// (bufory w .bss, nigdy nie znikają, LVGL nie kopiuje)
+#undef lv_label_set_text
+#undef lv_label_set_text_static
+
+static char s_usa_hour[4];
+static char s_usa_min[4];
+static char s_japan_hour[4];
+static char s_japan_min[4];
+static char s_russia_hour[4];
+static char s_russia_min[4];
+
+static void update_world_clocks(const app_time_t *t) {
+    // 1. USA (Nowy Jork: UTC-5 / DST)
+    int h = (t->hours - 5 + 24) % 24;
+    snprintf(s_usa_hour, sizeof(s_usa_hour), "%02d", h);
+    snprintf(s_usa_min,  sizeof(s_usa_min),  "%02d", t->minutes);
+    lv_label_set_text_static(objects.hour_text_23,  s_usa_hour);
+    lv_label_set_text_static(objects.minutes_text_23, s_usa_min);
+
+    // 2. Japonia (Tokio: UTC+9)
+    h = (t->hours + 9) % 24;
+    snprintf(s_japan_hour, sizeof(s_japan_hour), "%02d", h);
+    snprintf(s_japan_min,  sizeof(s_japan_min),  "%02d", t->minutes);
+    lv_label_set_text_static(objects.hour_text_24,  s_japan_hour);
+    lv_label_set_text_static(objects.minutes_text_24, s_japan_min);
+
+    // 3. Rosja (Moskwa: UTC+3)
+    h = (t->hours + 3) % 24;
+    snprintf(s_russia_hour, sizeof(s_russia_hour), "%02d", h);
+    snprintf(s_russia_min,  sizeof(s_russia_min),  "%02d", t->minutes);
+    lv_label_set_text_static(objects.hour_text_25,  s_russia_hour);
+    lv_label_set_text_static(objects.minutes_text_25, s_russia_min);
+}
+
+static void clear_world_clocks(void) {
+    lv_label_set_text_static(objects.minutes_text_23, "--");
+    lv_label_set_text_static(objects.hour_text_23,     "--");
+    lv_label_set_text_static(objects.minutes_text_24, "--");
+    lv_label_set_text_static(objects.hour_text_24,     "--");
+    lv_label_set_text_static(objects.minutes_text_25, "--");
+    lv_label_set_text_static(objects.hour_text_25,     "--");
+}
+
 static void clock_task(void *arg) {
     (void)arg;
     
@@ -22,7 +67,7 @@ static void clock_task(void *arg) {
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(1000));
         
-        if (lvgl_port_lock(0)) {
+        if (lvgl_port_lock(pdMS_TO_TICKS(20))) {
             if (sntp_service_is_synced()) {
                 app_time_t t = time_service_get_system_time();
 
@@ -38,23 +83,8 @@ static void clock_task(void *arg) {
                 eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_NAME_DAY_DATE, eez::Value(DAY_NAMES_PL[t.day_of_week]));
                 eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_NAME_MONTH_DATE, eez::Value(MONTH_NAMES_PL[t.month]));
 
-                // Światowe strefy czasowe
                 if (eez_flow_get_current_screen() == SCREEN_ID_ZEGAR) {
-                    void *fs = getFlowState(0, 7);
-                    if (fs) {
-                        char world_buf[4];
-                        int usa_h = (t.hours - 5 + 24) % 24;
-                        snprintf(world_buf, sizeof(world_buf), "%02d", usa_h);
-                        assignStringProperty(fs, 68, 3, world_buf, "USA hour");
-
-                        int japan_h = (t.hours + 9) % 24;
-                        snprintf(world_buf, sizeof(world_buf), "%02d", japan_h);
-                        assignStringProperty(fs, 72, 3, world_buf, "Japan hour");
-
-                        int russia_h = (t.hours + 3) % 24;
-                        snprintf(world_buf, sizeof(world_buf), "%02d", russia_h);
-                        assignStringProperty(fs, 76, 3, world_buf, "Russia hour");
-                    }
+                    update_world_clocks(&t);
                 }
             } else {
                 eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_HOUR_TIME, eez::Value("--"));
@@ -63,6 +93,10 @@ static void clock_task(void *arg) {
                 eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_NUMBER_DAY_DATE, eez::Value("--"));
                 eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_NAME_DAY_DATE, eez::Value("---"));
                 eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_NAME_MONTH_DATE, eez::Value("---"));
+
+                if (eez_flow_get_current_screen() == SCREEN_ID_ZEGAR) {
+                    clear_world_clocks();
+                }
             }
 
             lvgl_port_unlock();

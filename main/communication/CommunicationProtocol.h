@@ -19,10 +19,19 @@ namespace CommunicationProtocol {
     kTypeStatusBle = 0x0B,
     kTypeStatusBell = 0x0C,
     kTypeRequest = 0x10,
-   kTypeConfig = 0x11,
-   kTypeHello    = 0x20,
-   kTypeHelloAck = 0x21,
-   kTypeAck = 0xFF
+    kTypeConfig = 0x11,
+    kTypeHello    = 0x20,
+    kTypeHelloAck = 0x21,
+    kTypeMusicMetadata = 0x30,
+    kTypeMusicStatus = 0x31,
+    kTypeMusicCommand = 0x32,
+    kTypeMusicVolume = 0x33,
+    kTypeMusicEQ = 0x34,
+    kTypeMusicRequest = 0x35,
+    kTypeMusicVolumeState = 0x36,
+    kTypeMusicEQState = 0x37,
+    kTypeRadioMode = 0x38,
+    kTypeAck = 0xFF
  };
 
  // Stany maszyny synchronizacji
@@ -125,6 +134,11 @@ void requestDeviceSettings();
 void requestSystemResources();
 void sendDeviceSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody);
 void updateLocalSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody);
+void sendMusicCommand(uint8_t cmd);
+void sendMusicVolume(uint8_t vol);
+void sendMusicEQ(uint8_t bass, uint8_t mid, uint8_t treble);
+void requestMusicState();
+void sendRadioModeSwitch();
 
 }  // namespace CommunicationProtocol
 
@@ -145,6 +159,14 @@ void action_action_toggle_mqtt();
 void action_action_toggle_touch();
 void action_action_toggle_music();
 void action_action_toggle_pms();
+
+void action_send_music_command(uint8_t cmd);
+void action_send_music_volume(uint8_t vol);
+void action_send_music_eq(uint8_t bass, uint8_t mid, uint8_t treble);
+void action_request_music_state();
+void action_send_radio_mode_switch();
+int action_get_flow_variable_int(uint32_t var_id);
+void action_get_flow_variable_text(uint32_t var_id, char *buf, size_t buf_size);
 
 #ifdef __cplusplus
 }

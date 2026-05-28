@@ -39,6 +39,42 @@ volatile bool s_bleDirty = false;
 uint8_t s_sensorBellValue = 0;
 volatile bool s_bellDirty = false;
 
+// Music state
+struct MusicMetadataState {
+    char title[128] = {};
+    char artist[128] = {};
+    volatile bool titleDirty = false;
+    volatile bool artistDirty = false;
+};
+MusicMetadataState s_musicMetadata;
+
+struct MusicStatusState {
+    bool connected = false;
+    bool playing = false;
+    volatile bool dirty = false;
+};
+MusicStatusState s_musicStatus;
+
+struct MusicVolumeState {
+    uint8_t volume = 50;
+    volatile bool dirty = false;
+};
+MusicVolumeState s_musicVolume;
+
+struct MusicEQState {
+    uint8_t bass = 50;
+    uint8_t mid = 50;
+    uint8_t treble = 50;
+    volatile bool dirty = false;
+};
+MusicEQState s_musicEQ;
+
+struct RadioModeState {
+    uint8_t mode = 0;  // 0=WIFI, 1=BT, 2=TRANSITIONING
+    volatile bool dirty = false;
+};
+RadioModeState s_radioMode;
+
 uint32_t currentMs() {
   return static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
 }
@@ -445,6 +481,147 @@ void applySystemResourcesPayload(const uint8_t *payload, uint16_t payloadLength)
 
   sr.valid = true;
   setLocalResources(sr);
+}
+
+void applyMusicMetadataPayload(const uint8_t *payload, uint16_t payloadLength) {
+    if (payload == nullptr || payloadLength < 2) return;
+    uint8_t fieldId = payload[0];
+    uint8_t strLen = payload[1];
+    if (2U + strLen > payloadLength) return;
+    if (strLen > 120) strLen = 120;
+
+    lockSnapshot();
+    if (fieldId == 0) {
+        memset(s_musicMetadata.title, 0, sizeof(s_musicMetadata.title));
+        if (strLen > 0) {
+            memcpy(s_musicMetadata.title, payload + 2, strLen);
+        }
+        s_musicMetadata.titleDirty = true;
+    } else if (fieldId == 1) {
+        memset(s_musicMetadata.artist, 0, sizeof(s_musicMetadata.artist));
+        if (strLen > 0) {
+            memcpy(s_musicMetadata.artist, payload + 2, strLen);
+        }
+        s_musicMetadata.artistDirty = true;
+    }
+    unlockSnapshot();
+}
+
+void applyMusicStatusPayload(const uint8_t *payload, uint16_t payloadLength) {
+    if (payload == nullptr || payloadLength < 1) return;
+    lockSnapshot();
+    s_musicStatus.connected = (payload[0] & 0x01U) != 0;
+    s_musicStatus.playing = (payload[0] & 0x02U) != 0;
+    s_musicStatus.dirty = true;
+    unlockSnapshot();
+}
+
+void applyMusicVolumeStatePayload(const uint8_t *payload, uint16_t payloadLength) {
+    if (payload == nullptr || payloadLength < 1) return;
+    lockSnapshot();
+    s_musicVolume.volume = payload[0];
+    if (s_musicVolume.volume > 100) s_musicVolume.volume = 100;
+    s_musicVolume.dirty = true;
+    unlockSnapshot();
+}
+
+void applyMusicEQStatePayload(const uint8_t *payload, uint16_t payloadLength) {
+    if (payload == nullptr || payloadLength < 3) return;
+    lockSnapshot();
+    s_musicEQ.bass = payload[0];
+    s_musicEQ.mid = payload[1];
+    s_musicEQ.treble = payload[2];
+    if (s_musicEQ.bass > 100) s_musicEQ.bass = 100;
+    if (s_musicEQ.mid > 100) s_musicEQ.mid = 100;
+    if (s_musicEQ.treble > 100) s_musicEQ.treble = 100;
+    s_musicEQ.dirty = true;
+    unlockSnapshot();
+}
+
+bool consumeMusicMetadata(char *title, size_t titleSize, char *artist, size_t artistSize) {
+    lockSnapshot();
+    bool bothDirty = s_musicMetadata.titleDirty && s_musicMetadata.artistDirty;
+    static uint32_t lastDirtyTime = 0;
+    uint32_t now = currentMs();
+    bool anyDirty = s_musicMetadata.titleDirty || s_musicMetadata.artistDirty;
+    
+    if (anyDirty && !bothDirty) {
+        if (lastDirtyTime == 0) lastDirtyTime = now;
+        if (now - lastDirtyTime < 150) {
+            // Wait up to 150ms for the other field to arrive over UART
+            unlockSnapshot();
+            return false;
+        }
+    }
+    
+    if (anyDirty) {
+        snprintf(title, titleSize, "%s", s_musicMetadata.title);
+        snprintf(artist, artistSize, "%s", s_musicMetadata.artist);
+        s_musicMetadata.titleDirty = false;
+        s_musicMetadata.artistDirty = false;
+        lastDirtyTime = 0;
+        unlockSnapshot();
+        return true;
+    }
+    unlockSnapshot();
+    return false;
+}
+
+bool consumeMusicStatus(bool &connected, bool &playing) {
+    lockSnapshot();
+    bool dirty = s_musicStatus.dirty;
+    if (dirty) {
+        connected = s_musicStatus.connected;
+        playing = s_musicStatus.playing;
+        s_musicStatus.dirty = false;
+    }
+    unlockSnapshot();
+    return dirty;
+}
+
+bool consumeMusicVolumeState(uint8_t &volume) {
+    lockSnapshot();
+    bool dirty = s_musicVolume.dirty;
+    if (dirty) {
+        volume = s_musicVolume.volume;
+        s_musicVolume.dirty = false;
+    }
+    unlockSnapshot();
+    return dirty;
+}
+
+void applyRadioModePayload(const uint8_t *payload, uint16_t payloadLength) {
+    if (payload == nullptr || payloadLength < 1) return;
+    uint8_t mode = payload[0];
+    if (mode > 2) mode = 0;
+    lockSnapshot();
+    s_radioMode.mode = mode;
+    s_radioMode.dirty = true;
+    unlockSnapshot();
+}
+
+bool consumeRadioMode(uint8_t &mode) {
+    lockSnapshot();
+    bool dirty = s_radioMode.dirty;
+    if (dirty) {
+        mode = s_radioMode.mode;
+        s_radioMode.dirty = false;
+    }
+    unlockSnapshot();
+    return dirty;
+}
+
+bool consumeMusicEQState(uint8_t &bass, uint8_t &mid, uint8_t &treble) {
+    lockSnapshot();
+    bool dirty = s_musicEQ.dirty;
+    if (dirty) {
+        bass = s_musicEQ.bass;
+        mid = s_musicEQ.mid;
+        treble = s_musicEQ.treble;
+        s_musicEQ.dirty = false;
+    }
+    unlockSnapshot();
+    return dirty;
 }
 
 // ─── Handshake ────────────────────────────────────────────────────────────────

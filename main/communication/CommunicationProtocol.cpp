@@ -99,6 +99,35 @@ void sendDeviceSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms
   sendRawFrame(kTypeSetSettings, 0, payload, sizeof(payload));
 }
 
+void sendMusicCommand(uint8_t cmd) {
+  uint8_t payload[1] = { cmd };
+  sendRawFrame(kTypeMusicCommand, 0, payload, 1);
+}
+
+void sendMusicVolume(uint8_t vol) {
+  if (vol > 100) vol = 100;
+  uint8_t payload[1] = { vol };
+  sendRawFrame(kTypeMusicVolume, 0, payload, 1);
+}
+
+void sendMusicEQ(uint8_t bass, uint8_t mid, uint8_t treble) {
+  if (bass > 100) bass = 100;
+  if (mid > 100) mid = 100;
+  if (treble > 100) treble = 100;
+  uint8_t payload[3] = { bass, mid, treble };
+  sendRawFrame(kTypeMusicEQ, 0, payload, 3);
+}
+
+void requestMusicState() {
+  uint8_t payload[1] = { 0x0F };
+  sendRawFrame(kTypeMusicRequest, 0, payload, 1);
+}
+
+void sendRadioModeSwitch() {
+  uint8_t payload[1] = { 0xFF };
+  sendRawFrame(kTypeRadioMode, 0, payload, 1);
+}
+
 void updateLocalSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody) {
   DeviceSettings ds;
   ds.buzzerEnabled = buzzer;
@@ -170,6 +199,36 @@ void updateUi() {
       applyStatusBellToUi(value);
     }
   }
+  {
+    char title[128], artist[128];
+    if (consumeMusicMetadata(title, sizeof(title), artist, sizeof(artist))) {
+      applyMusicMetadataToUi(title, artist);
+    }
+  }
+  {
+    bool connected, playing;
+    if (consumeMusicStatus(connected, playing)) {
+      applyMusicStatusToUi(connected, playing);
+    }
+  }
+  {
+    uint8_t volume;
+    if (consumeMusicVolumeState(volume)) {
+      applyMusicVolumeToUi(volume);
+    }
+  }
+  {
+    uint8_t bass, mid, treble;
+    if (consumeMusicEQState(bass, mid, treble)) {
+      applyMusicEQToUi(bass, mid, treble);
+    }
+  }
+  {
+    uint8_t mode;
+    if (consumeRadioMode(mode)) {
+      applyRadioModeToUi(mode);
+    }
+  }
 }
 
 } // namespace CommunicationProtocol
@@ -216,5 +275,32 @@ void action_action_toggle_mqtt()      { action_toggle_mqtt(); }
 void action_action_toggle_touch()     { action_toggle_touch(); }
 void action_action_toggle_music()     { action_toggle_music(); }
 void action_action_toggle_pms()       { action_toggle_pms(); }
+
+void action_send_music_command(uint8_t cmd) {
+  CommunicationProtocol::sendMusicCommand(cmd);
+}
+void action_send_music_volume(uint8_t vol) {
+  CommunicationProtocol::sendMusicVolume(vol);
+}
+void action_send_music_eq(uint8_t bass, uint8_t mid, uint8_t treble) {
+  CommunicationProtocol::sendMusicEQ(bass, mid, treble);
+}
+void action_request_music_state() {
+  CommunicationProtocol::requestMusicState();
+}
+
+void action_send_radio_mode_switch() {
+  CommunicationProtocol::sendRadioModeSwitch();
+}
+
+int action_get_flow_variable_int(uint32_t var_id) {
+  eez::Value val = eez::flow::getGlobalVariable(var_id);
+  return val.getInt();
+}
+
+void action_get_flow_variable_text(uint32_t var_id, char *buf, size_t buf_size) {
+  eez::Value val = eez::flow::getGlobalVariable(var_id);
+  val.toText(buf, buf_size);
+}
 
 }
