@@ -3,8 +3,10 @@
 #include "communication/CommHandshake.h"
 #include "communication/CobsFraming.h"
 #include "communication/CommunicationState.h"
+#include "communication/time/timer_synchro.h"
 #include "services/bpm/bpm_service.h"
 #include "utils/comm_log/comm_log.h"
+#include "app/alarm_logic.h"
 #include <stdio.h>
 #include <string.h>
 #include "driver/uart.h"
@@ -13,6 +15,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include <atomic>
 
 namespace CommunicationProtocol {
 namespace {
@@ -42,7 +45,7 @@ FrameParser s_parser;
 TaskHandle_t s_rxTaskHandle = nullptr;
 TaskHandle_t s_txTaskHandle = nullptr;
 QueueHandle_t s_txQueue = nullptr;
-volatile bool s_started = false;
+std::atomic<bool> s_started{false};
 
 void resetParser() { s_parser.length = 0; }
 
@@ -99,6 +102,18 @@ void handleFrame(uint8_t type, const uint8_t *payload, uint16_t payloadLength) {
         break;
     case kTypeRadioMode:
         applyRadioModePayload(payload, payloadLength);
+        break;
+    case kTypeAlarmList:
+        TimerSync::handleAlarmListPayload(payload, payloadLength);
+        break;
+    case kTypeTimerState:
+        TimerSync::handleTimerStatePayload(payload, payloadLength);
+        break;
+    case kTypeEditLock:
+        TimerSync::handleEditLockPayload(payload, payloadLength);
+        break;
+    case kTypeStopwatchState:
+        TimerSync::handleStopwatchStatePayload(payload, payloadLength);
         break;
     case kTypeHelloAck:
         onHelloAckReceived(payload, payloadLength);

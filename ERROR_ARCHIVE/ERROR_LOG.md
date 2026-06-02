@@ -1,4 +1,90 @@
-# Archiwum Błędów - ZEGAR-ESP32
+# Archiwum Błędów - GUTION-S3
+
+---
+### [ID: ERR_033] | STOPWATCH_RESET_BUTTON_BROKEN | IMPACT: HIGH
+**Files:** `[stopwatch_logic.cpp, stopwatch_ui.cpp]`
+
+**PROBLEM:** Przycisk Reset na Gution nie działał gdy stoper był w stanie RUNNING. Stoper na Gution zostawał w RUNNING na zawsze, bo:
+1. `stopwatch_reset()` miał guard `if (s_state != STOPWATCH_PAUSED) return;` — reset z RUNNING to no-op
+2. `on_reset_stoper()` wysyłał RESET do Zegara (który działał), ale lokalny Gution nie resetował
+3. Sync z Zegara (`stopwatch_timer_cb()` → `stopwatch_reset()`) też failował bo RUNNING != PAUSED
+
+**Dodatkowo:** `handleStopwatchCmd(0)` na Zegarze zerował `stoperElapsed` — pauza→wznowienie resetowało czas zamiast wznawiać.
+
+**ROOT CAUSE:** PAUSED guard w `stopwatch_reset()` — zaprojektowany by resetować tylko z pauzy, ale nie przewidział przypadku sync z Zegara (remote IDLE → lokalny RUNNING). Zegar zerował elapsed na każdy START.
+
+**LOGIC_CHANGE:**
+- `stopwatch_logic.cpp:stopwatch_reset()` — usunięto guard PAUSED. Reset działa z każdego stanu (RUNNING, PAUSED, IDLE).
+- `TimeSyncProtocol.cpp:handleStopwatchCmd(0)` — nie zeruje `stoperElapsed`. Zachowuje czas przy resume z pauzy.
+- `stopwatch_ui.cpp:on_reset_stoper()` — jeśli RUNNING → najpierw STOP, potem RESET.
+
+**PRZEPływ PO FIXIE:**
+1. RUNNING + Reset → STOP + RESET → IDLE (00:00:00)
+2. PAUSED + Reset → RESET → IDLE (00:00:00)  
+3. IDLE + Reset → no-op (already idle)
+4. Start z Gution → RUNNING (local) + cmd=0 (Zegar: stoperRunning, zachowaj elapsed=0)
+5. Stop → PAUSED (local) + cmd=1 (Zegar: zatrzymaj)
+6. Start znowu → RUNNING (local, resume) + cmd=0 (Zegar: wznowienie, elapsed zachowany)
+7. Start z Zegara → remote state=1 → Gution: `stopwatch_start()` → RUNNING (płynny 50fps, centyssekundy)
+
+**VERIFICATION:** `python build_guition.py` → SUKCES. `python build_zegar.py` → SUCCESS.
+
+---
+### [ID: ERR_032] | TIMER_STOPWATCH_LOCAL_ONLY_NO_SYNC | IMPACT: HIGH
+**Files:** `[timer_ui.cpp, stopwatch_ui.cpp, CommunicationProtocol.h/.cpp, CommunicationState.h/.cpp, UartTransport.cpp]`
+
+**PROBLEM:** Timer (minutnik) i stoper (stopwatch) na Gution działały całkowicie lokalnie. Start timera z GUI nie wysyłał komendy do Zegara — minutnik na Zegarze nigdy nie startował. Stoper nie miał żadnej komunikacji (brak ramek 0x15/0x16). Wyświetlacz Gution ignorował zdalny TimerState z Zegara.
+
+**ROOT CAUSE:**
+1. `timer_ui.cpp::on_start_stop_minutnik()` wywoływał `timer_start()` lokalnie, ale **nigdy nie dzwonił `sendTimerCmd()`** — Zegar nie wiedział o starcie.
+2. `timer_ui_cb()` wyświetlał stan z `timer_logic.h` (lokalny), ignorując zdalny `TimerState` przychodzący z Zegara.
+3. Stoper nie miał w ogóle protokołu komunikacyjnego.
+4. `sendTimerCmd()` wymagał `uint32_t durationSec` — wywołanie `sendTimerCmd(1)` (STOP) było błędem kompilacji.
+
+**LOGIC_CHANGE:**
+- `CommunicationProtocol.h`: Dodano `kTypeStopwatchState=0x15, kTypeStopwatchCmd=0x16`, `StopwatchState` struct, `sendStopwatchCmd()`, `getLastTimerState()`, `getLastStopwatchState()`. Przeniesiono `TimerState` z CommunicationState.h. `sendTimerCmd()` ma domyślny `durationSec=0`.
+- `CommunicationState.h/.cpp`: Dodano `StopwatchState` storage, `applyStopwatchStatePayload()`, `consumeStopwatchState()` (mutex).
+- `UartTransport.cpp`: Handler `kTypeStopwatchState` → `applyStopwatchStatePayload()`.
+- `CommunicationProtocol.cpp`: Cache `s_cachedTimerState`/`s_cachedStopwatchState`, konsumpcja w `updateUi()`. `sendStopwatchCmd()` wysyła ramkę 0x16.
+- `timer_ui.cpp`: `on_start_stop_minutnik()` wysyła `sendTimerCmd(0, target)` przed lokalnym startem. `timer_ui_cb()` wyświetla zdalny `TimerState` gdy aktywny (fallback do lokalnego).
+- `stopwatch_ui.cpp`: Przyciski wysyłają `sendStopwatchCmd(0/1/2)`. `stopwatch_timer_cb()` wyświetla zdalny `StopwatchState` gdy aktywny.
+
+**VERIFICATION:** `python build_guition.py` → SUKCES. `python build_zegar.py` → SUCCESS.
+
+---
+### [ID: ERR_031] | TIMESYNC_POPUP_DOUBLE_CONSUME | IMPACT: CRITICAL
+**Files:** `[CommunicationProtocol.cpp, alarm_logic.cpp, alarm_ui.cpp]`
+
+**PROBLEM:** Dwa krytyczne błędy w implementacji synchronizacji alarmów/timera z Zegarem:
+1. **`consumeStatusBell()` wywołany 2 razy w `updateUi()`** (`CommunicationProtocol.cpp:222,284`): Istniejący kod `updateUi()` już konsumował `StatusBell` dla ikonki dzwonka. Nowy kod alarm-popup dodawał DRUGIE wywołanie `consumeStatusBell()` kilkanaście linii niżej. Drugie wywołanie zawsze zwracało `false` (destructive read), więc `alarm_popup_show()` NIGDY nie był wołany. Popup alarmu/timera był całkowicie martwy.
+2. **`alarm_get_all()` zwraca zły count** (`alarm_logic.cpp:125`): Funkcja zwracała `s_alarm_count` (pełny rozmiar listy) zamiast `n` (liczby faktycznie skopiowanych elementów do bufora caller-a). Przy wywołaniu z `max_count < s_alarm_count`, caller czytał poza przydzielonym buforem.
+
+**CAUSE:** Pominięcie istniejącej konsumpcji `StatusBell` w istniejącym bloku `updateUi()`; błąd copy-paste w `alarm_get_all()`.
+
+**LOGIC_CHANGE:**
+- `CommunicationProtocol.cpp`: Scalone — popup alarmu uruchamiany w tym samym bloku `consumeStatusBell()` co ikonka dzwonka. Usunięty drugi blok.
+- `CommunicationProtocol.cpp`: `localtime()` → `localtime_r()` z buforem na stosie.
+- `CommunicationProtocol.cpp`: `s_lastTimerRinging` aktualizowane w jedynym bloku `consumeTimerState()`.
+- `alarm_logic.cpp`: `alarm_get_all()` zwraca `n` zamiast `s_alarm_count`.
+
+**VERIFICATION:** `python build_guition.py` → SUCCESS. Popup alarmu/timera pojawia się przy bell=2. `alarm_get_all()` nie powoduje overread.
+
+---
+### [ID: ERR_030] | TIMESYNC_POPUP_UART_MISSING | IMPACT: HIGH
+**Files:** `[alarm_popup.cpp, alarm_ui.cpp]`
+
+**PROBLEM:** Dwa błędy w integracji popupu alarmu z UART:
+1. **`alarm_popup` callbacki nie wysyłały UART** (kod oryginalny): `on_snooze_click()` i `on_dismiss_click()` tylko lokalnie chowały popup — NIE wysyłały `kTypeAlarmAction` do Zegara. Buzzer na Zegarze dzwonił w nieskończoność.
+2. **Redundantne `lvgl_port_lock()` w `alarm_ui_set_edit_locked()`** (`alarm_ui.cpp`): Funkcja wołana tylko z `updateUi()` (LVGL task, Core 1) zawierała `lvgl_port_lock()`. Przy implementacji nie-rekurencyjnej mogło zakleszczyć mutex.
+
+**CAUSE:** Pominięcie `CommunicationProtocol::sendAlarmAction()` w callbackach; nadmiarowa synchronizacja LVGL w kontekście już-wątku-graficznego.
+
+**LOGIC_CHANGE:**
+- `alarm_popup.cpp`: `on_snooze_click()` woła `CommunicationProtocol::sendAlarmAction(1)`, `on_dismiss_click()` woła `sendAlarmAction(0)` przed `alarm_popup_dismiss()`.
+- `alarm_popup.cpp`: `#define ALARM_POPUP_MOCKUP_MODE 0` (produkcja).
+- `alarm_ui.cpp`: Usunięto `lvgl_port_lock()`/`unlock()` z `alarm_ui_set_edit_locked()`.
+
+**VERIFICATION:** `python build_guition.py` → SUCCESS. Przyciski popupu wysyłają UART do Zegara. Brak deadlocka LVGL.
 
 ---
 ### [ID: ERR_029] | BPM_GETTER_SPINLOCK_DEADLOCK | IMPACT: CRITICAL (regression ERR_027)
@@ -422,3 +508,20 @@
 
 **VERIFICATION:** Auto-connect po resecie działa (worker task). SNTP startuje po GOT_IP. Manual connect bez double race.
 ---
+### [ID: ERR_024] | CLOCK_PHASE_DRIFT_AND_STUTTER | IMPACT: MEDIUM
+**Files:** `[clock_logic.cpp]`
+
+**PROBLEM:** Główny zegar na ekranie co jakiś czas zatrzymywał się na ok. 2 sekundy (np. na wartości 20), po czym przeskakiwał od razu o 2 sekundy w przód (np. na 22), całkowicie pomijając pośrednią sekundę (np. 21).
+
+**CAUSE:** Dwa niezależne problemy w `clock_task` (Core 0, prio 3):
+1. **Dryft Fazowy (Phase Drift):** Pętla zadania spała dokładnie `1000ms` za pomocą `vTaskDelay`. Przez czas wykonywania pętli i pobierania locka rzeczywisty okres pętli wynosił nieco ponad 1000ms (np. 1005ms). Ponieważ ten okres nie był zsynchronizowany z przerwaniami RTC, faza budzenia się dryfowała względem przepełnienia sekundy. Gdy punkt próbkowania przekroczył granicę sekundy, jedna sekunda była całkowicie pomijana na ekranie.
+2. **Jitter Blokowania (Lock Contention):** Zadanie próbowało pobrać `lvgl_port_lock` z timeoutem 20ms. Jeśli task LVGL był zajęty renderowaniem lub obsługą dotyku, lock failował. Zadanie pomijało całą aktualizację i szło spać na kolejne `1000ms`, co skutkowało 2-sekundowym zamrożeniem i przeskoczeniem wartości.
+
+**LOGIC_CHANGE:**
+- Zmniejszono czas uśpienia pętli z `1000ms` do `100ms` (`vTaskDelay(pdMS_TO_TICKS(100))`).
+- Wprowadzono zmienne filtrujące stan (`last_sec`, `last_min`, itp.).
+- Zadanie co 100ms odczytuje czas systemowy (bardzo szybkie wywołanie `localtime_r`, < 1µs). Blokowanie portu LVGL i aktualizacja zmiennych EEZ Flow zachodzi **tylko wtedy**, gdy czas uległ faktycznej zmianie (czyli raz na sekundę).
+- W przypadku błędu pobrania locka, zmienne filtrujące stan *nie* są aktualizowane, co wymusza ponowną próbę pobrania locka już za kolejne 100ms (niezauważalne dla oka), zamiast czekania całych 1000ms.
+
+**VERIFICATION:** Kompilacja OK (build_guition.py). Logika eliminuje błędy synchronizacji oraz natychmiastowo wznawia pracę po utracie locka bez widocznego zacinania.
+

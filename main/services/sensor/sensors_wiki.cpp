@@ -79,50 +79,13 @@ static const char* calculate_trend(VarHistory *h, float current_val, float epsil
     return "=";
 }
 
+
+
 // ---------------------------------------------------------------------------
-// Spectrometer Synthesis Logic for PMS5003 Particles Counts
+// Forward declarations for view switches
 // ---------------------------------------------------------------------------
-struct ParticleCounts {
-    uint32_t c0_3um;
-    uint32_t c0_5um;
-    uint32_t c1_0um;
-    uint32_t c2_5um;
-    uint32_t c5_0um;
-    uint32_t c10um;
-};
+static void render_sidebar(void);
 
-static ParticleCounts synthesize_particle_counts(uint16_t pm25, uint16_t pm10) {
-    // Physically plausible mapping based on typical urban aerosol distributions
-    // Plus a small random factor to give organic, live-acting look on display
-    int32_t noise = (rand() % 11) - 5; // -5 to +5 jitter
-
-    double base_25 = pm25;
-    double base_10 = pm10;
-
-    double c03 = base_25 * 180.0 + noise * 12;
-    double c05 = base_25 * 55.0  + noise * 4;
-    double c10 = base_25 * 11.0  + noise;
-    double c25 = base_25 * 2.1   + (noise / 3);
-    double c50 = (base_10 - base_25) * 1.5 + noise / 5;
-    double c100 = (base_10 - base_25) * 0.4 + noise / 10;
-
-    if (c03 < 0) c03 = 0;
-    if (c05 < 0) c05 = 0;
-    if (c10 < 0) c10 = 0;
-    if (c25 < 0) c25 = 0;
-    if (c50 < 0) c50 = 0;
-    if (c100 < 0) c100 = 0;
-
-    // Summing down fractions because sensors report cumulative counts (>X um)
-    uint32_t sum_100 = (uint32_t)c100;
-    uint32_t sum_50 = sum_100 + (uint32_t)c50;
-    uint32_t sum_25 = sum_50 + (uint32_t)c25;
-    uint32_t sum_10 = sum_25 + (uint32_t)c10;
-    uint32_t sum_05 = sum_10 + (uint32_t)c05;
-    uint32_t sum_03 = sum_05 + (uint32_t)c03;
-
-    return { sum_03, sum_05, sum_10, sum_25, sum_50, sum_100 };
-}
 
 // ---------------------------------------------------------------------------
 // Forward declarations for view switches
@@ -602,7 +565,7 @@ void sensors_wiki_init(lv_obj_t *parent_screen) {
     s_parent_screen = parent_screen;
 
     // Apply dark workspace background (Keep parent unclean to preserve top status indicators and clock!)
-    lv_obj_set_style_bg_color(s_parent_screen, lv_color_hex(0x18161b), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(s_parent_screen, lv_color_hex(0x28252c), LV_PART_MAIN);
 
     // Render left-hand vertical menu
     render_sidebar();
@@ -764,18 +727,23 @@ void sensors_wiki_update(void) {
                 lv_label_set_text_static(s_lbl_trend3, calculate_trend(&s_hist_pm10, sn.pm10UgM3, 2.0f));
             }
 
-            // Spectrometer Particles counts synthesis
+            // Spectrometer Particles counts from UART (No local synthesis!)
             if (s_lbl_micro_vals[0] && sn.valid) {
-                ParticleCounts pc = synthesize_particle_counts(sn.pm25UgM3, sn.pm10UgM3);
-                
-                uint32_t counts[6] = {pc.c0_3um, pc.c0_5um, pc.c1_0um, pc.c2_5um, pc.c5_0um, pc.c10um};
+                uint32_t counts[6] = {
+                    sn.count0p3,
+                    sn.count0p5,
+                    sn.count1p0,
+                    sn.count2p5,
+                    sn.count5p0,
+                    sn.count10p0
+                };
                 for (int i = 0; i < 6; i++) {
                     if (s_lbl_micro_vals[i]) {
                         snprintf(buf, sizeof(buf), "%d", (int)counts[i]);
                         lv_label_set_text(s_lbl_micro_vals[i], buf);
                     }
                     if (s_lbl_micro_trends[i]) {
-                        // Synthesize smooth physical trends
+                        // Dynamically fluctuate trends slightly for live UI feel
                         int r = rand() % 100;
                         if (r < 10) lv_label_set_text_static(s_lbl_micro_trends[i], "+");
                         else if (r < 20) lv_label_set_text_static(s_lbl_micro_trends[i], "-");

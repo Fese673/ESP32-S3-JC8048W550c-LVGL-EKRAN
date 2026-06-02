@@ -396,6 +396,15 @@ void applyPmsPayload(const uint8_t *payload, uint16_t payloadLength) {
   nextSnapshot.pm01UgM3 = static_cast<uint16_t>(payload[0] | (payload[1] << 8U));
   nextSnapshot.pm25UgM3 = static_cast<uint16_t>(payload[2] | (payload[3] << 8U));
   nextSnapshot.pm10UgM3 = static_cast<uint16_t>(payload[4] | (payload[5] << 8U));
+
+  // Extract PMS5003 Particle counts
+  nextSnapshot.count0p3 = static_cast<uint16_t>(payload[6] | (payload[7] << 8U));
+  nextSnapshot.count0p5 = static_cast<uint16_t>(payload[8] | (payload[9] << 8U));
+  nextSnapshot.count1p0 = static_cast<uint16_t>(payload[10] | (payload[11] << 8U));
+  nextSnapshot.count2p5 = static_cast<uint16_t>(payload[12] | (payload[13] << 8U));
+  nextSnapshot.count5p0 = static_cast<uint16_t>(payload[14] | (payload[15] << 8U));
+  nextSnapshot.count10p0 = static_cast<uint16_t>(payload[16] | (payload[17] << 8U));
+
   nextSnapshot.sampleAgeMs = static_cast<uint32_t>(payload[18]) |
                              (static_cast<uint32_t>(payload[19]) << 8U) |
                              (static_cast<uint32_t>(payload[20]) << 16U) |

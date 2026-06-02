@@ -6,6 +6,7 @@
 #include "stopwatch_ui.h"
 #include "timer_ui.h"
 #include "alarm_ui.h"
+#include "alarm/alarm_popup.h"
 #include "main_handler.h"
 #include "communication/CommunicationProtocol.h"
 #include "wifi_service.h"
@@ -116,6 +117,21 @@ static void init_custom_dropdown_hook() {
     }
 }
 
+static void style_widgets_recursive(lv_obj_t * obj) {
+    if (!obj) return;
+
+    if (lv_obj_check_type(obj, &lv_switch_class)) {
+        style_premium_switch(obj);
+    } else if (lv_obj_check_type(obj, &lv_slider_class)) {
+        style_system_slider(obj);
+    }
+
+    uint32_t child_cnt = lv_obj_get_child_cnt(obj);
+    for (uint32_t i = 0; i < child_cnt; i++) {
+        style_widgets_recursive(lv_obj_get_child(obj, i));
+    }
+}
+
 static void ui_tick_timer_cb(lv_timer_t *timer)
 {
     (void)timer;
@@ -167,6 +183,9 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
 
         last_screen_id = current_screen_id;
 
+        // Apply premium styling to all switches & sliders globally on the newly loaded screen
+        style_widgets_recursive(lv_scr_act());
+
         // Dynamiczna rejestracja gestu Swipe Up na każdym załadowanym subekranie
         if (current_screen_id != SCREEN_ID_MAIN) {
             ESP_LOGI(TAG, "Zarejestrowano gesty Swipe Up na aktywnym ekranie ID: %d", (int)current_screen_id);
@@ -179,6 +198,10 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
         }
         if (current_screen_id == SCREEN_ID_USTAWIENIA) {
             init_custom_dropdown_hook();
+        }
+        if (current_screen_id == SCREEN_ID_ZEGAR) {
+            ESP_LOGI(TAG, "Entering ZEGAR screen, requesting alarm list from Zegar...");
+            CommunicationProtocol::TimerSync::requestAlarmList();
         }
         if (current_screen_id == SCREEN_ID_ZASOBY_SYSTEMU) {
             style_system_slider(objects.free_flash_slider);
@@ -214,6 +237,7 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
     stopwatch_ui_sync_start_stop_label();
     timer_ui_sync_start_stop_label();
     notification_logic_refresh();
+    alarm_popup_tick();
     CommunicationProtocol::updateUi();
 
     log_ui_tick_end(current_screen_id, esp_timer_get_time() - start_us);
@@ -251,7 +275,8 @@ extern "C" void app_main(void)
         stopwatch_ui_init();
         timer_ui_init();
         alarm_ui_init();
-        lv_timer_create(ui_tick_timer_cb, 100, NULL);
+        alarm_popup_init();
+        lv_timer_create(ui_tick_timer_cb, 20, NULL);
         bpm_chart_handler_init();
         weather_icon_handler_init();
         music_ui_handler_init();

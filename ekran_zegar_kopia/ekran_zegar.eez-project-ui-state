@@ -1,9 +1,10 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/14",
+    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/3",
     "selectedActionObject": "[ekran_zegar.eez-project]:/actions/13",
     "selectedGlobalVariableObject": "[ekran_zegar.eez-project]:/variables/globalVariables/55",
     "selectedFontObject": "[ekran_zegar.eez-project]:/fonts/10",
+    "selectedBitmapObject": "[ekran_zegar.eez-project]:/bitmaps/53",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
     }
@@ -26,7 +27,7 @@
           },
           {
             "type": "border",
-            "selected": 1,
+            "selected": 2,
             "size": 134.5,
             "location": "right",
             "children": [
@@ -219,10 +220,10 @@
                 {
                   "type": "tab",
                   "id": "#4fb4834e-07f8-40da-b84d-4df08e1b0e9e",
-                  "name": "Czujniki",
+                  "name": "Statystyki",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[ekran_zegar.eez-project]:/userPages/14",
+                    "objectPath": "[ekran_zegar.eez-project]:/userPages/3",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -1238,10 +1239,10 @@
       },
       "transform": {
         "translate": {
-          "x": -516.4815616875997,
-          "y": -253.0690975848313
+          "x": -420.48156168759965,
+          "y": -355.0690975848313
         },
-        "scale": 0.8
+        "scale": 1.1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1266,7 +1267,7 @@
           "x": -428.498995093795,
           "y": -252.36803520923525
         },
-        "scale": 0.8
+        "scale": 1.1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1372,15 +1373,8 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "1": {},
           "2": {
-            "10": {
-              "3": {}
-            },
-            "12": {}
-          },
-          "3": {
-            "2": {
+            "13": {
               "$selected": true
             }
           }
@@ -1388,10 +1382,10 @@
       },
       "transform": {
         "translate": {
-          "x": -369.14109427609424,
-          "y": -348.51982984607923
+          "x": -339.1161014911016,
+          "y": -248.53445800399092
         },
-        "scale": 0.9
+        "scale": 0.8
       },
       "timeline": {
         "isEditorActive": false,
@@ -1472,7 +1466,7 @@
           "x": -400,
           "y": -240
         },
-        "scale": 0.9
+        "scale": 1.1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1487,7 +1481,9 @@
         "0": {
           "0": {},
           "2": {},
-          "3": {},
+          "3": {
+            "$selected": true
+          },
           "12": {},
           "13": {}
         },
@@ -1629,7 +1625,7 @@
           "x": -400,
           "y": -240
         },
-        "scale": 0.9
+        "scale": 1.1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1648,7 +1644,7 @@
           "x": -331.80000000000007,
           "y": -278.4
         },
-        "scale": 0.8
+        "scale": 1.1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1665,7 +1661,7 @@
           "x": -518,
           "y": -240
         },
-        "scale": 0.8
+        "scale": 1.1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1700,11 +1696,12 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "TEXT"
+    "TEXT",
+    "OUTLINE"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
   "flowZoom": 0.8,
   "implementationLanguage": "C++",
-  "openDialogDefaultPath": "C:\\Users\\PC\\Desktop\\EKRAN_PROJEKT\\bpm\\scaled\\kfe_o2.png"
+  "openDialogDefaultPath": "C:\\Users\\PC\\Desktop\\EKRAN_PROJEKT\\scaled\\ZEGAR\\kfe_minutniik.PNG"
 }

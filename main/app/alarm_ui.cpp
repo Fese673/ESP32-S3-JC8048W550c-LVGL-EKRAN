@@ -2,10 +2,13 @@
 #include "alarm_logic.h"
 #include "screens.h"
 #include "fonts.h"
+#include "communication/time/timer_synchro.h"
 #include "lvgl.h"
+#include "esp_lvgl_port.h"
 #include <stdio.h>
 #include <string.h>
 
+static bool s_edit_locked = false;
 static int s_popup_alarm_idx = -1;
 static bool s_popup_days[7] = {false};
 static lv_obj_t *s_popup_day_btns[7] = {NULL};
@@ -44,7 +47,14 @@ static void update_day_button_style(lv_obj_t *btn, bool active) {
     }
 }
 
+static void publish_alarm_list_to_clock(void) {
+    CommunicationProtocol::TimerSync::sendAlarmList();
+}
+
 static void on_day_btn_click(lv_event_t *e) {
+    if (s_edit_locked) {
+        return;
+    }
     lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
     int day_idx = (int)(uintptr_t)lv_event_get_user_data(e);
     s_popup_days[day_idx] = !s_popup_days[day_idx];
@@ -52,10 +62,15 @@ static void on_day_btn_click(lv_event_t *e) {
 }
 
 static void on_switch_toggle(lv_event_t *e) {
+    if (s_edit_locked) {
+        return;
+    }
     lv_obj_t *sw = (lv_obj_t *)lv_event_get_target(e);
     int idx = (int)(uintptr_t)lv_event_get_user_data(e);
     bool enabled = lv_obj_has_state(sw, LV_STATE_CHECKED);
-    alarm_toggle(idx, enabled);
+    if (alarm_toggle(idx, enabled)) {
+        publish_alarm_list_to_clock();
+    }
 }
 
 static void alarm_ui_open_popup(int alarm_index) {
@@ -286,15 +301,22 @@ static void on_cancel_click(lv_event_t *e) {
 
 static void on_save_click(lv_event_t *e) {
     (void)e;
+    if (s_edit_locked) {
+        return;
+    }
     if (!s_popup_roller_hour || !s_popup_roller_min) return;
     
     int hour = lv_roller_get_selected(s_popup_roller_hour);
     int min = lv_roller_get_selected(s_popup_roller_min);
     
     if (s_popup_alarm_idx == -1) {
-        alarm_add(hour, min, s_popup_days);
+        if (alarm_add(hour, min, s_popup_days)) {
+            publish_alarm_list_to_clock();
+        }
     } else {
-        alarm_edit(s_popup_alarm_idx, hour, min, s_popup_days);
+        if (alarm_edit(s_popup_alarm_idx, hour, min, s_popup_days)) {
+            publish_alarm_list_to_clock();
+        }
     }
     
     alarm_ui_close_popup();
@@ -303,8 +325,13 @@ static void on_save_click(lv_event_t *e) {
 
 static void on_delete_click(lv_event_t *e) {
     (void)e;
+    if (s_edit_locked) {
+        return;
+    }
     if (s_popup_alarm_idx >= 0) {
-        alarm_delete(s_popup_alarm_idx);
+        if (alarm_delete(s_popup_alarm_idx)) {
+            publish_alarm_list_to_clock();
+        }
     }
     
     alarm_ui_close_popup();
@@ -313,14 +340,15 @@ static void on_delete_click(lv_event_t *e) {
 }
 
 static void on_card_click(lv_event_t *e) {
+    if (s_edit_locked) return;
     int idx = (int)(uintptr_t)lv_event_get_user_data(e);
     alarm_ui_open_popup(idx);
 }
 
 static void on_add_alarm_click(lv_event_t *e) {
     (void)e;
+    if (s_edit_locked) return;
     if (alarm_get_count() >= ALARM_MAX_COUNT) {
-        // Limit do 5 alarmów
         return;
     }
     alarm_ui_open_popup(-1);
@@ -420,6 +448,22 @@ void alarm_ui_refresh_list(void) {
             }
         }
         lv_label_set_text(lbl_days, days_buf);
+    }
+}
+
+void alarm_ui_set_edit_locked(bool locked) {
+    s_edit_locked = locked;
+    // Wołane tylko z updateUi() (LVGL task, Core 1) — nie trzeba lvgl_port_lock
+
+    if (objects.add_alarm) {
+        if (locked) {
+            lv_obj_add_state(objects.add_alarm, LV_STATE_DISABLED);
+        } else {
+            lv_obj_remove_state(objects.add_alarm, LV_STATE_DISABLED);
+        }
+    }
+    if (objects.alarm_list) {
+        lv_obj_set_style_opa(objects.alarm_list, locked ? LV_OPA_40 : LV_OPA_COVER, LV_PART_MAIN);
     }
 }
 

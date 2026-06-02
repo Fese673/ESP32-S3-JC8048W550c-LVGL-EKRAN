@@ -9,12 +9,12 @@ static int s_paused_remaining = 0;
 void timer_start(void) {
     if (s_state == TIMER_RUNNING) return;
 
-    if (s_state == TIMER_IDLE) {
-        if (s_target_seconds == 0) {
-            s_target_seconds = 60;
-        }
-        s_paused_remaining = s_target_seconds;
+    // Zawsze use target_seconds jako bazę (nie s_paused_remaining)
+    // Zapobiega bugowi "stale paused value" po expirze
+    if (s_target_seconds == 0) {
+        s_target_seconds = 60;
     }
+    s_paused_remaining = s_target_seconds;
 
     s_end_time_us = esp_timer_get_time() + ((int64_t)s_paused_remaining * 1000000ULL);
     s_state = TIMER_RUNNING;
@@ -77,6 +77,12 @@ void timer_set_time(int h, int m, int s) {
     s_target_seconds = h * 3600 + m * 60 + s;
 }
 
+void timer_set_target_seconds(int seconds) {
+    if (seconds < 0) seconds = 0;
+    if (seconds > 359999) seconds = 359999;
+    s_target_seconds = seconds;
+}
+
 timer_state_t timer_get_state(void) {
     return s_state;
 }
@@ -89,7 +95,8 @@ int timer_get_remaining_seconds(void) {
         int64_t now = esp_timer_get_time();
         int64_t rem = s_end_time_us - now;
         if (rem < 0) rem = 0;
-        return (int)(rem / 1000000ULL);
+        // Ceiling division to avoid premature '00' display truncation
+        return (int)((rem + 999999ULL) / 1000000ULL);
     }
     return s_paused_remaining;
 }
@@ -107,4 +114,16 @@ bool timer_tick(void) {
 
 int timer_get_target_seconds(void) {
     return s_target_seconds;
+}
+
+void timer_sync_start(int durationSec, int remainingSec) {
+    if (durationSec <= 0) durationSec = 1;
+    if (durationSec > 359999) durationSec = 359999;
+    if (remainingSec <= 0) remainingSec = 1;
+    if (remainingSec > durationSec) remainingSec = durationSec;
+
+    s_target_seconds = durationSec;
+    s_paused_remaining = remainingSec;
+    s_end_time_us = esp_timer_get_time() + ((int64_t)remainingSec * 1000000ULL);
+    s_state = TIMER_RUNNING;
 }

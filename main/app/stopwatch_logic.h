@@ -19,6 +19,7 @@ void stopwatch_stop(void);
 void stopwatch_reset(void);
 stopwatch_state_t stopwatch_get_state(void);
 int64_t stopwatch_get_elapsed_us(void);
+void stopwatch_set_elapsed_us(int64_t elapsed_us);
 
 #ifdef __cplusplus
 }

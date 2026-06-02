@@ -1,6 +1,7 @@
 #include "communication/CommUiMapper.h"
 #include "communication/CommunicationState.h"
 #include "notification_logic.h"
+#include "app/alarm_ui.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -13,6 +14,8 @@
 #ifndef FLOW_GLOBAL_VARIABLE_RADIO_MODE
 #define FLOW_GLOBAL_VARIABLE_RADIO_MODE 63
 #endif
+
+// Timer flow variables — przeniesione do timer_synchro.cpp
 
 #include "services/music/music_ui_handler.h"
 #include "main_handler.h"
@@ -248,10 +251,13 @@ void applySnapshotToWeatherScreen(const OutdoorWeatherSnapshot &ow) {
     time_t now = time(NULL);
     struct tm *local = localtime(&now);
     if (local) {
-      int cur = local->tm_hour * 60 + local->tm_min;
-      int rise = (int)ow.sunriseHour * 60 + (int)ow.sunriseMin;
-      int set  = (int)ow.sunsetHour  * 60 + (int)ow.sunsetMin;
-      bool is_day = (cur >= rise && cur < set);
+      bool is_day = true; // Default to Sun icon at startup/unsynced state
+      if (local->tm_year + 1900 >= 2020) { // Only calculate if system time is synced (year is valid)
+        int cur = local->tm_hour * 60 + local->tm_min;
+        int rise = (int)ow.sunriseHour * 60 + (int)ow.sunriseMin;
+        int set  = (int)ow.sunsetHour  * 60 + (int)ow.sunsetMin;
+        is_day = (cur >= rise && cur < set);
+      }
       notification_logic_set_sun_moon(is_day);
     }
   }

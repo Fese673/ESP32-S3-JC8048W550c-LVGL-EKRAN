@@ -21,7 +21,6 @@ void stopwatch_stop(void) {
 }
 
 void stopwatch_reset(void) {
-    if (s_state != STOPWATCH_PAUSED) return;
     s_state = STOPWATCH_IDLE;
     s_paused_elapsed = 0;
     s_start_time = 0;
@@ -39,4 +38,15 @@ int64_t stopwatch_get_elapsed_us(void) {
         return s_paused_elapsed + (esp_timer_get_time() - s_start_time);
     }
     return s_paused_elapsed;
+}
+
+void stopwatch_set_elapsed_us(int64_t elapsed_us) {
+    if (elapsed_us < 0) elapsed_us = 0;
+    if (s_state == STOPWATCH_RUNNING) {
+        int64_t run_us = esp_timer_get_time() - s_start_time;
+        int64_t new_paused = elapsed_us - run_us;
+        s_paused_elapsed = (new_paused > 0) ? new_paused : 0;
+    } else {
+        s_paused_elapsed = elapsed_us;
+    }
 }

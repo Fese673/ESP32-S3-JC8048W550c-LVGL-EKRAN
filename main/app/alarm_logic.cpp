@@ -2,6 +2,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include <string.h>
+#include <string.h>
 
 static alarm_t s_alarms[ALARM_MAX_COUNT];
 static int s_alarm_count = 0;
@@ -15,15 +16,8 @@ void alarm_logic_init(void) {
         s_alarm_mutex = xSemaphoreCreateMutex();
     }
     LOCK();
-    // Inicjalizacja z jednym domyślnym budzikiem (07:30, Pon/Śr/Pt) do testów UI
-    s_alarm_count = 1;
-    s_alarms[0].enabled = true;
-    s_alarms[0].hour = 7;
-    s_alarms[0].minute = 30;
-    memset(s_alarms[0].days, 0, sizeof(s_alarms[0].days));
-    s_alarms[0].days[0] = true; // Pon
-    s_alarms[0].days[2] = true; // Śr
-    s_alarms[0].days[4] = true; // Pt
+    // Pusta lista — dane przyjdą z Zegara przez UART
+    s_alarm_count = 0;
     UNLOCK();
 }
 
@@ -59,6 +53,7 @@ bool alarm_add(int hour, int minute, const bool days[7]) {
         } else {
             memset(a->days, 0, sizeof(a->days));
         }
+        a->single_shot = false;
         s_alarm_count++;
         success = true;
     }
@@ -105,4 +100,27 @@ bool alarm_toggle(int index, bool enabled) {
     }
     UNLOCK();
     return success;
+}
+
+void alarm_sync_from_list(const alarm_t *list, int count) {
+    if (!list) return;
+    if (count > ALARM_MAX_COUNT) count = ALARM_MAX_COUNT;
+    LOCK();
+    s_alarm_count = count;
+    for (int i = 0; i < count; ++i) {
+        s_alarms[i] = list[i];
+    }
+    UNLOCK();
+}
+
+int alarm_get_all(alarm_t *out_list, int max_count) {
+    if (!out_list) return 0;
+    LOCK();
+    int cnt = s_alarm_count;
+    int n = (cnt < max_count) ? cnt : max_count;
+    for (int i = 0; i < n; ++i) {
+        out_list[i] = s_alarms[i];
+    }
+    UNLOCK();
+    return n;
 }

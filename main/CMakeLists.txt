@@ -28,6 +28,7 @@ set(SOURCES_APP_CPP
     ./app/timer_ui.cpp
     ./app/alarm_logic.cpp
     ./app/alarm_ui.cpp
+    ./app/alarm/alarm_popup.cpp
     ./app/game/flappy_bird.cpp
     ./app/main_handler.cpp
     ./app/main.cpp
@@ -42,6 +43,7 @@ set(SOURCES_COMMUNICATION_CPP
     ./communication/CobsFraming.cpp
     ./communication/CommunicationState.cpp
     ./communication/UartTransport.cpp
+    ./communication/time/timer_synchro.cpp
 )
 
 file(GLOB_RECURSE SOURCES_UI_CPP
@@ -67,6 +69,7 @@ idf_component_register(
                     "./utils/comm_log"
                     "./utils/gesture"
                     "./communication"
+                    "./communication/time"
                     "./services/time"
                     "./services/wifi"
                     "./services/sntp"

@@ -4,6 +4,8 @@
 #include "fonts.h"
 #include "eez-flow.h"
 #include "lvgl.h"
+#include "communication/time/timer_synchro.h"
+#include "esp_timer.h"
 #include <stdio.h>
 
 static lv_timer_t *s_timer = NULL;
@@ -13,17 +15,38 @@ static lv_obj_t *s_sec_label = NULL;
 static lv_obj_t *s_cs_label = NULL;
 static lv_obj_t *s_start_stop_label = NULL;
 
+// Pending command tracking
+static uint8_t s_pendingCmd = 0xFF;     // 0=start, 1=stop, 2=reset, 0xFF=none
+static int64_t s_pendingCmdTimeUs = 0;
+
+// Catch-up state: remote elapsed at the moment local START was sent
+static int64_t s_catchupStartUs = 0;
+static int64_t s_catchupRemoteElapsedUs = 0;
+
 static void on_start_stop_stoper(lv_event_t *e) {
     (void)e;
     if (stopwatch_get_state() == STOPWATCH_RUNNING) {
+        s_pendingCmd = 1;
+        s_pendingCmdTimeUs = esp_timer_get_time();
+        CommunicationProtocol::TimerSync::sendStopwatchCmd(1); // STOP
         stopwatch_stop();
     } else {
+        s_pendingCmd = 0;
+        s_pendingCmdTimeUs = esp_timer_get_time();
+        CommunicationProtocol::TimerSync::sendStopwatchCmd(0); // START
         stopwatch_start();
     }
 }
 
 static void on_reset_stoper(lv_event_t *e) {
     (void)e;
+    if (stopwatch_get_state() == STOPWATCH_RUNNING) {
+        CommunicationProtocol::TimerSync::sendStopwatchCmd(1); // STOP najpierw
+        stopwatch_stop();
+    }
+    s_pendingCmd = 2;
+    s_pendingCmdTimeUs = esp_timer_get_time();
+    CommunicationProtocol::TimerSync::sendStopwatchCmd(2); // potem RESET
     stopwatch_reset();
     stopwatch_ui_sync_start_stop_label();
 }
@@ -51,22 +74,67 @@ static void stopwatch_timer_cb(lv_timer_t *timer) {
     if (eez_flow_get_current_screen() != SCREEN_ID_ZEGAR) return;
     if (!s_min_label) return;
 
-    int64_t elapsed_us = stopwatch_get_elapsed_us();
+    int64_t now = esp_timer_get_time();
+    CommunicationProtocol::TimerSync::StopwatchState remote = CommunicationProtocol::TimerSync::getLastStopwatchState();
+    stopwatch_state_t local = stopwatch_get_state();
 
+    // --- Phase 1: Synchronizacja stanu z Zegarem ---
+    if (remote.valid) {
+        bool pending = (s_pendingCmd != 0xFF && now < s_pendingCmdTimeUs + 2000000LL);
+
+        if (remote.state == 0) {
+            // Zegar IDLE → reset (zawsze, pending/reset jest OK)
+            if (local != STOPWATCH_IDLE) stopwatch_reset();
+            s_pendingCmd = 0xFF;
+        } else if (remote.state == 1 && local == STOPWATCH_IDLE && !pending) {
+            // IDLE→RUNNING: catch-up elapsed
+            stopwatch_start();
+            s_catchupStartUs = now;
+            s_catchupRemoteElapsedUs = (int64_t)remote.elapsedMs * 1000;
+            stopwatch_set_elapsed_us(s_catchupRemoteElapsedUs);
+        } else if (remote.state == 1 && local == STOPWATCH_PAUSED && !pending) {
+            // PAUSED→RUNNING: resume (elapsed OK from stop sync)
+            stopwatch_start();
+        } else if (remote.state == 2 && local == STOPWATCH_RUNNING && !pending) {
+            // RUNNING→STOPPED: stop + sync elapsed
+            stopwatch_stop();
+            stopwatch_set_elapsed_us((int64_t)remote.elapsedMs * 1000);
+            s_pendingCmd = 0xFF;
+        } else if (remote.state == 2 && local == STOPWATCH_PAUSED) {
+            // STOPPED: sync elapsed (static)
+            stopwatch_set_elapsed_us((int64_t)remote.elapsedMs * 1000);
+            if (pending && s_pendingCmd == 1) s_pendingCmd = 0xFF;
+        }
+
+        // Catch-up: when remote transitions to RUNNING, adjust local elapsed
+        if (remote.state == 1 && local == STOPWATCH_RUNNING && s_catchupStartUs > 0) {
+            int64_t local_elapsed = now - s_catchupStartUs + s_catchupRemoteElapsedUs;
+            int64_t remote_elapsed = (int64_t)remote.elapsedMs * 1000;
+            int64_t diff = remote_elapsed - local_elapsed;
+            if (diff > 100000 || diff < -100000) {  // >100ms drift
+                stopwatch_set_elapsed_us(remote_elapsed);
+                s_catchupStartUs = now;
+                s_catchupRemoteElapsedUs = remote_elapsed;
+            }
+        }
+
+        // Clear catch-up when not running
+        if (remote.state != 1 || local != STOPWATCH_RUNNING) {
+            s_catchupStartUs = 0;
+        }
+    }
+
+    // --- Phase 2: Display — ZAWSZE lokalny (płynne 50fps) ---
+    int64_t elapsed_us = stopwatch_get_elapsed_us();
     int64_t total_ms = elapsed_us / 1000;
     int minutes = (int)(total_ms / 60000);
     int seconds = (int)((total_ms / 1000) % 60);
     int centiseconds = (int)((total_ms % 1000) / 10);
 
     char buf[8];
-    snprintf(buf, sizeof(buf), "%02d", minutes);
-    lv_label_set_text(s_min_label, buf);
-
-    snprintf(buf, sizeof(buf), "%02d", seconds);
-    lv_label_set_text(s_sec_label, buf);
-
-    snprintf(buf, sizeof(buf), "%02d", centiseconds);
-    lv_label_set_text(s_cs_label, buf);
+    snprintf(buf, sizeof(buf), "%02d", minutes); lv_label_set_text(s_min_label, buf);
+    snprintf(buf, sizeof(buf), "%02d", seconds); lv_label_set_text(s_sec_label, buf);
+    snprintf(buf, sizeof(buf), "%02d", centiseconds); lv_label_set_text(s_cs_label, buf);
 }
 
 void stopwatch_ui_init(void) {

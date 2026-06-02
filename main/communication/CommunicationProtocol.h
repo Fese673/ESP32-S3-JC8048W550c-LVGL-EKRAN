@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "communication/time/timer_synchro.h"
 
 namespace CommunicationProtocol {
  
@@ -31,6 +32,15 @@ namespace CommunicationProtocol {
     kTypeMusicVolumeState = 0x36,
     kTypeMusicEQState = 0x37,
     kTypeRadioMode = 0x38,
+    // TimeSyncProtocol — alarmy + minutnik
+    kTypeAlarmList      = 0x0D,
+    kTypeSetAlarm       = 0x0E,
+    kTypeTimerState     = 0x0F,
+    kTypeTimerCmd       = 0x12,
+    kTypeEditLock       = 0x13,
+    kTypeAlarmAction    = 0x14,
+    kTypeStopwatchState = 0x15,
+    kTypeStopwatchCmd   = 0x16,
     kTypeAck = 0xFF
  };
 
@@ -60,6 +70,12 @@ struct Snapshot {
     uint16_t pm01UgM3 = 0;
     uint16_t pm25UgM3 = 0;
     uint16_t pm10UgM3 = 0;
+    uint16_t count0p3 = 0;
+    uint16_t count0p5 = 0;
+    uint16_t count1p0 = 0;
+    uint16_t count2p5 = 0;
+    uint16_t count5p0 = 0;
+    uint16_t count10p0 = 0;
     uint16_t eco2 = 0;
     uint16_t tvoc = 0;
     uint32_t sampleAgeMs = 0;

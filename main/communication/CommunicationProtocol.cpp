@@ -8,6 +8,10 @@
 #include "esp_log.h"
 #include "esp_random.h"
 #include "services/bpm/bpm_service.h"
+#include "app/alarm_logic.h"
+#include "app/alarm_ui.h"
+#include "app/alarm/alarm_popup.h"
+#include <time.h>
 
 namespace CommunicationProtocol {
 
@@ -197,6 +201,21 @@ void updateUi() {
     uint8_t value;
     if (consumeStatusBell(value)) {
       applyStatusBellToUi(value);
+      // Powiadomienie popup — ta sama konsumpcja, brak duplikacji
+      if (value == 2) {
+        time_t now = time(nullptr);
+        struct tm lt;
+        char time_str[8];
+        if (localtime_r(&now, &lt)) {
+          snprintf(time_str, sizeof(time_str), "%02d:%02d", lt.tm_hour, lt.tm_min);
+        } else {
+          snprintf(time_str, sizeof(time_str), "--:--");
+        }
+        const char *msg = TimerSync::isTimerRinging() ? "MINUTNIK!" : "BUDZIK!";
+        alarm_popup_show(time_str, msg);
+      } else if (value == 0) {
+        alarm_popup_dismiss();
+      }
     }
   }
   {
@@ -229,6 +248,36 @@ void updateUi() {
       applyRadioModeToUi(mode);
     }
   }
+
+  // ─── Timer state ───────────────────────────────────────────────────
+  {
+    TimerSync::TimerState ts;
+    if (TimerSync::consumeTimerState(ts)) {
+      TimerSync::applyTimerStateToUi(ts);
+    }
+  }
+
+  // ─── Stopwatch state ───────────────────────────────────────────────
+  {
+    TimerSync::StopwatchState ss;
+    TimerSync::consumeStopwatchState(ss);
+  }
+
+  // ─── Edit lock ──────────────────────────────────────────────────────
+  {
+    bool locked;
+    if (TimerSync::consumeEditLock(locked)) {
+      TimerSync::applyEditLockToUi(locked);
+    }
+  }
+
+  // ─── Alarm list sync ──────────────────────────────────────────────
+  {
+    if (TimerSync::consumeAlarmListDirty()) {
+      alarm_ui_refresh_list();
+    }
+  }
+
 }
 
 } // namespace CommunicationProtocol

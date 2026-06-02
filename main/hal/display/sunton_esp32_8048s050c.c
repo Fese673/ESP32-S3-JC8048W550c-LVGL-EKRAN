@@ -150,7 +150,7 @@ lv_display_t *sunton_esp32s3_lcd_init(void)
 
     const lvgl_port_display_rgb_cfg_t rgb_cfg = {
         .flags = {
-            .bb_mode = false,
+            .bb_mode = true,
             .avoid_tearing = true,
         },
     };

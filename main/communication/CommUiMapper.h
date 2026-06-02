@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "communication/CommunicationProtocol.h"
+#include "communication/CommunicationState.h"
 
 namespace CommunicationProtocol {
 
