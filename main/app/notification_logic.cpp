@@ -47,7 +47,7 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_on = objects.info_wifi_on_icon_2;
       w.wifi_off = objects.info_wifi_off_icon_2;
       break;
-    case SCREEN_ID_STATYSTYKI:
+    case SCREEN_ID_ZASOBY_SYSTEMU:
       w.bell_on = objects.info_bell_of_icon_on_3;
       w.bell_off = objects.info_bell_of_icon_off_3;
       w.ble_on = objects.info_ble_on_icon_3;
@@ -55,7 +55,7 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_on = objects.info_wifi_on_icon_3;
       w.wifi_off = objects.info_wifi_off_icon_3;
       break;
-    case SCREEN_ID_ZASOBY_SYSTEMU:
+    case SCREEN_ID_USTAWIENIA_WIFI:
       w.bell_on = objects.info_bell_of_icon_on_4;
       w.bell_off = objects.info_bell_of_icon_off_4;
       w.ble_on = objects.info_ble_on_icon_4;
@@ -63,7 +63,7 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_on = objects.info_wifi_on_icon_4;
       w.wifi_off = objects.info_wifi_off_icon_4;
       break;
-    case SCREEN_ID_USTAWIENIA_WIFI:
+    case SCREEN_ID_GRY:
       w.bell_on = objects.info_bell_of_icon_on_5;
       w.bell_off = objects.info_bell_of_icon_off_5;
       w.ble_on = objects.info_ble_on_icon_5;
@@ -71,7 +71,7 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_on = objects.info_wifi_on_icon_5;
       w.wifi_off = objects.info_wifi_off_icon_5;
       break;
-    case SCREEN_ID_GRY:
+    case SCREEN_ID_ZEGAR:
       w.bell_on = objects.info_bell_of_icon_on_6;
       w.bell_off = objects.info_bell_of_icon_off_6;
       w.ble_on = objects.info_ble_on_icon_6;
@@ -79,7 +79,7 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_on = objects.info_wifi_on_icon_6;
       w.wifi_off = objects.info_wifi_off_icon_6;
       break;
-    case SCREEN_ID_ZEGAR:
+    case SCREEN_ID_LOGI:
       w.bell_on = objects.info_bell_of_icon_on_7;
       w.bell_off = objects.info_bell_of_icon_off_7;
       w.ble_on = objects.info_ble_on_icon_7;
@@ -87,7 +87,7 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_on = objects.info_wifi_on_icon_7;
       w.wifi_off = objects.info_wifi_off_icon_7;
       break;
-    case SCREEN_ID_LOGI:
+    case SCREEN_ID_POGODA:
       w.bell_on = objects.info_bell_of_icon_on_8;
       w.bell_off = objects.info_bell_of_icon_off_8;
       w.ble_on = objects.info_ble_on_icon_8;
@@ -95,7 +95,7 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_on = objects.info_wifi_on_icon_8;
       w.wifi_off = objects.info_wifi_off_icon_8;
       break;
-    case SCREEN_ID_POGODA:
+    case SCREEN_ID_BPM:
       w.bell_on = objects.info_bell_of_icon_on_9;
       w.bell_off = objects.info_bell_of_icon_off_9;
       w.ble_on = objects.info_ble_on_icon_9;
@@ -103,7 +103,7 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_on = objects.info_wifi_on_icon_9;
       w.wifi_off = objects.info_wifi_off_icon_9;
       break;
-    case SCREEN_ID_POGODA_PROGNOZA:
+    case SCREEN_ID_GRY_TEST:
       w.bell_on = objects.info_bell_of_icon_on_10;
       w.bell_off = objects.info_bell_of_icon_off_10;
       w.ble_on = objects.info_ble_on_icon_10;
@@ -111,7 +111,7 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_on = objects.info_wifi_on_icon_10;
       w.wifi_off = objects.info_wifi_off_icon_10;
       break;
-    case SCREEN_ID_BPM:
+    case SCREEN_ID_MUZYKA:
       w.bell_on = objects.info_bell_of_icon_on_11;
       w.bell_off = objects.info_bell_of_icon_off_11;
       w.ble_on = objects.info_ble_on_icon_11;
@@ -119,21 +119,7 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_on = objects.info_wifi_on_icon_11;
       w.wifi_off = objects.info_wifi_off_icon_11;
       break;
-    case SCREEN_ID_MUZYKA:
-      w.bell_on = objects.info_bell_of_icon_on_12;
-      w.bell_off = objects.info_bell_of_icon_off_12;
-      w.ble_on = objects.info_ble_on_icon_12;
-      w.ble_off = objects.info_ble_off_icon_12;
-      w.wifi_on = objects.info_wifi_on_icon_12;
-      w.wifi_off = objects.info_wifi_off_icon_12;
-      break;
     case SCREEN_ID_CZUJNIKI:
-      w.bell_on = objects.info_bell_of_icon_on_13;
-      w.bell_off = objects.info_bell_of_icon_off_13;
-      w.ble_on = objects.info_ble_on_icon_13;
-      w.ble_off = objects.info_ble_off_icon_13;
-      w.wifi_on = objects.info_wifi_on_icon_13;
-      w.wifi_off = objects.info_wifi_off_icon_13;
       break;
     default:
       break;

@@ -90,10 +90,7 @@ void alarm_popup_init(void) {
     // Left Column: Orange-gold bell icon & time
     s_bell_icon = lv_img_create(s_popup_container);
     lv_img_set_src(s_bell_icon, &img_bell_on_icon);
-    lv_img_set_zoom(s_bell_icon, 150); // Scale down the 48x48 icon to 150 (~28x28 px rendered size)
     lv_obj_set_pos(s_bell_icon, 10, 6); // Mathematically centered inside 68px wide column: (68 - 48) / 2 = 10
-    lv_obj_set_style_img_recolor(s_bell_icon, lv_color_hex(0xffaa00), LV_PART_MAIN);
-    lv_obj_set_style_img_recolor_opa(s_bell_icon, LV_OPA_COVER, LV_PART_MAIN);
 
     s_time_label = lv_label_create(s_popup_container);
     lv_obj_set_pos(s_time_label, 9, 46); // Mathematically centered inside 68px wide column: (68 - 50) / 2 = 9
