@@ -42,6 +42,7 @@ extern "C" void get_flow_global_variable_text(uint32_t var_id, char *buf, size_t
 #include "gesture.h"
 
 #include "set_wifi.h"
+#include "diagnostics/lv_perf_diag.h"
 
 static void my_dropdown_event_cb(lv_event_t * e) {
     lv_obj_t * dropdown = (lv_obj_t *)lv_event_get_target(e);
@@ -134,6 +135,8 @@ static void style_widgets_recursive(lv_obj_t * obj) {
 
 static void ui_tick_timer_cb(lv_timer_t *timer)
 {
+    lv_perf_diag_tick_begin();
+
     (void)timer;
 
     if (atomic_exchange(&g_wifi_nvs_save_complete, false)) {
@@ -170,6 +173,8 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
     }
 
     if (current_screen_id != last_screen_id) {
+        lv_perf_diag_screen_change(last_screen_id, current_screen_id);
+
         // Pauzuj timery przy opuszczeniu ekranu WiFi
         if (last_screen_id == SCREEN_ID_USTAWIENIA_WIFI) {
             wifi_timers_pause();
@@ -234,6 +239,7 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
     int64_t start_us = esp_timer_get_time();
     log_ui_tick_begin(current_screen_id);
     ui_tick();
+    clock_ui_update();
     stopwatch_ui_sync_start_stop_label();
     timer_ui_sync_start_stop_label();
     notification_logic_refresh();
@@ -241,6 +247,8 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
     CommunicationProtocol::updateUi();
 
     log_ui_tick_end(current_screen_id, esp_timer_get_time() - start_us);
+
+    lv_perf_diag_tick_end();
 }
 
 extern "C" void app_main(void)
@@ -276,7 +284,8 @@ extern "C" void app_main(void)
         timer_ui_init();
         alarm_ui_init();
         alarm_popup_init();
-        lv_timer_create(ui_tick_timer_cb, 20, NULL);
+        lv_perf_diag_init();
+        lv_timer_create(ui_tick_timer_cb, 100, NULL);
         bpm_chart_handler_init();
         weather_icon_handler_init();
         music_ui_handler_init();

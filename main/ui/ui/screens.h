@@ -352,50 +352,67 @@ typedef struct {
 extern screen_logi_state_t screen_logi_state;
 
 void create_screen_main();
+void delete_screen_main();
 void tick_screen_main();
 
 void create_screen_menu();
+void delete_screen_menu();
 void tick_screen_menu();
 
 void create_screen_ustawienia();
+void delete_screen_ustawienia();
 void tick_screen_ustawienia();
 
 void create_screen_statystyki();
+void delete_screen_statystyki();
 void tick_screen_statystyki();
 
 void create_screen_zasoby_systemu();
+void delete_screen_zasoby_systemu();
 void tick_screen_zasoby_systemu();
 
 void create_screen_ustawienia_wifi();
+void delete_screen_ustawienia_wifi();
 void tick_screen_ustawienia_wifi();
 
 void create_screen_gry();
+void delete_screen_gry();
 void tick_screen_gry();
 
 void create_screen_zegar();
+void delete_screen_zegar();
 void tick_screen_zegar();
 
 void create_screen_logi();
+void delete_screen_logi();
 void tick_screen_logi();
 
 void create_screen_pogoda();
+void delete_screen_pogoda();
 void tick_screen_pogoda();
 
 void create_screen_pogoda_prognoza();
+void delete_screen_pogoda_prognoza();
 void tick_screen_pogoda_prognoza();
 
 void create_screen_bpm();
+void delete_screen_bpm();
 void tick_screen_bpm();
 
 void create_screen_gry_test();
+void delete_screen_gry_test();
 void tick_screen_gry_test();
 
 void create_screen_muzyka();
+void delete_screen_muzyka();
 void tick_screen_muzyka();
 
 void create_screen_czujniki();
+void delete_screen_czujniki();
 void tick_screen_czujniki();
 
+void create_screen_by_id(enum ScreensEnum screenId);
+void delete_screen_by_id(enum ScreensEnum screenId);
 void tick_screen_by_id(enum ScreensEnum screenId);
 void tick_screen(int screen_index);
 

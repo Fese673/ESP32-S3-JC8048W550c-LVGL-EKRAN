@@ -18,6 +18,7 @@ static lv_obj_t *s_colon1 = NULL;
 static lv_obj_t *s_colon2 = NULL;
 static lv_obj_t *s_countdown_label = NULL;
 static lv_obj_t *s_start_stop_label = NULL;
+static volatile bool s_user_interacting = false;
 
 // Sync state — śledzenie komend i synchronizacji z Zegarem
 static uint8_t s_pendingCmd = 0xFF;     // 0=start, 1=stop, 0xFF=none
@@ -171,15 +172,17 @@ static void timer_ui_cb(lv_timer_t *timer) {
         lv_obj_clear_flag(s_colon2, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(s_countdown_label, LV_OBJ_FLAG_HIDDEN);
 
-        int dh = total_sec / 3600;
-        int dm = (total_sec % 3600) / 60;
-        int ds = total_sec % 60;
-        if ((int)lv_roller_get_selected(s_roller_h) != dh)
-            lv_roller_set_selected(s_roller_h, dh, LV_ANIM_OFF);
-        if ((int)lv_roller_get_selected(s_roller_m) != dm)
-            lv_roller_set_selected(s_roller_m, dm, LV_ANIM_OFF);
-        if ((int)lv_roller_get_selected(s_roller_s) != ds)
-            lv_roller_set_selected(s_roller_s, ds, LV_ANIM_OFF);
+        if (!s_user_interacting) {
+            int dh = total_sec / 3600;
+            int dm = (total_sec % 3600) / 60;
+            int ds = total_sec % 60;
+            if ((int)lv_roller_get_selected(s_roller_h) != dh)
+                lv_roller_set_selected(s_roller_h, dh, LV_ANIM_OFF);
+            if ((int)lv_roller_get_selected(s_roller_m) != dm)
+                lv_roller_set_selected(s_roller_m, dm, LV_ANIM_OFF);
+            if ((int)lv_roller_get_selected(s_roller_s) != ds)
+                lv_roller_set_selected(s_roller_s, ds, LV_ANIM_OFF);
+        }
     } else {
         // Countdown — odliczanie
         lv_obj_add_flag(s_roller_h, LV_OBJ_FLAG_HIDDEN);
@@ -218,6 +221,16 @@ static void on_start_stop_minutnik(lv_event_t *e) {
     timer_ui_cb(NULL);
 }
 
+static void on_roller_pressed(lv_event_t *e) {
+    (void)e;
+    s_user_interacting = true;
+}
+
+static void on_roller_released(lv_event_t *e) {
+    (void)e;
+    s_user_interacting = false;
+}
+
 static void on_roller_value_changed(lv_event_t *e) {
     (void)e;
     if (timer_get_state() != TIMER_IDLE) return;
@@ -227,6 +240,7 @@ static void on_roller_value_changed(lv_event_t *e) {
     int m = lv_roller_get_selected(s_roller_m);
     int s = lv_roller_get_selected(s_roller_s);
     timer_set_time(h, m, s);
+    g_userDurationSec = h * 3600 + m * 60 + s;
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────
@@ -314,6 +328,8 @@ void timer_ui_init(void) {
         lv_obj_set_style_pad_top(r, 0, LV_PART_SELECTED);
         lv_obj_set_style_pad_bottom(r, 0, LV_PART_SELECTED);
         lv_obj_add_event_cb(r, on_roller_value_changed, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_add_event_cb(r, on_roller_pressed, LV_EVENT_PRESSED, NULL);
+        lv_obj_add_event_cb(r, on_roller_released, LV_EVENT_RELEASED, NULL);
     }
 
     s_countdown_label = lv_label_create(parent);
@@ -345,36 +361,42 @@ extern "C" {
 void action_action_plus_hour_minutnik(lv_event_t * e) {
     (void)e;
     timer_add_hours(1);
+    g_userDurationSec = timer_get_target_seconds();
     timer_ui_cb(NULL);
 }
 
 void action_action_plus_minutes_minutnik(lv_event_t * e) {
     (void)e;
     timer_add_minutes(1);
+    g_userDurationSec = timer_get_target_seconds();
     timer_ui_cb(NULL);
 }
 
 void action_action_plus_seconds_minutnik(lv_event_t * e) {
     (void)e;
     timer_add_seconds(1);
+    g_userDurationSec = timer_get_target_seconds();
     timer_ui_cb(NULL);
 }
 
 void action_action_minus_hour_minutnik(lv_event_t * e) {
     (void)e;
     timer_add_hours(-1);
+    g_userDurationSec = timer_get_target_seconds();
     timer_ui_cb(NULL);
 }
 
 void action_action_minus_minutes_minutnik(lv_event_t * e) {
     (void)e;
     timer_add_minutes(-1);
+    g_userDurationSec = timer_get_target_seconds();
     timer_ui_cb(NULL);
 }
 
 void action_action_minus_seconds_minutnik(lv_event_t * e) {
     (void)e;
     timer_add_seconds(-1);
+    g_userDurationSec = timer_get_target_seconds();
     timer_ui_cb(NULL);
 }
 

@@ -5,8 +5,12 @@
 extern "C" {
 #endif
 
-// Uruchamia zadanie zegara
+// Uruchamia zadanie zegara (Core 0, tylko śledzenie czasu)
 void clock_logic_start();
+
+// Aktualizuje EEZ Flow global variables + world clocks
+// Wołane z LVGL task (Core 1) — bezpieczne, nieblokujące
+void clock_ui_update(void);
 
 #ifdef __cplusplus
 }

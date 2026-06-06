@@ -34,6 +34,7 @@ set(SOURCES_APP_CPP
     ./app/main.cpp
     ./app/weather_icon_handler.c
     ./services/sensor/sensors_wiki.cpp
+    ./diagnostics/lv_perf_diag.cpp
 )
 
 set(SOURCES_COMMUNICATION_CPP

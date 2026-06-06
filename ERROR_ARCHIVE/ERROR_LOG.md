@@ -1,6 +1,42 @@
 # Archiwum Błędów - GUTION-S3
 
 ---
+### [ID: ERR_035] | TIMER_SYNCHRO_MUTEX_TOCTOU_RACE | IMPACT: HIGH
+**Files:** `[timer_synchro.cpp, timer_synchro.h, CommunicationProtocol.cpp]`
+
+**PROBLEM:** `ensureMutex()` w `timer_synchro.cpp:33-36` miał lazy init bez atomowości. `lock()` wołany z Core 0 (UART RX: `handleTimerStatePayload`, `handleStopwatchStatePayload`, `handleEditLockPayload`) i Core 1 (LVGL: `consumeTimerState`, `consumeStopwatchState`, `consumeEditLock`). Jeśli oba taski wywołały `lock()` po raz pierwszy zanim którykolwiek przypisał `s_mutex` → dwa mutexy, jeden wycieka.
+
+**CAUSE:** Klasyczny TOCTOU (Time-of-check to Time-of-use): `if (!s_mutex)` → `xSemaphoreCreateMutex()` → `s_mutex = ...` nie jest atomic. Identyczny wzorzec jak ERR_028 w `CommunicationState.cpp`.
+
+**LOGIC_CHANGE:**
+- `timer_synchro.h`: Dodano `void init()` — jawna inicjalizacja przed startem tasków
+- `timer_synchro.cpp`: Usunięto `ensureMutex()`. Dodano `init()` z `if (!s_mutex)` guard. `lock()` uproszczony do `if (s_mutex) xSemaphoreTake(...)` bez lazy init
+- `CommunicationProtocol.cpp`: Dodano `#include "time/timer_synchro.h"` i `TimerSync::init()` w `begin()` przed `beginUart()` (który startuje UART RX task)
+
+**VERIFICATION:** `python build_guition.py` → SUKCES. Mutex tworzony raz w `begin()` zanim jakikolwiek task może go użyć.
+---
+### [ID: ERR_034] | SENSORS_WIKI_PSRAM_FRAGMENTATION | IMPACT: CRITICAL
+**Files:** `[sensors_wiki.cpp]`
+
+**PROBLEM:** Każde wejście na ekran CZUJNIKI powodowało `lv_obj_del()` + ponowne tworzenie ~40 obiektów LVGL (sidebar, content panel, workspace, karty parametrów, karty mikro, badge'e). Po 3-5 cyklach FreeRTOS heap nie mógł scalić zwolnionych bloków → PSRAM fragmentacja → `transform_and_recolor` nie mógł zaalokować ciągłego bloku na dekoder obrazów → watchdog reset.
+
+**CAUSE:** `sensors_wiki_init()` wywoływał `sensors_wiki_deinit()` → `lv_obj_del(s_sidebar_panel)` + `lv_obj_del(s_content_panel)`. Następnie `render_sidebar()` i `render_right_panel()` tworzyły WSZYSTKIE obiekty od nowa. `render_right_panel()` dodatkowo kasował `s_workspace` i tworzył nowy za każdym razem gdy użytkownik zmienił sensor lub tryb (PARAMETRY↔TEORIA).
+
+**LOGIC_CHANGE:**
+- `render_sidebar()` — tworzy sidebar RAZ (guard `if (s_sidebar_panel) return`), kolejne wywołania tylko odświeżają highlight
+- `render_right_panel()` — tworzy 5 paneli RAZ (`s_sensor_panels[4]` + `s_theory_panel`) przez `ensure_panels_created()`, następnie pokazuje/ukrywa przez `lv_obj_add_flag(HIDDEN)` / `lv_obj_clear_flag(HIDDEN)`
+- `sensors_wiki_init()` — pierwsza inicjalizacja tworzy całą strukturę (sidebar, content panel, workspace, panele), kolejne wywołania tylko odświeżają widoczność
+- `sensors_wiki_deinit()` — NIE kasuje obiektów (`lv_obj_del` usunięte), tylko resetuje wskaźniki do labeli. Obiekty persistują z ekranem EEZ Flow
+- Per-sensor label refs w `s_val_labels[4][3]`, `s_trend_labels[4][3]`, `s_micro_val_labels[6]`, `s_micro_trend_labels[6]` — stabilne wskaźniki ustawiane raz przy tworzeniu paneli
+- `render_right_panel()` aktualizuje `s_lbl_val1/2/3` i `s_lbl_trend1/2/3` na aktywny sensor przed wywołaniem `sensors_wiki_update()`
+
+**VERIFICATION:** `python build_guition.py` → SUKCES. Test: wielokrotne przejścia MENU→CZUJNIKI→MENU nie powodują fragmentacji PSRAM.
+
+**UWAGA:** Dwa z trzech zgłoszonych błędów to NADINTERPRETACJE:
+- **CommUiMapper "wszystkie wartości to samo"** — FAŁSZ. Każdy `static char buffer[SIZE]` to osobna zmienna z własnym adresem. `eez::Value(ptr)` przechowuje wskaźnik do konkretnego bufora. `formatWithComma()` modyfikuje TYLKO przekazany bufor. Static local variables w C++ NIGDY nie mają tego samego adresu.
+- **consumeMusicMetadata "trzyma mutex 150ms"** — FAŁSZ. Linia 561 `unlockSnapshot()` jest wywoływana PRZED `return false`. Mutex trzymany jest tylko podczas sprawdzenia (mikrosekundy). 150ms to timeout dla NASTĘPNEGO wywołania, nie blocking wait.
+---
+
 ### [ID: ERR_033] | STOPWATCH_RESET_BUTTON_BROKEN | IMPACT: HIGH
 **Files:** `[stopwatch_logic.cpp, stopwatch_ui.cpp]`
 

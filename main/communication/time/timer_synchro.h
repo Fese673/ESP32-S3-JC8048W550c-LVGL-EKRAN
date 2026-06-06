@@ -31,6 +31,10 @@ struct StopwatchState {
     bool valid;
 };
 
+// ─── Initialization (call before tasks start) ─────────────────────────
+
+void init();
+
 // ─── Send functions (Gution → Zegar) ──────────────────────────────────
 
 void sendTimerCmd(uint8_t cmd, uint32_t durationSec = 0);

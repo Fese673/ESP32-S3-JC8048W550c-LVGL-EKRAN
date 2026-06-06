@@ -1278,6 +1278,56 @@ void create_screen_main() {
     tick_screen_main();
 }
 
+void delete_screen_main() {
+    lv_obj_delete(objects.main);
+    objects.main = 0;
+    objects.weather_in = 0;
+    objects.pressure_in_5 = 0;
+    objects.co2_in_6 = 0;
+    objects.pm10_in_7 = 0;
+    objects.tvoc_in_8 = 0;
+    objects.hm_in_1 = 0;
+    objects.txt_in_4 = 0;
+    objects.tm_in_2 = 0;
+    objects.pm25_in_3 = 0;
+    objects.obj0 = 0;
+    objects.obj8 = 0;
+    objects.hour_text = 0;
+    objects.minutes_text = 0;
+    objects.obj1 = 0;
+    objects.sun_icon = 0;
+    objects.moon_icon = 0;
+    objects.obj2 = 0;
+    objects.obj3 = 0;
+    objects.obj4 = 0;
+    objects.obj5 = 0;
+    objects.obj6 = 0;
+    objects.obj7 = 0;
+    objects.info_bell_of_icon_on = 0;
+    objects.info_bell_of_icon_off = 0;
+    objects.info_ble_on_icon = 0;
+    objects.info_ble_off_icon = 0;
+    objects.info_wifi_on_icon = 0;
+    objects.info_wifi_off_icon = 0;
+    objects.name_day_text = 0;
+    objects.name_day_text_1 = 0;
+    objects.name_day_text_2 = 0;
+    objects.name_month_date = 0;
+    objects.weather_out = 0;
+    objects.pressure_out_5 = 0;
+    objects.co2_out_6 = 0;
+    objects.pm10_out_7 = 0;
+    objects.no2_out_8 = 0;
+    objects.hm_out_1 = 0;
+    objects.txt_out_4 = 0;
+    objects.tm_out_2 = 0;
+    objects.pm25_out_3 = 0;
+    objects.weather_in_label = 0;
+    objects.weather_out_label = 0;
+    objects.weather_in_label_1 = 0;
+    deletePageFlowState(0);
+}
+
 void tick_screen_main() {
     void *flowState = getFlowState(0, 0);
     (void)flowState;
@@ -1771,6 +1821,33 @@ void create_screen_menu() {
     tick_screen_menu();
 }
 
+void delete_screen_menu() {
+    lv_obj_delete(objects.menu);
+    objects.menu = 0;
+    objects.menu_kfe_log_6 = 0;
+    objects.menu_kfe_tools_3 = 0;
+    objects.menu_kfe_statystyk_1 = 0;
+    objects.menu_kfe_harmonogram_8 = 0;
+    objects.menu_kfe_usieci_5 = 0;
+    objects.menu_kfe_info_2 = 0;
+    objects.menu_kfe_gry_7 = 0;
+    objects.menu_kfe_zasoby_4 = 0;
+    objects.menu_kfe_clock_9 = 0;
+    objects.info_bell_of_icon_on_1 = 0;
+    objects.info_bell_of_icon_off_1 = 0;
+    objects.info_ble_on_icon_1 = 0;
+    objects.info_ble_off_icon_1 = 0;
+    objects.info_wifi_on_icon_1 = 0;
+    objects.info_wifi_off_icon_1 = 0;
+    objects.obj9 = 0;
+    objects.seconds_text_12 = 0;
+    objects.obj10 = 0;
+    objects.minutes_text_13 = 0;
+    objects.obj11 = 0;
+    objects.hour_text_13 = 0;
+    deletePageFlowState(1);
+}
+
 void tick_screen_menu() {
     void *flowState = getFlowState(0, 1);
     (void)flowState;
@@ -2099,6 +2176,30 @@ void create_screen_ustawienia() {
     tick_screen_ustawienia();
 }
 
+void delete_screen_ustawienia() {
+    lv_obj_delete(objects.ustawienia);
+    objects.ustawienia = 0;
+    objects.settings_melody_dropdown = 0;
+    objects.obj12 = 0;
+    objects.obj13 = 0;
+    objects.obj14 = 0;
+    objects.obj15 = 0;
+    objects.obj16 = 0;
+    objects.info_bell_of_icon_on_2 = 0;
+    objects.info_bell_of_icon_off_2 = 0;
+    objects.info_ble_on_icon_2 = 0;
+    objects.info_ble_off_icon_2 = 0;
+    objects.info_wifi_on_icon_2 = 0;
+    objects.info_wifi_off_icon_2 = 0;
+    objects.obj17 = 0;
+    objects.seconds_text_21 = 0;
+    objects.obj18 = 0;
+    objects.minutes_text_22 = 0;
+    objects.obj19 = 0;
+    objects.hour_text_22 = 0;
+    deletePageFlowState(2);
+}
+
 void tick_screen_ustawienia() {
     void *flowState = getFlowState(0, 2);
     (void)flowState;
@@ -2376,9 +2477,39 @@ void create_screen_statystyki() {
                 }
             }
         }
+        {
+            lv_obj_t *obj = lv_obj_create(parent_obj);
+            lv_obj_set_pos(obj, 219, 10);
+            lv_obj_set_size(obj, 363, 79);
+            lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_pad_top(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_pad_right(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_opa(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
     }
     
     tick_screen_statystyki();
+}
+
+void delete_screen_statystyki() {
+    lv_obj_delete(objects.statystyki);
+    objects.statystyki = 0;
+    objects.info_bell_of_icon_on_3 = 0;
+    objects.info_bell_of_icon_off_3 = 0;
+    objects.info_ble_on_icon_3 = 0;
+    objects.info_ble_off_icon_3 = 0;
+    objects.info_wifi_on_icon_3 = 0;
+    objects.info_wifi_off_icon_3 = 0;
+    objects.obj20 = 0;
+    objects.seconds_text_20 = 0;
+    objects.obj21 = 0;
+    objects.minutes_text_21 = 0;
+    objects.obj22 = 0;
+    objects.hour_text_21 = 0;
+    deletePageFlowState(3);
 }
 
 void tick_screen_statystyki() {
@@ -2787,6 +2918,40 @@ void create_screen_zasoby_systemu() {
     tick_screen_zasoby_systemu();
 }
 
+void delete_screen_zasoby_systemu() {
+    lv_obj_delete(objects.zasoby_systemu);
+    objects.zasoby_systemu = 0;
+    objects.free_flash_slider = 0;
+    objects.used_flash_slider = 0;
+    objects.cpu_core1_slider = 0;
+    objects.cpu_core0_slider = 0;
+    objects.obj23 = 0;
+    objects.obj24 = 0;
+    objects.obj25 = 0;
+    objects.obj26 = 0;
+    objects.obj27 = 0;
+    objects.obj28 = 0;
+    objects.obj29 = 0;
+    objects.obj30 = 0;
+    objects.obj31 = 0;
+    objects.obj32 = 0;
+    objects.obj33 = 0;
+    objects.obj34 = 0;
+    objects.info_bell_of_icon_on_4 = 0;
+    objects.info_bell_of_icon_off_4 = 0;
+    objects.info_ble_on_icon_4 = 0;
+    objects.info_ble_off_icon_4 = 0;
+    objects.info_wifi_on_icon_4 = 0;
+    objects.info_wifi_off_icon_4 = 0;
+    objects.obj35 = 0;
+    objects.seconds_text_19 = 0;
+    objects.obj36 = 0;
+    objects.minutes_text_20 = 0;
+    objects.obj37 = 0;
+    objects.hour_text_20 = 0;
+    deletePageFlowState(4);
+}
+
 void tick_screen_zasoby_systemu() {
     void *flowState = getFlowState(0, 4);
     (void)flowState;
@@ -3139,6 +3304,28 @@ void create_screen_ustawienia_wifi() {
     tick_screen_ustawienia_wifi();
 }
 
+void delete_screen_ustawienia_wifi() {
+    lv_obj_delete(objects.ustawienia_wifi);
+    objects.ustawienia_wifi = 0;
+    objects.wifi_keyboard = 0;
+    objects.wifi_password_input = 0;
+    objects.wifi_list = 0;
+    objects.wifi_status_labe = 0;
+    objects.info_bell_of_icon_on_5 = 0;
+    objects.info_bell_of_icon_off_5 = 0;
+    objects.info_ble_on_icon_5 = 0;
+    objects.info_ble_off_icon_5 = 0;
+    objects.info_wifi_on_icon_5 = 0;
+    objects.info_wifi_off_icon_5 = 0;
+    objects.obj38 = 0;
+    objects.seconds_text_16 = 0;
+    objects.obj39 = 0;
+    objects.minutes_text_17 = 0;
+    objects.obj40 = 0;
+    objects.hour_text_17 = 0;
+    deletePageFlowState(5);
+}
+
 void tick_screen_ustawienia_wifi() {
     void *flowState = getFlowState(0, 5);
     (void)flowState;
@@ -3342,6 +3529,24 @@ void create_screen_gry() {
     }
     
     tick_screen_gry();
+}
+
+void delete_screen_gry() {
+    lv_obj_delete(objects.gry);
+    objects.gry = 0;
+    objects.info_bell_of_icon_on_6 = 0;
+    objects.info_bell_of_icon_off_6 = 0;
+    objects.info_ble_on_icon_6 = 0;
+    objects.info_ble_off_icon_6 = 0;
+    objects.info_wifi_on_icon_6 = 0;
+    objects.info_wifi_off_icon_6 = 0;
+    objects.obj41 = 0;
+    objects.seconds_text_15 = 0;
+    objects.obj42 = 0;
+    objects.minutes_text_16 = 0;
+    objects.obj43 = 0;
+    objects.hour_text_16 = 0;
+    deletePageFlowState(6);
 }
 
 void tick_screen_gry() {
@@ -3996,7 +4201,7 @@ void create_screen_zegar() {
                 {
                     lv_obj_t *obj = lv_label_create(parent_obj);
                     objects.obj51 = obj;
-                    lv_obj_set_pos(obj, 258, 3);
+                    lv_obj_set_pos(obj, 263, 3);
                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                     lv_obj_set_style_text_color(obj, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_text_font(obj, &ui_font_consola_18, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -4005,7 +4210,7 @@ void create_screen_zegar() {
                 {
                     lv_obj_t *obj = lv_label_create(parent_obj);
                     objects.obj52 = obj;
-                    lv_obj_set_pos(obj, 392, 3);
+                    lv_obj_set_pos(obj, 401, 3);
                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                     lv_obj_set_style_text_color(obj, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_text_font(obj, &ui_font_consola_18, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -4014,7 +4219,7 @@ void create_screen_zegar() {
                 {
                     lv_obj_t *obj = lv_label_create(parent_obj);
                     objects.obj53 = obj;
-                    lv_obj_set_pos(obj, 564, 3);
+                    lv_obj_set_pos(obj, 565, 3);
                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                     lv_obj_set_style_text_color(obj, lv_color_hex(0xffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_text_font(obj, &ui_font_consola_18, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -4075,7 +4280,7 @@ void create_screen_zegar() {
             // USA
             lv_obj_t *obj = lv_obj_create(parent_obj);
             objects.usa = obj;
-            lv_obj_set_pos(obj, 283, 73);
+            lv_obj_set_pos(obj, 285, 73);
             lv_obj_set_size(obj, 75, 29);
             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_pad_top(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -4177,7 +4382,7 @@ void create_screen_zegar() {
             // RUSSIA
             lv_obj_t *obj = lv_obj_create(parent_obj);
             objects.russia = obj;
-            lv_obj_set_pos(obj, 591, 73);
+            lv_obj_set_pos(obj, 593, 73);
             lv_obj_set_size(obj, 69, 29);
             lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_pad_top(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -4241,6 +4446,72 @@ void create_screen_zegar() {
     }
     
     tick_screen_zegar();
+}
+
+void delete_screen_zegar() {
+    lv_obj_delete(objects.zegar);
+    objects.zegar = 0;
+    objects.info_bell_of_icon_on_7 = 0;
+    objects.info_bell_of_icon_off_7 = 0;
+    objects.info_ble_on_icon_7 = 0;
+    objects.info_ble_off_icon_7 = 0;
+    objects.info_wifi_on_icon_7 = 0;
+    objects.info_wifi_off_icon_7 = 0;
+    objects.obj44 = 0;
+    objects.seconds_text_13 = 0;
+    objects.obj45 = 0;
+    objects.minutes_text_14 = 0;
+    objects.obj46 = 0;
+    objects.hour_text_14 = 0;
+    objects.start_stop_minutnik_button = 0;
+    objects.start_stop_stoper_button = 0;
+    objects.reset_stoper_button = 0;
+    objects.plus_hour_minutnik = 0;
+    objects.plus_minutes_minutnik = 0;
+    objects.plus_seconds_minutnik = 0;
+    objects.minus_hour_minutnik = 0;
+    objects.minus_minutes_minutnik = 0;
+    objects.minus_seconds_minutnik = 0;
+    objects.before_hour_minutnik = 0;
+    objects.before_minutes_minutnik = 0;
+    objects.before_seconds_minutnik = 0;
+    objects.pick_hour_minutnik = 0;
+    objects.pick_minutes_minutnik = 0;
+    objects.pick_seconds_minutnik = 0;
+    objects.after_hour_minutnik = 0;
+    objects.after_minutes_minutnik = 0;
+    objects.after_seconds_minutnik = 0;
+    objects.minutes_stoper_label = 0;
+    objects.seconds_stoper_label = 0;
+    objects.obj47 = 0;
+    objects.ms_stoper_label = 0;
+    objects.obj48 = 0;
+    objects.obj49 = 0;
+    objects.add_alarm = 0;
+    objects.start_stop_label_stoper = 0;
+    objects.start_stop_label_minutnik = 0;
+    objects.alarm_list = 0;
+    objects.obj50 = 0;
+    objects.obj51 = 0;
+    objects.obj52 = 0;
+    objects.obj53 = 0;
+    objects.minutes_text_19 = 0;
+    objects.obj54 = 0;
+    objects.hour_text_19 = 0;
+    objects.usa = 0;
+    objects.minutes_text_23 = 0;
+    objects.obj55 = 0;
+    objects.hour_text_23 = 0;
+    objects.japan = 0;
+    objects.minutes_text_24 = 0;
+    objects.obj56 = 0;
+    objects.hour_text_24 = 0;
+    objects.russia = 0;
+    objects.minutes_text_25 = 0;
+    objects.obj57 = 0;
+    objects.hour_text_25 = 0;
+    objects.minutnik_container = 0;
+    deletePageFlowState(7);
 }
 
 void tick_screen_zegar() {
@@ -4685,6 +4956,26 @@ void create_screen_logi() {
     tick_screen_logi();
 }
 
+void delete_screen_logi() {
+    lv_obj_delete(objects.logi);
+    objects.logi = 0;
+    objects.log_terminal = 0;
+    objects.info_bell_of_icon_on_8 = 0;
+    objects.info_bell_of_icon_off_8 = 0;
+    objects.info_ble_on_icon_8 = 0;
+    objects.info_ble_off_icon_8 = 0;
+    objects.info_wifi_on_icon_8 = 0;
+    objects.info_wifi_off_icon_8 = 0;
+    objects.obj58 = 0;
+    objects.seconds_text_14 = 0;
+    objects.obj59 = 0;
+    objects.minutes_text_15 = 0;
+    objects.obj60 = 0;
+    objects.hour_text_15 = 0;
+    screen_logi_state.span_0 = 0;
+    deletePageFlowState(8);
+}
+
 void tick_screen_logi() {
     screen_logi_state_t *state = &screen_logi_state;
     (void)state;
@@ -5089,6 +5380,35 @@ void create_screen_pogoda() {
     tick_screen_pogoda();
 }
 
+void delete_screen_pogoda() {
+    lv_obj_delete(objects.pogoda);
+    objects.pogoda = 0;
+    objects.obj61 = 0;
+    objects.seconds_text_10 = 0;
+    objects.obj62 = 0;
+    objects.minutes_text_11 = 0;
+    objects.obj63 = 0;
+    objects.hour_text_11 = 0;
+    objects.info_bell_of_icon_on_9 = 0;
+    objects.info_bell_of_icon_off_9 = 0;
+    objects.info_ble_on_icon_9 = 0;
+    objects.info_ble_off_icon_9 = 0;
+    objects.info_wifi_on_icon_9 = 0;
+    objects.info_wifi_off_icon_9 = 0;
+    objects.tm_odczuwalna_weather = 0;
+    objects._wind_weather = 0;
+    objects.rain_weather = 0;
+    objects.humidity_weather = 0;
+    objects.pressure_weather = 0;
+    objects.uv_weather = 0;
+    objects.sunrise__weather = 0;
+    objects.sunset__weather = 0;
+    objects.temp_sensor_out = 0;
+    objects.text_weather = 0;
+    objects.pm25_weather = 0;
+    deletePageFlowState(9);
+}
+
 void tick_screen_pogoda() {
     void *flowState = getFlowState(0, 9);
     (void)flowState;
@@ -5393,6 +5713,24 @@ void create_screen_pogoda_prognoza() {
     tick_screen_pogoda_prognoza();
 }
 
+void delete_screen_pogoda_prognoza() {
+    lv_obj_delete(objects.pogoda_prognoza);
+    objects.pogoda_prognoza = 0;
+    objects.info_bell_of_icon_on_10 = 0;
+    objects.info_bell_of_icon_off_10 = 0;
+    objects.info_ble_on_icon_10 = 0;
+    objects.info_ble_off_icon_10 = 0;
+    objects.info_wifi_on_icon_10 = 0;
+    objects.info_wifi_off_icon_10 = 0;
+    objects.obj64 = 0;
+    objects.seconds_text_11 = 0;
+    objects.obj65 = 0;
+    objects.minutes_text_12 = 0;
+    objects.obj66 = 0;
+    objects.hour_text_12 = 0;
+    deletePageFlowState(10);
+}
+
 void tick_screen_pogoda_prognoza() {
     void *flowState = getFlowState(0, 10);
     (void)flowState;
@@ -5606,6 +5944,25 @@ void create_screen_bpm() {
     tick_screen_bpm();
 }
 
+void delete_screen_bpm() {
+    lv_obj_delete(objects.bpm);
+    objects.bpm = 0;
+    objects.info_bell_of_icon_on_11 = 0;
+    objects.info_bell_of_icon_off_11 = 0;
+    objects.info_ble_on_icon_11 = 0;
+    objects.info_ble_off_icon_11 = 0;
+    objects.info_wifi_on_icon_11 = 0;
+    objects.info_wifi_off_icon_11 = 0;
+    objects.obj67 = 0;
+    objects.seconds_text_17 = 0;
+    objects.obj68 = 0;
+    objects.minutes_text_18 = 0;
+    objects.obj69 = 0;
+    objects.hour_text_18 = 0;
+    objects.bpm_chart = 0;
+    deletePageFlowState(11);
+}
+
 void tick_screen_bpm() {
     void *flowState = getFlowState(0, 11);
     (void)flowState;
@@ -5648,6 +6005,12 @@ void create_screen_gry_test() {
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     
     tick_screen_gry_test();
+}
+
+void delete_screen_gry_test() {
+    lv_obj_delete(objects.gry_test);
+    objects.gry_test = 0;
+    deletePageFlowState(12);
 }
 
 void tick_screen_gry_test() {
@@ -5827,6 +6190,24 @@ void create_screen_muzyka() {
     }
     
     tick_screen_muzyka();
+}
+
+void delete_screen_muzyka() {
+    lv_obj_delete(objects.muzyka);
+    objects.muzyka = 0;
+    objects.info_bell_of_icon_on_12 = 0;
+    objects.info_bell_of_icon_off_12 = 0;
+    objects.info_ble_on_icon_12 = 0;
+    objects.info_ble_off_icon_12 = 0;
+    objects.info_wifi_on_icon_12 = 0;
+    objects.info_wifi_off_icon_12 = 0;
+    objects.obj70 = 0;
+    objects.seconds_text_18 = 0;
+    objects.obj71 = 0;
+    objects.minutes_text_26 = 0;
+    objects.obj72 = 0;
+    objects.hour_text_26 = 0;
+    deletePageFlowState(13);
 }
 
 void tick_screen_muzyka() {
@@ -6035,6 +6416,24 @@ void create_screen_czujniki() {
     tick_screen_czujniki();
 }
 
+void delete_screen_czujniki() {
+    lv_obj_delete(objects.czujniki);
+    objects.czujniki = 0;
+    objects.info_bell_of_icon_on_13 = 0;
+    objects.info_bell_of_icon_off_13 = 0;
+    objects.info_ble_on_icon_13 = 0;
+    objects.info_ble_off_icon_13 = 0;
+    objects.info_wifi_on_icon_13 = 0;
+    objects.info_wifi_off_icon_13 = 0;
+    objects.obj73 = 0;
+    objects.seconds_text_22 = 0;
+    objects.obj74 = 0;
+    objects.minutes_text_27 = 0;
+    objects.obj75 = 0;
+    objects.hour_text_27 = 0;
+    deletePageFlowState(14);
+}
+
 void tick_screen_czujniki() {
     void *flowState = getFlowState(0, 14);
     (void)flowState;
@@ -6065,6 +6464,56 @@ void tick_screen_czujniki() {
             tick_value_change_obj = NULL;
         }
     }
+}
+
+typedef void (*create_screen_func_t)();
+create_screen_func_t create_screen_funcs[] = {
+    create_screen_main,
+    create_screen_menu,
+    create_screen_ustawienia,
+    create_screen_statystyki,
+    create_screen_zasoby_systemu,
+    create_screen_ustawienia_wifi,
+    create_screen_gry,
+    create_screen_zegar,
+    create_screen_logi,
+    create_screen_pogoda,
+    create_screen_pogoda_prognoza,
+    create_screen_bpm,
+    create_screen_gry_test,
+    create_screen_muzyka,
+    create_screen_czujniki,
+};
+void create_screen(int screen_index) {
+    create_screen_funcs[screen_index]();
+}
+void create_screen_by_id(enum ScreensEnum screenId) {
+    create_screen_funcs[screenId - 1]();
+}
+
+typedef void (*delete_screen_func_t)();
+delete_screen_func_t delete_screen_funcs[] = {
+    delete_screen_main,
+    delete_screen_menu,
+    delete_screen_ustawienia,
+    delete_screen_statystyki,
+    delete_screen_zasoby_systemu,
+    delete_screen_ustawienia_wifi,
+    delete_screen_gry,
+    delete_screen_zegar,
+    delete_screen_logi,
+    delete_screen_pogoda,
+    delete_screen_pogoda_prognoza,
+    delete_screen_bpm,
+    delete_screen_gry_test,
+    delete_screen_muzyka,
+    delete_screen_czujniki,
+};
+void delete_screen(int screen_index) {
+    delete_screen_funcs[screen_index]();
+}
+void delete_screen_by_id(enum ScreensEnum screenId) {
+    delete_screen_funcs[screenId - 1]();
 }
 
 typedef void (*tick_screen_func_t)();
@@ -6193,6 +6642,9 @@ void create_screens() {
     // Initialize screens
     eez_flow_init_screen_names(screen_names, sizeof(screen_names) / sizeof(const char *));
     eez_flow_init_object_names(object_names, sizeof(object_names) / sizeof(const char *));
+    
+    eez_flow_set_create_screen_func(create_screen);
+    eez_flow_set_delete_screen_func(delete_screen);
     
     // Create screens
     create_screen_main();

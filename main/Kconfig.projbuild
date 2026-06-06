@@ -34,4 +34,46 @@ menu "Sunton ESP32-S3 Package config"
             default "x1Z6P(~8pry<St."
     endmenu
 
+    menu "LVGL Performance Diagnostics"
+        comment "UART-only diagnostics for LVGL tick/ref-render performance."
+        comment "Zero impact when disabled (no-op stubs)."
+
+        config LV_PERF_DIAG
+            bool "Enable LVGL performance diagnostics"
+            default n
+            help
+                When enabled, the lv_perf_diag module logs per-tick and per-refr
+                metrics via ESP_LOGI. Adds ~1 KB flash, ~100 B RAM. No UI surface,
+                no functional impact when disabled (entire module compiles to
+                inline no-op stubs).
+
+        config LV_PERF_DIAG_INTERVAL_MS
+            int "Diagnostic log interval (ms)"
+            default 1000
+            range 100 10000
+            depends on LV_PERF_DIAG
+            help
+                How often aggregated metrics are printed to UART. Recommended:
+                1000 for normal capture, 100 for short freeze-window capture.
+
+        config LV_PERF_DIAG_VERBOSE
+            bool "Verbose heartbeat (all heap fields + idle%)"
+            default n
+            depends on LV_PERF_DIAG
+            help
+                Periodic heartbeat always uses the full format (headroom,
+                psram min, largest blocks, LVGL idle%). Slightly more UART
+                traffic than the default compact OK line.
+
+        config LV_PERF_DIAG_HEARTBEAT_SKIP
+            int "Skip quiet heartbeats when OK (0=always, 4=every 5th)"
+            default 4
+            range 0 20
+            depends on LV_PERF_DIAG
+            help
+                When metrics are OK and no screen changed, suppress this many
+                consecutive heartbeats before printing one compact [ok] line.
+                Alerts and screen transitions are always logged immediately.
+    endmenu
+
 endmenu

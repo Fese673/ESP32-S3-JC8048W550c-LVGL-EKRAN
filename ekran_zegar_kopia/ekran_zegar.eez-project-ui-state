@@ -3,7 +3,6 @@
     "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/3",
     "selectedActionObject": "[ekran_zegar.eez-project]:/actions/13",
     "selectedGlobalVariableObject": "[ekran_zegar.eez-project]:/variables/globalVariables/55",
-    "selectedFontObject": "[ekran_zegar.eez-project]:/fonts/10",
     "selectedBitmapObject": "[ekran_zegar.eez-project]:/bitmaps/53",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
@@ -27,7 +26,7 @@
           },
           {
             "type": "border",
-            "selected": 2,
+            "selected": 1,
             "size": 134.5,
             "location": "right",
             "children": [
@@ -1703,5 +1702,5 @@
   "globalFlowZoom": true,
   "flowZoom": 0.8,
   "implementationLanguage": "C++",
-  "openDialogDefaultPath": "C:\\Users\\PC\\Desktop\\EKRAN_PROJEKT\\scaled\\ZEGAR\\kfe_minutniik.PNG"
+  "openDialogDefaultPath": "C:\\Users\\PC\\Desktop\\Bebas_Neue (1)\\BebasNeue-Regular.ttf"
 }

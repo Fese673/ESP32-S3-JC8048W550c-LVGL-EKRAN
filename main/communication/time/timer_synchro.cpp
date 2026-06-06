@@ -30,14 +30,13 @@ static constexpr char kTag[] = "TIMER_SYNC";
 
 static SemaphoreHandle_t s_mutex = nullptr;
 
-static void ensureMutex() {
+void init() {
     if (!s_mutex) {
         s_mutex = xSemaphoreCreateMutex();
     }
 }
 
 static void lock() {
-    ensureMutex();
     if (s_mutex) xSemaphoreTake(s_mutex, portMAX_DELAY);
 }
 

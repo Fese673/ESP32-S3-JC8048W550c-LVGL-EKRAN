@@ -98,7 +98,7 @@
       "fontExportMode": "source",
       "fileSystemPath": "",
       "lvglInclude": "lvgl.h",
-      "screensLifetimeSupport": false,
+      "screensLifetimeSupport": true,
       "useDockerDesktop": true,
       "generateSourceCodeForEezFramework": true,
       "compressFlowDefinition": false,
@@ -22771,8 +22771,8 @@
       "ascent": 45,
       "descent": 10,
       "glyphs": [],
-      "lvglRanges": "32-127",
-      "lvglSymbols": "",
+      "lvglRanges": "32-255",
+      "lvglSymbols": "°℃µ%₀₁₂₃₄₅₆₇₈₉³²+-=:.,/()[]<>#&*!?'\"ąćęłńóśźżĄĆĘŁŃÓŚŹŻ",
       "lvglAdditionalSources": [],
       "lvglGlyphs": {
         "encodings": [

@@ -4,6 +4,7 @@
 #include "communication/CommunicationState.h"
 #include "communication/UartTransport.h"
 #include "communication/CobsFraming.h"
+#include "communication/time/timer_synchro.h"
 #include "eez-flow.h"
 #include "esp_log.h"
 #include "esp_random.h"
@@ -19,6 +20,7 @@ static constexpr char kTag[] = "COMM";
 
 void begin() {
   initCommunicationState();
+  TimerSync::init();
   initHandshake(esp_random());
 
   {
