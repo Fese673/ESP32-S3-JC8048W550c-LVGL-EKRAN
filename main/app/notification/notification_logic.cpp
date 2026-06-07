@@ -96,20 +96,14 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_off = objects.info_wifi_off_icon_9;
       break;
     case SCREEN_ID_GRY_TEST:
+      break;
+    case SCREEN_ID_MUZYKA:
       w.bell_on = objects.info_bell_of_icon_on_10;
       w.bell_off = objects.info_bell_of_icon_off_10;
       w.ble_on = objects.info_ble_on_icon_10;
       w.ble_off = objects.info_ble_off_icon_10;
       w.wifi_on = objects.info_wifi_on_icon_10;
       w.wifi_off = objects.info_wifi_off_icon_10;
-      break;
-    case SCREEN_ID_MUZYKA:
-      w.bell_on = objects.info_bell_of_icon_on_11;
-      w.bell_off = objects.info_bell_of_icon_off_11;
-      w.ble_on = objects.info_ble_on_icon_11;
-      w.ble_off = objects.info_ble_off_icon_11;
-      w.wifi_on = objects.info_wifi_on_icon_11;
-      w.wifi_off = objects.info_wifi_off_icon_11;
       break;
     case SCREEN_ID_CZUJNIKI:
       break;

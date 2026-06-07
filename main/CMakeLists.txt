@@ -41,6 +41,7 @@ set(SOURCES_APP_CPP
     ./app/main_handler.cpp
     ./app/main.cpp
     ./app/weather/weather_icon_handler.c
+    ./app/zasoby_sliders.c
     ./services/sensor/sensors_wiki.cpp
     ./diagnostics/lv_perf_diag.cpp
     ./app/font_stubs.c

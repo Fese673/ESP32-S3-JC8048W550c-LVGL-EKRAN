@@ -18,6 +18,7 @@
 #include "driver/i2c_master.h"
 #include "driver/gpio.h"
 #include "lvgl.h"
+#include "zasoby_sliders.h"
 #include "esp_lvgl_port.h"
 #include "esp_timer.h"
 #include "ui.h"
@@ -209,10 +210,7 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
             CommunicationProtocol::TimerSync::requestAlarmList();
         }
         if (current_screen_id == SCREEN_ID_ZASOBY_SYSTEMU) {
-            style_system_slider(objects.free_flash_slider);
-            style_system_slider(objects.used_flash_slider);
-            style_system_slider(objects.cpu_core1_slider);
-            style_system_slider(objects.cpu_core0_slider);
+            zasoby_sliders_create(lv_scr_act());
         }
         if (current_screen_id == SCREEN_ID_LOGI) {
             log_clear();

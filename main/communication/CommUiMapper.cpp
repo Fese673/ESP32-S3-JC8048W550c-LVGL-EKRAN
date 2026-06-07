@@ -2,6 +2,7 @@
 #include "communication/CommunicationState.h"
 #include "app/notification/notification_logic.h"
 #include "app/alarm_ui.h"
+#include "app/zasoby_sliders.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -304,29 +305,13 @@ void applyResourcesToUi(const SystemResources &sr) {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_ERRORS_I2C_SYS, eez::Value((int)sr.errorsI2c));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TIMEOUTS_I2C_SYS, eez::Value((int)sr.timeoutsI2c));
 
-  if (objects.cpu_core0_slider) {
-    lv_slider_set_value(objects.cpu_core0_slider, sr.core0Cpu, LV_ANIM_OFF);
-  }
-  if (objects.cpu_core1_slider) {
-    lv_slider_set_value(objects.cpu_core1_slider, sr.core1Cpu, LV_ANIM_OFF);
-  }
-  {
-    uint32_t totalFlash = sr.freeFlash + sr.usedFlash;
-    if (totalFlash > 0) {
-      if (objects.free_flash_slider) {
-        lv_slider_set_value(objects.free_flash_slider, (sr.freeFlash * 100) / totalFlash, LV_ANIM_OFF);
-      }
-      if (objects.used_flash_slider) {
-        lv_slider_set_value(objects.used_flash_slider, (sr.usedFlash * 100) / totalFlash, LV_ANIM_OFF);
-      }
-    }
-  }
+  zasoby_sliders_update(sr.core0Cpu, sr.core1Cpu, sr.freeFlash, sr.usedFlash);
 
   if (objects.menu_kfe_zasoby_4) {
     lv_obj_remove_state(objects.menu_kfe_zasoby_4, LV_STATE_DISABLED);
   }
-  if (objects.menu_kfe_statystyk_1) {
-    lv_obj_remove_state(objects.menu_kfe_statystyk_1, LV_STATE_DISABLED);
+  if (objects.menu_kfe_statystyki_9) {
+    lv_obj_remove_state(objects.menu_kfe_statystyki_9, LV_STATE_DISABLED);
   }
 }
 

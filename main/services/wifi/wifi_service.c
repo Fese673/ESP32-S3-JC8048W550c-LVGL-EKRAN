@@ -15,7 +15,7 @@
 
 static const char *TAG = "WifiService";
 
-#define WIFI_ENABLED 0 /* 0 = WiFi off (frees ~100KB PSRAM), 1 = normal */
+#define WIFI_ENABLED 1 /* 0 = WiFi off (frees ~100KB PSRAM), 1 = normal */
 
 #define WIFI_WORKER_STACK 4096
 #define WIFI_WORKER_PRIORITY 2

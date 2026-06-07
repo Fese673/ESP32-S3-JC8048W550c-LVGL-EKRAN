@@ -14,7 +14,7 @@
 // ---------------------------------------------------------------------------
 static lv_obj_t *s_parent_screen = NULL;
 
-static uint8_t s_active_sensor = 0; // 0: PMS5003, 1: ENS160, 2: AHT21, 3: BME280
+static uint8_t s_active_sensor = 0; // 0: PMS5003, 1: ENS160, 2: AHT21, 3: BMP280
 static uint8_t s_active_mode   = 0; // 0: PARAMETERS, 1: THEORY
 
 // Sidebar UI references
@@ -165,7 +165,7 @@ static void render_sidebar(void) {
     lv_obj_set_style_bg_opa(s_sidebar_panel, 0, LV_PART_MAIN);
     lv_obj_set_style_border_width(s_sidebar_panel, 0, LV_PART_MAIN);
 
-    const char* names[4] = {"PMS5003", "ENS160", "AHT21", "BME280"};
+    const char* names[4] = {"PMS5003", "ENS160", "AHT21", "BMP280"};
     const char* subs[4] = {"Detektor PM1/2.5/10", "Jako\u015b\u0107 TVOC & eCO2", "Temp. & Wilgotno\u015b\u0107", "Ci\u015bnienie & Klimat"};
 
     for (uint8_t i = 0; i < 4; i++) {
@@ -455,9 +455,8 @@ static void create_bme_panel(void) {
     lv_obj_set_style_bg_opa(s_sensor_panels[3], 0, LV_PART_MAIN);
     lv_obj_set_style_border_width(s_sensor_panels[3], 0, LV_PART_MAIN);
 
-    create_param_card_stable(s_sensor_panels[3], 0, 15, 165, 125, "Temperatura", "C", &s_val_labels[3][0], &s_trend_labels[3][0]);
-    create_param_card_stable(s_sensor_panels[3], 180, 15, 165, 125, "Wilgotno\u015b\u0107", "%", &s_val_labels[3][1], &s_trend_labels[3][1]);
-    create_param_card_stable(s_sensor_panels[3], 360, 15, 165, 125, "Ci\u015bnienie", "hPa", &s_val_labels[3][2], &s_trend_labels[3][2]);
+    create_param_card_stable(s_sensor_panels[3], 0, 15, 245, 125, "Temperatura", "C", &s_val_labels[3][0], &s_trend_labels[3][0]);
+    create_param_card_stable(s_sensor_panels[3], 260, 15, 245, 125, "Ci\u015bnienie", "hPa", &s_val_labels[3][2], &s_trend_labels[3][2]);
 
     lv_obj_t *badge = lv_label_create(s_sensor_panels[3]);
     lv_obj_set_pos(badge, 0, 200);
@@ -503,7 +502,7 @@ static void create_theory_panel(void) {
         "ZASADA DZIA\u0141ANIA SENSORA LASEROWEGO PMS5003",
         "ZASADA DZIA\u0141ANIA CZUJNIKA JAKO\u015aCI ENS160",
         "ZASADA DZIA\u0141ANIA SENSORA KLIMATU AHT21",
-        "ZASADA DZIA\u0141ANIA CZUJNIKA CI\u015aNIENIA BME280"
+        "ZASADA DZIA\u0141ANIA CZUJNIKA CI\u015aNIENIA BMP280"
     };
     static const char* wiki_bodies[4] = {
         "Sensor PMS5003 dzia\u0142a na zasadzie rozpraszania laserowego. Dioda laserowa emituje wi\u0105zk\u0119 \u015bwiat\u0142a wewn\u0105trz komory pomiarowej, do kt\u00f3rej wentylator zasysa powietrze. Gdy cz\u0105stka py\u0142u (np. PM2.5) przecina laser, rozprasza \u015bwiat\u0142o. Fotodetektor rejestruje nat\u0119\u017cenie rozb\u0142ysk\u00f3w, a mikrokontroler oblicza ilo\u015b\u0107 cz\u0105stek oraz st\u0119\u017cenie py\u0142u w ug/m\u00b3.\n\n"
@@ -525,7 +524,7 @@ static void create_theory_panel(void) {
         "Czujnik wilgotno\u015bci dzia\u0142a w oparciu o metod\u0119 pojemno\u015bciow\u0105. Posiada mikroskopijn\u0105 warstw\u0119 polimerow\u0105 jako dielektryk kondensatora pomiarowego. Woda zawarta w powietrzu wnika w ten polimer, co drastycznie zmienia jego przenikalno\u015b\u0107 elektryczn\u0105 i tym samym pojemno\u015b\u0107 kondensatora. Wbudowany scalak ASIC mierzy pojemno\u015b\u0107 i zamienia j\u0105 na wilgotno\u015b\u0107 wzgl\u0119dn\u0105 (%).\n\n"
         "Pomiar temperatury opiera si\u0119 na krzemowym z\u0142\u0105czu p-n (diodzie), kt\u00f3rego spadek napi\u0119cia w kierunku przewodzenia zmienia si\u0119 liniowo wraz z temperatur\u0105.\n\n"
         "W\u0142a\u015bciwy poziom wilgotno\u015bci w pokoju to 40-60%. Zbyt niska podra\u017cnia \u015bluz\u00f3wk\u0119 oka i dr\u00f3g oddechowych, a zbyt wysoka sprzyja rosn\u0105cym zarodnikom ple\u015bni.",
-        "BME280 firmy Bosch to zintegrowany sensor MEMS realizuj\u0105cy precyzyjny pomiar ci\u015bnienia barometrycznego, temperatury i wilgotno\u015bci.\n\n"
+        "BMP280 firmy Bosch to zintegrowany sensor MEMS realizuj\u0105cy precyzyjny pomiar ci\u015bnienia barometrycznego i temperatury.\n\n"
         "Sercem czujnika ci\u015bnienia jest mikroskopijna silikonowa membrana wytrawiona nad komor\u0105 pr\u00f3\u017cniow\u0105. W t\u0119 membran\u0119 wbudowano piezorezystory. Zmiana ci\u015bnienia powietrza ugina membran\u0119, co wywo\u0142uje napr\u0119\u017cenia i drastycznie zmienia op\u00f3r elektryczny piezorezystor\u00f3w. Zjawisko to (piezorezystancja) pozwala na wykrycie zmian wysoko\u015bci nawet o kilkana\u015bcie centymetr\u00f3w (dzia\u0142a jako wysoko\u015bciomierz).\n\n"
         "Wbudowana pami\u0119\u0107 ROM zawiera fabryczne wsp\u00f3\u0142czynniki kalibracji, przez kt\u00f3re uk\u0142ad ASIC kompensuje wp\u0142yw temperatury na pomiar ci\u015bnienia.\n\n"
         "Szybkie zmiany ci\u015bnienia barometrycznego pozwalaj\u0105 wykry\u0107 nadchodz\u0105ce fronty atmosferyczne (burza, deszcz) zanim przyjd\u0105 na horyzoncie."
@@ -554,7 +553,7 @@ static void render_right_panel(void) {
             "PMS5003 - Laserowy pomiar",
             "ENS160 - Pomiar jako\u015bci",
             "AHT21 - Klimat pokoju",
-            "BME280 - Pomiar otoczenia"
+            "BMP280 - Pomiar otoczenia"
         };
         lv_label_set_text_static(s_section_title, titles[s_active_sensor]);
     }
@@ -588,7 +587,7 @@ static void render_right_panel(void) {
                 "ZASADA DZIA\u0141ANIA SENSORA LASEROWEGO PMS5003",
                 "ZASADA DZIA\u0141ANIA CZUJNIKA JAKO\u015aCI ENS160",
                 "ZASADA DZIA\u0141ANIA SENSORA KLIMATU AHT21",
-                "ZASADA DZIA\u0141ANIA CZUJNIKA CI\u015aNIENIA BME280"
+                "ZASADA DZIA\u0141ANIA CZUJNIKA CI\u015aNIENIA BMP280"
             };
             static const char* wiki_bodies[4] = {
                 "Sensor PMS5003 dzia\u0142a na zasadzie rozpraszania laserowego. Dioda laserowa emituje wi\u0105zk\u0119 \u015bwiat\u0142a wewn\u0105trz komory pomiarowej, do kt\u00f3rej wentylator zasysa powietrze. Gdy cz\u0105stka py\u0142u (np. PM2.5) przecina laser, rozprasza \u015bwiat\u0142o. Fotodetektor rejestruje nat\u0119\u017cenie rozb\u0142ysk\u00f3w, a mikrokontroler oblicza ilo\u015b\u0107 cz\u0105stek oraz st\u0119\u017cenie py\u0142u w ug/m\u00b3.\n\n"
@@ -610,7 +609,7 @@ static void render_right_panel(void) {
                 "Czujnik wilgotno\u015bci dzia\u0142a w oparciu o metod\u0119 pojemno\u015bciow\u0105. Posiada mikroskopijn\u0105 warstw\u0119 polimerow\u0105 jako dielektryk kondensatora pomiarowego. Woda zawarta w powietrzu wnika w ten polimer, co drastycznie zmienia jego przenikalno\u015b\u0107 elektryczn\u0105 i tym samym pojemno\u015b\u0107 kondensatora. Wbudowany scalak ASIC mierzy pojemno\u015b\u0107 i zamienia j\u0105 na wilgotno\u015b\u0107 wzgl\u0119dn\u0105 (%).\n\n"
                 "Pomiar temperatury opiera si\u0119 na krzemowym z\u0142\u0105czu p-n (diodzie), kt\u00f3rego spadek napi\u0119cia w kierunku przewodzenia zmienia si\u0119 liniowo wraz z temperatur\u0105.\n\n"
                 "W\u0142a\u015bciwy poziom wilgotno\u015bci w pokoju to 40-60%. Zbyt niska podra\u017cnia \u015bluz\u00f3wk\u0119 oka i dr\u00f3g oddechowych, a zbyt wysoka sprzyja rosn\u0105cym zarodnikom ple\u015bni.",
-                "BME280 firmy Bosch to zintegrowany sensor MEMS realizuj\u0105cy precyzyjny pomiar ci\u015bnienia barometrycznego, temperatury i wilgotno\u015bci.\n\n"
+                "BMP280 firmy Bosch to zintegrowany sensor MEMS realizuj\u0105cy precyzyjny pomiar ci\u015bnienia barometrycznego i temperatury.\n\n"
                 "Sercem czujnika ci\u015bnienia jest mikroskopijna silikonowa membrana wytrawiona nad komor\u0105 pr\u00f3\u017cniow\u0105. W t\u0119 membran\u0119 wbudowano piezorezystory. Zmiana ci\u015bnienia powietrza ugina membran\u0119, co wywo\u0142uje napr\u0119\u017cenia i drastycznie zmienia op\u00f3r elektryczny piezorezystor\u00f3w. Zjawisko to (piezorezystancja) pozwala na wykrycie zmian wysoko\u015bci nawet o kilkana\u015bcie centymetr\u00f3w (dzia\u0142a jako wysoko\u015bciomierz).\n\n"
                 "Wbudowana pami\u0119\u0107 ROM zawiera fabryczne wsp\u00f3\u0142czynniki kalibracji, przez kt\u00f3re uk\u0142ad ASIC kompensuje wp\u0142yw temperatury na pomiar ci\u015bnienia.\n\n"
                 "Szybkie zmiany ci\u015bnienia barometrycznego pozwalaj\u0105 wykry\u0107 nadchodz\u0105ce fronty atmosferyczne (burza, deszcz) zanim przyjd\u0105 na horyzoncie."
@@ -912,7 +911,7 @@ void sensors_wiki_update(void) {
                 lv_label_set_text_static(s_lbl_trend2, calculate_trend(&s_hist_hum, sn.humidityPct, 1.0f));
             }
 
-        } else if (s_active_sensor == 3) { // BME280
+        } else if (s_active_sensor == 3) { // BMP280
             // Temp
             if (s_lbl_val1 && sn.valid) {
                 snprintf(buf, sizeof(buf), "%.1f", sn.temperatureC);
@@ -920,15 +919,6 @@ void sensors_wiki_update(void) {
             }
             if (s_lbl_trend1) {
                 lv_label_set_text_static(s_lbl_trend1, calculate_trend(&s_hist_temp, sn.temperatureC, 0.1f));
-            }
-
-            // Hum
-            if (s_lbl_val2 && sn.valid) {
-                snprintf(buf, sizeof(buf), "%d", sn.humidityPct);
-                lv_label_set_text(s_lbl_val2, buf);
-            }
-            if (s_lbl_trend2) {
-                lv_label_set_text_static(s_lbl_trend2, calculate_trend(&s_hist_hum, sn.humidityPct, 1.0f));
             }
 
             // Pressure
