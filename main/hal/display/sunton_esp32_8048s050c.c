@@ -54,6 +54,12 @@ void sunton_esp32s3_backlight_init(void)
     ESP_LOGI(TAG, "Backlight initialized");
 }
 
+void sunton_esp32s3_backlight_set_brightness(uint8_t brightness_0_255)
+{
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, SUNTON_ESP32_BACKLIGHT_LEDC_CHANNEL, brightness_0_255);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, SUNTON_ESP32_BACKLIGHT_LEDC_CHANNEL);
+}
+
 lv_display_t *sunton_esp32s3_lcd_init(void)
 {
     ESP_LOGI(TAG, "Initializing RGB LCD panel");
@@ -144,7 +150,7 @@ lv_display_t *sunton_esp32s3_lcd_init(void)
 
     const lvgl_port_display_rgb_cfg_t rgb_cfg = {
         .flags = {
-            .bb_mode = false,
+            .bb_mode = true,
             .avoid_tearing = true,
         },
     };

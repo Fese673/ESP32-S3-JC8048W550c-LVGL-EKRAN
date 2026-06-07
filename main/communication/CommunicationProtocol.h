@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "communication/time/timer_synchro.h"
 
 namespace CommunicationProtocol {
  
@@ -19,10 +20,28 @@ namespace CommunicationProtocol {
     kTypeStatusBle = 0x0B,
     kTypeStatusBell = 0x0C,
     kTypeRequest = 0x10,
-   kTypeConfig = 0x11,
-   kTypeHello    = 0x20,
-   kTypeHelloAck = 0x21,
-   kTypeAck = 0xFF
+    kTypeConfig = 0x11,
+    kTypeHello    = 0x20,
+    kTypeHelloAck = 0x21,
+    kTypeMusicMetadata = 0x30,
+    kTypeMusicStatus = 0x31,
+    kTypeMusicCommand = 0x32,
+    kTypeMusicVolume = 0x33,
+    kTypeMusicEQ = 0x34,
+    kTypeMusicRequest = 0x35,
+    kTypeMusicVolumeState = 0x36,
+    kTypeMusicEQState = 0x37,
+    kTypeRadioMode = 0x38,
+    // TimeSyncProtocol — alarmy + minutnik
+    kTypeAlarmList      = 0x0D,
+    kTypeSetAlarm       = 0x0E,
+    kTypeTimerState     = 0x0F,
+    kTypeTimerCmd       = 0x12,
+    kTypeEditLock       = 0x13,
+    kTypeAlarmAction    = 0x14,
+    kTypeStopwatchState = 0x15,
+    kTypeStopwatchCmd   = 0x16,
+    kTypeAck = 0xFF
  };
 
  // Stany maszyny synchronizacji
@@ -51,7 +70,14 @@ struct Snapshot {
     uint16_t pm01UgM3 = 0;
     uint16_t pm25UgM3 = 0;
     uint16_t pm10UgM3 = 0;
+    uint16_t count0p3 = 0;
+    uint16_t count0p5 = 0;
+    uint16_t count1p0 = 0;
+    uint16_t count2p5 = 0;
+    uint16_t count5p0 = 0;
+    uint16_t count10p0 = 0;
     uint16_t eco2 = 0;
+    uint16_t tvoc = 0;
     uint32_t sampleAgeMs = 0;
     uint32_t timeUnixSeconds = 0;
     uint8_t airQualityIndex = 0;
@@ -81,6 +107,7 @@ struct OutdoorWeatherSnapshot {
     uint8_t sunriseMin = 0;
     uint8_t sunsetHour = 0;
     uint8_t sunsetMin = 0;
+    uint16_t no2UgM3 = 0;
     bool valid = false;
     unsigned long updatedAtMs = 0;
 };
@@ -123,6 +150,11 @@ void requestDeviceSettings();
 void requestSystemResources();
 void sendDeviceSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody);
 void updateLocalSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody);
+void sendMusicCommand(uint8_t cmd);
+void sendMusicVolume(uint8_t vol);
+void sendMusicEQ(uint8_t bass, uint8_t mid, uint8_t treble);
+void requestMusicState();
+void sendRadioModeSwitch();
 
 }  // namespace CommunicationProtocol
 
@@ -143,6 +175,14 @@ void action_action_toggle_mqtt();
 void action_action_toggle_touch();
 void action_action_toggle_music();
 void action_action_toggle_pms();
+
+void action_send_music_command(uint8_t cmd);
+void action_send_music_volume(uint8_t vol);
+void action_send_music_eq(uint8_t bass, uint8_t mid, uint8_t treble);
+void action_request_music_state();
+void action_send_radio_mode_switch();
+int action_get_flow_variable_int(uint32_t var_id);
+void action_get_flow_variable_text(uint32_t var_id, char *buf, size_t buf_size);
 
 #ifdef __cplusplus
 }

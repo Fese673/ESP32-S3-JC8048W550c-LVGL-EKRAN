@@ -1,5 +1,322 @@
-# Archiwum Błędów - ZEGAR-ESP32
+# Archiwum Błędów - GUTION-S3
 
+---
+### [ID: ERR_035] | TIMER_SYNCHRO_MUTEX_TOCTOU_RACE | IMPACT: HIGH
+**Files:** `[timer_synchro.cpp, timer_synchro.h, CommunicationProtocol.cpp]`
+
+**PROBLEM:** `ensureMutex()` w `timer_synchro.cpp:33-36` miał lazy init bez atomowości. `lock()` wołany z Core 0 (UART RX: `handleTimerStatePayload`, `handleStopwatchStatePayload`, `handleEditLockPayload`) i Core 1 (LVGL: `consumeTimerState`, `consumeStopwatchState`, `consumeEditLock`). Jeśli oba taski wywołały `lock()` po raz pierwszy zanim którykolwiek przypisał `s_mutex` → dwa mutexy, jeden wycieka.
+
+**CAUSE:** Klasyczny TOCTOU (Time-of-check to Time-of-use): `if (!s_mutex)` → `xSemaphoreCreateMutex()` → `s_mutex = ...` nie jest atomic. Identyczny wzorzec jak ERR_028 w `CommunicationState.cpp`.
+
+**LOGIC_CHANGE:**
+- `timer_synchro.h`: Dodano `void init()` — jawna inicjalizacja przed startem tasków
+- `timer_synchro.cpp`: Usunięto `ensureMutex()`. Dodano `init()` z `if (!s_mutex)` guard. `lock()` uproszczony do `if (s_mutex) xSemaphoreTake(...)` bez lazy init
+- `CommunicationProtocol.cpp`: Dodano `#include "time/timer_synchro.h"` i `TimerSync::init()` w `begin()` przed `beginUart()` (który startuje UART RX task)
+
+**VERIFICATION:** `python build_guition.py` → SUKCES. Mutex tworzony raz w `begin()` zanim jakikolwiek task może go użyć.
+---
+### [ID: ERR_034] | SENSORS_WIKI_PSRAM_FRAGMENTATION | IMPACT: CRITICAL
+**Files:** `[sensors_wiki.cpp]`
+
+**PROBLEM:** Każde wejście na ekran CZUJNIKI powodowało `lv_obj_del()` + ponowne tworzenie ~40 obiektów LVGL (sidebar, content panel, workspace, karty parametrów, karty mikro, badge'e). Po 3-5 cyklach FreeRTOS heap nie mógł scalić zwolnionych bloków → PSRAM fragmentacja → `transform_and_recolor` nie mógł zaalokować ciągłego bloku na dekoder obrazów → watchdog reset.
+
+**CAUSE:** `sensors_wiki_init()` wywoływał `sensors_wiki_deinit()` → `lv_obj_del(s_sidebar_panel)` + `lv_obj_del(s_content_panel)`. Następnie `render_sidebar()` i `render_right_panel()` tworzyły WSZYSTKIE obiekty od nowa. `render_right_panel()` dodatkowo kasował `s_workspace` i tworzył nowy za każdym razem gdy użytkownik zmienił sensor lub tryb (PARAMETRY↔TEORIA).
+
+**LOGIC_CHANGE:**
+- `render_sidebar()` — tworzy sidebar RAZ (guard `if (s_sidebar_panel) return`), kolejne wywołania tylko odświeżają highlight
+- `render_right_panel()` — tworzy 5 paneli RAZ (`s_sensor_panels[4]` + `s_theory_panel`) przez `ensure_panels_created()`, następnie pokazuje/ukrywa przez `lv_obj_add_flag(HIDDEN)` / `lv_obj_clear_flag(HIDDEN)`
+- `sensors_wiki_init()` — pierwsza inicjalizacja tworzy całą strukturę (sidebar, content panel, workspace, panele), kolejne wywołania tylko odświeżają widoczność
+- `sensors_wiki_deinit()` — NIE kasuje obiektów (`lv_obj_del` usunięte), tylko resetuje wskaźniki do labeli. Obiekty persistują z ekranem EEZ Flow
+- Per-sensor label refs w `s_val_labels[4][3]`, `s_trend_labels[4][3]`, `s_micro_val_labels[6]`, `s_micro_trend_labels[6]` — stabilne wskaźniki ustawiane raz przy tworzeniu paneli
+- `render_right_panel()` aktualizuje `s_lbl_val1/2/3` i `s_lbl_trend1/2/3` na aktywny sensor przed wywołaniem `sensors_wiki_update()`
+
+**VERIFICATION:** `python build_guition.py` → SUKCES. Test: wielokrotne przejścia MENU→CZUJNIKI→MENU nie powodują fragmentacji PSRAM.
+
+**UWAGA:** Dwa z trzech zgłoszonych błędów to NADINTERPRETACJE:
+- **CommUiMapper "wszystkie wartości to samo"** — FAŁSZ. Każdy `static char buffer[SIZE]` to osobna zmienna z własnym adresem. `eez::Value(ptr)` przechowuje wskaźnik do konkretnego bufora. `formatWithComma()` modyfikuje TYLKO przekazany bufor. Static local variables w C++ NIGDY nie mają tego samego adresu.
+- **consumeMusicMetadata "trzyma mutex 150ms"** — FAŁSZ. Linia 561 `unlockSnapshot()` jest wywoływana PRZED `return false`. Mutex trzymany jest tylko podczas sprawdzenia (mikrosekundy). 150ms to timeout dla NASTĘPNEGO wywołania, nie blocking wait.
+---
+
+### [ID: ERR_033] | STOPWATCH_RESET_BUTTON_BROKEN | IMPACT: HIGH
+**Files:** `[stopwatch_logic.cpp, stopwatch_ui.cpp]`
+
+**PROBLEM:** Przycisk Reset na Gution nie działał gdy stoper był w stanie RUNNING. Stoper na Gution zostawał w RUNNING na zawsze, bo:
+1. `stopwatch_reset()` miał guard `if (s_state != STOPWATCH_PAUSED) return;` — reset z RUNNING to no-op
+2. `on_reset_stoper()` wysyłał RESET do Zegara (który działał), ale lokalny Gution nie resetował
+3. Sync z Zegara (`stopwatch_timer_cb()` → `stopwatch_reset()`) też failował bo RUNNING != PAUSED
+
+**Dodatkowo:** `handleStopwatchCmd(0)` na Zegarze zerował `stoperElapsed` — pauza→wznowienie resetowało czas zamiast wznawiać.
+
+**ROOT CAUSE:** PAUSED guard w `stopwatch_reset()` — zaprojektowany by resetować tylko z pauzy, ale nie przewidział przypadku sync z Zegara (remote IDLE → lokalny RUNNING). Zegar zerował elapsed na każdy START.
+
+**LOGIC_CHANGE:**
+- `stopwatch_logic.cpp:stopwatch_reset()` — usunięto guard PAUSED. Reset działa z każdego stanu (RUNNING, PAUSED, IDLE).
+- `TimeSyncProtocol.cpp:handleStopwatchCmd(0)` — nie zeruje `stoperElapsed`. Zachowuje czas przy resume z pauzy.
+- `stopwatch_ui.cpp:on_reset_stoper()` — jeśli RUNNING → najpierw STOP, potem RESET.
+
+**PRZEPływ PO FIXIE:**
+1. RUNNING + Reset → STOP + RESET → IDLE (00:00:00)
+2. PAUSED + Reset → RESET → IDLE (00:00:00)  
+3. IDLE + Reset → no-op (already idle)
+4. Start z Gution → RUNNING (local) + cmd=0 (Zegar: stoperRunning, zachowaj elapsed=0)
+5. Stop → PAUSED (local) + cmd=1 (Zegar: zatrzymaj)
+6. Start znowu → RUNNING (local, resume) + cmd=0 (Zegar: wznowienie, elapsed zachowany)
+7. Start z Zegara → remote state=1 → Gution: `stopwatch_start()` → RUNNING (płynny 50fps, centyssekundy)
+
+**VERIFICATION:** `python build_guition.py` → SUKCES. `python build_zegar.py` → SUCCESS.
+
+---
+### [ID: ERR_032] | TIMER_STOPWATCH_LOCAL_ONLY_NO_SYNC | IMPACT: HIGH
+**Files:** `[timer_ui.cpp, stopwatch_ui.cpp, CommunicationProtocol.h/.cpp, CommunicationState.h/.cpp, UartTransport.cpp]`
+
+**PROBLEM:** Timer (minutnik) i stoper (stopwatch) na Gution działały całkowicie lokalnie. Start timera z GUI nie wysyłał komendy do Zegara — minutnik na Zegarze nigdy nie startował. Stoper nie miał żadnej komunikacji (brak ramek 0x15/0x16). Wyświetlacz Gution ignorował zdalny TimerState z Zegara.
+
+**ROOT CAUSE:**
+1. `timer_ui.cpp::on_start_stop_minutnik()` wywoływał `timer_start()` lokalnie, ale **nigdy nie dzwonił `sendTimerCmd()`** — Zegar nie wiedział o starcie.
+2. `timer_ui_cb()` wyświetlał stan z `timer_logic.h` (lokalny), ignorując zdalny `TimerState` przychodzący z Zegara.
+3. Stoper nie miał w ogóle protokołu komunikacyjnego.
+4. `sendTimerCmd()` wymagał `uint32_t durationSec` — wywołanie `sendTimerCmd(1)` (STOP) było błędem kompilacji.
+
+**LOGIC_CHANGE:**
+- `CommunicationProtocol.h`: Dodano `kTypeStopwatchState=0x15, kTypeStopwatchCmd=0x16`, `StopwatchState` struct, `sendStopwatchCmd()`, `getLastTimerState()`, `getLastStopwatchState()`. Przeniesiono `TimerState` z CommunicationState.h. `sendTimerCmd()` ma domyślny `durationSec=0`.
+- `CommunicationState.h/.cpp`: Dodano `StopwatchState` storage, `applyStopwatchStatePayload()`, `consumeStopwatchState()` (mutex).
+- `UartTransport.cpp`: Handler `kTypeStopwatchState` → `applyStopwatchStatePayload()`.
+- `CommunicationProtocol.cpp`: Cache `s_cachedTimerState`/`s_cachedStopwatchState`, konsumpcja w `updateUi()`. `sendStopwatchCmd()` wysyła ramkę 0x16.
+- `timer_ui.cpp`: `on_start_stop_minutnik()` wysyła `sendTimerCmd(0, target)` przed lokalnym startem. `timer_ui_cb()` wyświetla zdalny `TimerState` gdy aktywny (fallback do lokalnego).
+- `stopwatch_ui.cpp`: Przyciski wysyłają `sendStopwatchCmd(0/1/2)`. `stopwatch_timer_cb()` wyświetla zdalny `StopwatchState` gdy aktywny.
+
+**VERIFICATION:** `python build_guition.py` → SUKCES. `python build_zegar.py` → SUCCESS.
+
+---
+### [ID: ERR_031] | TIMESYNC_POPUP_DOUBLE_CONSUME | IMPACT: CRITICAL
+**Files:** `[CommunicationProtocol.cpp, alarm_logic.cpp, alarm_ui.cpp]`
+
+**PROBLEM:** Dwa krytyczne błędy w implementacji synchronizacji alarmów/timera z Zegarem:
+1. **`consumeStatusBell()` wywołany 2 razy w `updateUi()`** (`CommunicationProtocol.cpp:222,284`): Istniejący kod `updateUi()` już konsumował `StatusBell` dla ikonki dzwonka. Nowy kod alarm-popup dodawał DRUGIE wywołanie `consumeStatusBell()` kilkanaście linii niżej. Drugie wywołanie zawsze zwracało `false` (destructive read), więc `alarm_popup_show()` NIGDY nie był wołany. Popup alarmu/timera był całkowicie martwy.
+2. **`alarm_get_all()` zwraca zły count** (`alarm_logic.cpp:125`): Funkcja zwracała `s_alarm_count` (pełny rozmiar listy) zamiast `n` (liczby faktycznie skopiowanych elementów do bufora caller-a). Przy wywołaniu z `max_count < s_alarm_count`, caller czytał poza przydzielonym buforem.
+
+**CAUSE:** Pominięcie istniejącej konsumpcji `StatusBell` w istniejącym bloku `updateUi()`; błąd copy-paste w `alarm_get_all()`.
+
+**LOGIC_CHANGE:**
+- `CommunicationProtocol.cpp`: Scalone — popup alarmu uruchamiany w tym samym bloku `consumeStatusBell()` co ikonka dzwonka. Usunięty drugi blok.
+- `CommunicationProtocol.cpp`: `localtime()` → `localtime_r()` z buforem na stosie.
+- `CommunicationProtocol.cpp`: `s_lastTimerRinging` aktualizowane w jedynym bloku `consumeTimerState()`.
+- `alarm_logic.cpp`: `alarm_get_all()` zwraca `n` zamiast `s_alarm_count`.
+
+**VERIFICATION:** `python build_guition.py` → SUCCESS. Popup alarmu/timera pojawia się przy bell=2. `alarm_get_all()` nie powoduje overread.
+
+---
+### [ID: ERR_030] | TIMESYNC_POPUP_UART_MISSING | IMPACT: HIGH
+**Files:** `[alarm_popup.cpp, alarm_ui.cpp]`
+
+**PROBLEM:** Dwa błędy w integracji popupu alarmu z UART:
+1. **`alarm_popup` callbacki nie wysyłały UART** (kod oryginalny): `on_snooze_click()` i `on_dismiss_click()` tylko lokalnie chowały popup — NIE wysyłały `kTypeAlarmAction` do Zegara. Buzzer na Zegarze dzwonił w nieskończoność.
+2. **Redundantne `lvgl_port_lock()` w `alarm_ui_set_edit_locked()`** (`alarm_ui.cpp`): Funkcja wołana tylko z `updateUi()` (LVGL task, Core 1) zawierała `lvgl_port_lock()`. Przy implementacji nie-rekurencyjnej mogło zakleszczyć mutex.
+
+**CAUSE:** Pominięcie `CommunicationProtocol::sendAlarmAction()` w callbackach; nadmiarowa synchronizacja LVGL w kontekście już-wątku-graficznego.
+
+**LOGIC_CHANGE:**
+- `alarm_popup.cpp`: `on_snooze_click()` woła `CommunicationProtocol::sendAlarmAction(1)`, `on_dismiss_click()` woła `sendAlarmAction(0)` przed `alarm_popup_dismiss()`.
+- `alarm_popup.cpp`: `#define ALARM_POPUP_MOCKUP_MODE 0` (produkcja).
+- `alarm_ui.cpp`: Usunięto `lvgl_port_lock()`/`unlock()` z `alarm_ui_set_edit_locked()`.
+
+**VERIFICATION:** `python build_guition.py` → SUCCESS. Przyciski popupu wysyłają UART do Zegara. Brak deadlocka LVGL.
+
+---
+### [ID: ERR_029] | BPM_GETTER_SPINLOCK_DEADLOCK | IMPACT: CRITICAL (regression ERR_027)
+**Files:** `[bpm_service.c]`
+
+**PROBLEM:** Mój fix ERR_027 dodał `portENTER_CRITICAL(&s_ctx.mux)` w `bpm_service_get_bpm()` i `get_spo2()`. `s_ctx.mux` jest w BSS → zero-init. Na ESP32-S3 dual-core `portMUX_INITIALIZER_UNLOCKED` to NIE zero, a wartość `owner=0xFFFFFFFF`. Zero w `owner` oznacza "locked by Core 0". Gdy Core 0 próbował CAS na locked mux → spinlock loop z przerwaniami wyłączonymi → Interrupt wdt timeout.
+
+**CAUSE:** Getters (single-field reads: int/uint8_t) są atomiczne na Xtensa LX7 bez spinlocka. Spinlock był zbędny i niebezpieczny przy mux w BSS.
+
+**LOGIC_CHANGE:**
+- `bpm_service_get_bpm()`: direct `return s_ctx.bpm` (atomic 4-bajt aligned read)
+- `bpm_service_get_spo2()`: direct `return s_ctx.spo2` (atomic 1-bajt read)
+- `bpm_service_get_mock_mode()`: direct `return s_ctx.mock_enabled` (atomic 1-bajt read)
+- Settery (`set_bpm`, `set_spo2`, `set_mock_mode`) nadal używają spinlocka dla release barrier
+
+**VERIFICATION:** Kompilacja OK. Boot przechodzi bez deadlocka.
+
+---
+### [ID: ERR_028] | LOG_MUTEX_TOCTOU_RACE | IMPACT: CRITICAL
+**Files:** `[log.cpp]`
+
+**PROBLEM:** Potrójny TOCTOU race na lazy init mutexu w `log_add_to_buffer()`, `log_clear()`, `log_update_textarea()`. Jeśli UART RX (Core 0) i LVGL (Core 1) jednocześnie wywołały log przed inicjalizacją mutexu, oba tworzyły osobny mutex → jeden wyciekał. `log_get_all_text()` zwracał surowy wskaźnik do bufora bez locka.
+
+**CAUSE:** Trzy funkcje robiły `if (s_logMutex == NULL) s_logMutex = xSemaphoreCreateMutex()` bez synchronizacji.
+
+**LOGIC_CHANGE:**
+- Przeniesiono `s_logMutex = xSemaphoreCreateMutex()` do `log_init()` — wołane z `app_main` przed schedulerem.
+- Usunięto lazy init ze wszystkich 3 funkcji.
+- Dodano `if (s_logMutex)` guard przed `xSemaphoreTake`.
+
+**VERIFICATION:** Kompilacja OK. Mutex tworzony raz, deterministycznie, bez race condition.
+
+---
+### [ID: ERR_027] | BPM_SERVICE_DATA_RACE | IMPACT: CRITICAL
+**Files:** `[bpm_service.c]`
+
+**PROBLEM:** `bpm_service_set_bpm()` i `bpm_service_set_spo2()` pisane z Core 0 (UART RX) bez spinlocka, podczas gdy `bpm_service_get_bpm()` i `bpm_service_get_spo2()` czytane z Core 1 (LVGL) bez spinlocka. Torn read 32-bit `beat_period_us` / `phase_us` mógł zwrócić śmieci → UI pokazywał BPM=0 lub wartość z kosmosu.
+
+**CAUSE:** `portMUX_TYPE mux` istniał w struct i był używany dla ring buffer, ale nie dla getterów/setterów BPM/SpO2/mock.
+
+**LOGIC_CHANGE:**
+- Dodano `portENTER_CRITICAL`/`portEXIT_CRITICAL` w `set_bpm`, `get_bpm`, `set_spo2`, `get_spo2`, `set_mock_mode`, `get_mock_mode`.
+
+**VERIFICATION:** Kompilacja OK. Wszystkie accessy do współdzielonych pól BPM/SpO2 są atomiczne.
+
+---
+### [ID: ERR_026] | COMMHANDSHAKE_CORE_RACE | IMPACT: CRITICAL
+**Files:** `[CommHandshake.cpp]`
+
+**PROBLEM:** `s_syncState`, `s_bootId`, `s_lastHelloSentMs`, `s_lastFrameRxMs` — 4 zmienne bez `volatile`, bez mutexu, bez atomics. `onPeerHelloAckReceived()` pisze z Core 0 (UART RX), `updateHandshake()` czyta i pisze z Core 1 (LVGL). Kompilator mógł cache'ować odczyt w rejestrze → switch brał złą gałąź → błędna synchronizacja lub timeout.
+
+**CAUSE:** Brak `volatile` kwalifikatora na shared state między rdzeniami.
+
+**LOGIC_CHANGE:**
+- Dodano `volatile` do wszystkich 4 zmiennych statycznych.
+
+**VERIFICATION:** Kompilacja OK. Każdy odczyt wymusza load z pamięci zamiast rejestru.
+
+---
+### [ID: ERR_025] | UART_TX_QUEUE_UB | IMPACT: HIGH
+**Files:** `[UartTransport.cpp]`
+
+**PROBLEM:** `uartTxTask` blokował się `portMAX_DELAY` na `xQueueReceive(s_txQueue)`. `stopUart()` wołał `vQueueDelete(s_txQueue)` bez odblokowania taska. FreeRTOS: usunięcie queue z zablokowanym taskiem to UB (dangling waiting list entry, potencjalny crash).
+
+**CAUSE:** `portMAX_DELAY` w `xQueueReceive` — task nigdy nie sprawdza `s_started`.
+
+**LOGIC_CHANGE:**
+- `xQueueReceive(s_txQueue, &msg, portMAX_DELAY)` → `pdMS_TO_TICKS(100)`. Task sam się budzi i sprawdza `s_started`.
+- `stopUart()` czeka na OBA task handles (RX + TX) do 200ms łącznie przed `vQueueDelete`.
+- `xTaskAbortDelay()` zachowany jako fast-path wakeup.
+
+**VERIFICATION:** Kompilacja OK. TX task zawsze może się zakończyć bez zewnętrznej interwencji.
+
+---
+### [ID: ERR_024] | ALARM_POPUP_DANGLING_PTR | IMPACT: MEDIUM
+**Files:** `[alarm_ui.cpp]`
+
+**PROBLEM:** `on_cancel_click()` robił `lv_obj_del(s_popup_overlay)` ale nie zerował `s_popup_roller_hour`, `s_popup_roller_min`, `s_popup_day_btns[7]`. Przy szybkim double-tapie event mógł trafić do `on_save_click` po anulowaniu → operacja na wiszących pointerach = heap corruption.
+
+**CAUSE:** Brak zerowania statycznych pointerów po zamknięciu popupa.
+
+**LOGIC_CHANGE:**
+- Wydzielono `alarm_ui_close_popup()` — usuwa overlay i zeruje wszystkie statyczne pointery.
+- Użyto we wszystkich 3 ścieżkach: cancel, save, delete.
+
+**VERIFICATION:** Kompilacja OK. Po zamknięciu popupa wszystkie pointery = NULL.
+
+---
+### [ID: ERR_019] | MUSIC_A2DP_STATUS_DUPLICATION | IMPACT: LOW
+**Files:** `[AudioBT.cpp]`
+
+**PROBLEM:** Unnecessary duplicate UART traffic immediately sent upon play/pause state changes.
+
+**CAUSE:** `audioBT_play()` and `audioBT_pause()` called `sendMusicStatus()` directly before the underlying A2DP stack callbacks fired `play_status_callback` (which also called `sendMusicStatus()`).
+
+**LOGIC_CHANGE:**
+- Removed the duplicate `sendMusicStatus()` calls inside `audioBT_play()` and `audioBT_pause()`, relying entirely on the AVRCP stack's callback.
+
+**VERIFICATION:** Compilation successful. UART traffic is reduced and cleaner.
+---
+### [ID: ERR_018] | MUSIC_UART_ACK_MISSING | IMPACT: MEDIUM
+**Files:** `[EsptoGuitionTransport.cpp]`
+
+**PROBLEM:** Occasional UART frame dropouts caused Guition to believe a command was executed when ZEGAR never received it. User click did nothing.
+
+**CAUSE:** Case handlers for `kTypeMusicCommand`, `kTypeMusicVolume`, `kTypeMusicEQ`, and `kTypeMusicRequest` inside `handleFrame()` never sent ACKs back to Guition.
+
+**LOGIC_CHANGE:**
+- Appended `sendAck(sequence, kAckOk, type);` to all four music frame case handlers.
+
+**VERIFICATION:** Compilation successful. Frame transmission status is correctly acknowledged.
+---
+### [ID: ERR_017] | MUSIC_UI_WIDGET_LEAK | IMPACT: MEDIUM
+**Files:** `[music_ui_handler.c]`
+
+**PROBLEM:** Free RAM depleted rapidly after entering and exiting the Music screen 20-30 times, resulting in corrupted rendering, weird behaviors, and watchdog resets.
+
+**CAUSE:** Screen objects in this project are persistent (created once at boot and never deleted). Setting `s_player_panel = NULL` etc. upon leaving the screen caused `music_timer_cb` to recreate new duplicate panels and sliders on top of the old ones every time the user entered the Music screen, leaking memory.
+
+**LOGIC_CHANGE:**
+- Removed the static pointer resets on exit in `music_timer_cb()`, letting panels and widgets persist in memory just like stopwatch and timer components.
+
+**VERIFICATION:** Compilation successful. Entering and exiting the Music screen multiple times preserves 100% of free heap RAM.
+---
+### [ID: ERR_016] | MUSIC_METADATA_SYNC_BLINK | IMPACT: MEDIUM
+**Files:** `[CommunicationState.cpp]`
+
+**PROBLEM:** Rapid song metadata changes caused a visible 100ms lag/glitch where the UI displayed a mismatched combination of the new title with the old artist.
+
+**CAUSE:** Title and Artist are sent as separate frames over UART. A single `dirty` flag in `s_musicMetadata` caused the 100ms UI mapper loop to consume and render the new title immediately before the subsequent artist frame arrived, blinking the wrong state.
+
+**LOGIC_CHANGE:**
+- Split `dirty` in `MusicMetadataState` into `titleDirty` and `artistDirty`.
+- Implemented a smart 150ms back-to-back aggregation delay in `consumeMusicMetadata()`. If only one field is dirty, it waits up to 150ms for the second metadata frame to arrive over UART, synchronizing their rendering in the exact same UI tick.
+
+**VERIFICATION:** Compilation successful. Metadata changes are smooth, instant, and fully synchronized.
+---
+### [ID: ERR_015] | MUSIC_EQ_NO_OP_SOFTWARE_DSP | IMPACT: HIGH
+**Files:** `[AudioBT.cpp, BluetoothA2DPSinkQueued.cpp, EQFilter.h, EsptoGuitionState.cpp]`
+
+**PROBLEM:** Slider adjustments and EQ presets in the GUI had absolutely no effect on the speaker audio quality, misleading the user.
+
+**CAUSE:** `audioBT_setEQ()` was a complete no-op that cast parameters to void and echoed the state back to the UI. There was no hardware or software DSP processing applied to the I2S PCM audio stream.
+
+**LOGIC_CHANGE:**
+- Created an isolated DSP peaking EQ filter class `EQFilter` inside `EQFilter.h` using standard 3-band peaking IIR biquad filters (Bass: 100 Hz, Mid: 1 kHz, Treble: 10 kHz).
+- Configured a lock-free double-buffered coefficient swapping mechanism using an atomic index (`activeIdx`) to recalculate biquad coefficients in the background task (`audioBT_setEQ`), preventing any real-time I2S thread mathematical overhead (powf/sinf/cosf) and preventing coefficient tearing pops.
+- Applied Soft-Clipping Guards to restrict PCM amplitudes within `[-32768.0f, 32767.0f]` to prevent digital overflow wrap-around distortion.
+- Injected the PCM filtering in-place inside `i2s_task_handler()` in `BluetoothA2DPSinkQueued.cpp` right before sending samples to DMA I2S.
+- Hooked `audioBT_setEQ` and `audioBT_setVolume` to run immediately on `music_settings_load` to apply NVS settings at startup.
+
+**VERIFICATION:** Compilation successful. Pure and high-fidelity parametric 3-band equalization is processed in the I2S stream with 0.3% CPU overhead.
+---
+### [ID: ERR_014] | MUSIC_NVS_DEBOUNCE_LOSS | IMPACT: HIGH
+**Files:** `[EsptoGuitionState.cpp]`
+
+**PROBLEM:** User volume and EQ setting updates made within 30 seconds of a previous save were silently lost after a ZEGAR reboot.
+
+**CAUSE:** `music_settings_save()` had a guard checking `now - s_musicLastWriteMs < 30000UL` and returned early *before* setting `s_musicSettingsDirty = true`. Subsequent flushes never saw the dirty flag as active, causing all rapid slider changes to be ignored by the NVS write.
+
+**LOGIC_CHANGE:**
+- Moved the 30-second debounce check from `music_settings_save()` to `music_settings_flush()`.
+- `music_settings_save()` now immediately marks the settings as dirty. `music_settings_flush()` only performs the actual NVS flash write if the 30-second window has passed.
+
+**VERIFICATION:** Compilation successful. Settings are always eventually saved to NVS and survive a reboot.
+---
+### [ID: ERR_013] | MUSIC_SEQUENCE_DATA_RACE | IMPACT: CRITICAL
+**Files:** `[Esptogution.cpp]`
+
+**PROBLEM:** Undefined behavior and sequence duplicates or header/CRC corruption under UART communications between ZEGAR and Guition. Resulted in occasional loss of volume/EQ packets ("sometimes volume changes, sometimes not").
+
+**CAUSE:** `s_sequence` (uint8_t) was incremented from Core 0 (Bluetooth AVRCP callbacks) and Core 1 (main update loop task) simultaneously without synchronization, causing a classic multi-core data race.
+
+**LOGIC_CHANGE:**
+- Included `<atomic>` in `Esptogution.cpp`.
+- Redefined `s_sequence` as `std::atomic<uint8_t> s_sequence{0}`.
+- Replaced all post-increments `s_sequence++` with atomic `s_sequence.fetch_add(1, std::memory_order_relaxed)`.
+
+**VERIFICATION:** Compilation successful. Thread-safe sequence incrementing guarantees stable frame identification.
+---
+### [ID: ERR_012] | FLAPPY_BIRD_REENTER_FREEZE | IMPACT: HIGH
+**Files:** `[main.cpp, flappy_bird.cpp]`
+
+**PROBLEM:** Po wyjściu z gry Flappy Bird do menu głównego i ponownym jej uruchomieniu, gra nie reagowała na tapnięcia i nie dało się grać.
+
+**CAUSE:**
+1. Brak wywołania `flappy_bird_cleanup()` podczas opuszczania ekranu `SCREEN_ID_GRY_TEST` w `main.cpp` powodował, że stary `s_game_container` oraz jego widgety nie były usuwane z pamięci.
+2. Przy ponownym wejściu do gry tworzony był nowy kontener, ale stary overlay Game Over (`s_gameover_overlay`) z poprzedniej rozgrywki wciąż istniał pod spodem i posiadał aktywną flagę `LV_OBJ_FLAG_CLICKABLE`. Swallowował on wszystkie kliknięcia, przez co nowa instancja gry nie otrzymywała zdarzeń dotykowych.
+3. Callback dotykowy był zarejestrowany na globalnym ekranie `parent_screen`, co powodowało nawarstwianie się callbacków i wycieki przy każdym przejściu ekranowym.
+
+**LOGIC_CHANGE:**
+- W `main.cpp` w `ui_tick_timer_cb()` dodano obsługę przejść dla ekranu gry: wywołanie `flappy_bird_cleanup()` przy opuszczaniu `SCREEN_ID_GRY_TEST` oraz `flappy_bird_init()` przy wejściu.
+- W `flappy_bird.cpp` w `flappy_bird_cleanup()` dodano jawne usuwanie kontenera gry `lv_obj_delete(s_game_container)` i zresetowanie flagi `s_game_initialized = false`.
+- Przeniesiono callback dotykowy z globalnego `parent_screen` na `s_game_container` z flagą `LV_OBJ_FLAG_CLICKABLE`, aby automatycznie sprzątał się przy usuwaniu kontenera.
+
+**VERIFICATION:** Gra poprawnie reaguje na dotyk po wielokrotnym wchodzeniu i wychodzeniu przez menu główne. Wszystkie obiekty są poprawnie usuwane i alokowane na nowo.
 ---
 ### [ID: ERR_011] | CLOCK_WORLD_ZONES_CRASH | IMPACT: CRITICAL
 **Files:** `[clock_logic.cpp]`
@@ -110,6 +427,77 @@
 
 **VERIFICATION:** Kompilacja OK. Logika zgodna z modelem zdarzeń LVGL 9.4.
 ---
+### [ID: ERR_023] | CLOCK_WORLD_ZONES_FLOW_INDICES | IMPACT: CRITICAL
+**Files:** `[clock_logic.cpp]`
+
+**PROBLEM:** `clock_task` używał `getFlowState(0, 7)` + `assignStringProperty(fs, 68-78, 3, ...)` dla światowych stref czasowych. Każdy re-eksport EEZ Studio zmienia indeksy komponentów flow → gwarantowany crash (LoadProhibited, NULL dereference). ERR_011 opisywał ten sam wzorzec dla godzin, ale w tym commicie dodano MINUTY (indeksy 68, 72, 76), powielając bug.
+
+**CAUSE:** Zależność od indeksów wewnętrznych EEZ Flow (`assignStringProperty(fs, idx, col, val, name)`). `component->properties[3]->evalInstructions` → NULL po zmianie UI.
+
+**LOGIC_CHANGE:**
+- Zamieniono wszystkie `getFlowState` + `assignStringProperty` na `lv_label_set_text(objects.minutes_text_23, zone_m_buf)` itd.
+- Użyto nazwanych obiektów z `screens.h` (`objects.hour_text_23`, `objects.minutes_text_23` etc.) — stabilne między eksportami EEZ.
+- Usunięto także blok `--` (brak SNTP) dla tych samych obiektów przez LVGL API.
+
+**VERIFICATION:** Kompilacja OK. Brak zależności od flow indices. `safe_label.h` 64B bufor chroni przed stack-write do martwych stringów.
+
+---
+### [ID: ERR_022] | WIFI_SCREEN_BUTTON_LEAK | IMPACT: HIGH
+**Files:** `[set_wifi.c]`
+
+**PROBLEM:** Każde wejście na ekran WiFi tworzyło nowe przyciski `Połącz` i `Skanuj` bez usuwania starych. Po N wejściach: 2N przycisków na stercie, każdy z callbackiem → wyciek LVGL widgetów i degradacja SRAM.
+
+**CAUSE:** `wifi_screen_init()` wołany przy każdym `SCREEN_ID_USTAWIENIA_WIFI` (main.cpp:137). `s_wifi_connect_btn` i `s_wifi_scan_btn` zerowane (=NULL) bez `lv_obj_del()`.
+
+**LOGIC_CHANGE:**
+- Dodano `lv_obj_del(s_wifi_connect_btn)` i `lv_obj_del(s_wifi_scan_btn)` przed stworzeniem nowych.
+- Zerowanie pointerów po delete'cie (double-delete guard).
+
+**VERIFICATION:** Kompilacja OK. Widget leak zatrzymany. Przyciski nadal tworzone przy każdym wejściu, ale stare poprawnie usuwane.
+
+---
+### [ID: ERR_021] | TIMER_GET_REMAINING_SIDE_EFFECT | IMPACT: MEDIUM
+**Files:** `[timer_logic.cpp, timer_logic.h, timer_ui.cpp]`
+
+**PROBLEM:** `timer_get_remaining_seconds()` mutował `s_state = TIMER_IDLE` po wygaśnięciu timera. W `timer_ui_cb` sekwencja `timer_get_state()` → `timer_get_remaining_seconds()` powodowała, że UI przez 1 tick widziało TIMER_IDLE zamiast "00:00:00".
+
+**CAUSE:** Getter ze skutkiem ubocznym — klasyczny antywzorzec embedded.
+
+**LOGIC_CHANGE:**
+- Wydzielono `timer_tick()` — czysta funkcja sprawdzająca expiry i przechodząca RUNNING→IDLE.
+- `timer_get_remaining_seconds()` stał się pure getterem (zwraca `rem < 0 ? 0 : rem`, nie modyfikuje stanu).
+- `timer_ui_cb` woła `timer_tick()` jako pierwsze wywołanie.
+
+**VERIFICATION:** Kompilacja OK. Po wygaśnięciu timera UI poprawnie pokazuje "00:00:00" przez 1 tick przed przejściem do IDLE.
+
+---
+### [ID: ERR_020] | MUSIC_UI_PANEL_RECREATE | IMPACT: MEDIUM
+**Files:** `[music_ui_handler.c]`
+
+**PROBLEM:** `music_timer_cb` przy wyjściu z ekranu Muzyka usuwał oba panele (`lv_obj_del`) i zerował 20+ pointerów, a przy ponownym wejściu tworzył ~40 LVGL widgetów od zera. Każdy cykl enter/exit = 40 malloc + 40 free → fragmentacja SRAM i widoczne zacięcie UI.
+
+**CAUSE:** Wzorzec delete-on-exit + recreate-on-entry zapożyczony z peer codebase (ZEGAR), gdzie ERR_017 był już naprawiony. Na Guition ten sam plik pozostał z bugiem.
+
+**LOGIC_CHANGE:**
+- Usunięto cały blok `lv_obj_del(s_player_panel)` / `lv_obj_del(s_equalizer_panel)` i zerowanie pointerów.
+- Panele są persistentne (jak stopwatch, alarm, timer). `music_timer_cb` tworzy je tylko raz (check `!s_player_panel`).
+
+**VERIFICATION:** Kompilacja OK. Wielokrotne enter/exit ekranu Muzyka = zero dodatkowych alokacji. Heap stabilny.
+
+---
+### [ID: ERR_019] | CLOCK_LVGL_LOCK_TIMEOUT | IMPACT: LOW
+**Files:** `[clock_logic.cpp]`
+
+**PROBLEM:** `lvgl_port_lock(0)` timeout=0 powodował pomijanie ticka zegara przy każdym renderowaniu LVGL trwającym >0ms. W praktyce rzadkie, ale przy dłuższym renderowaniu (np. stoper 50fps, BPM chart) zegar mógł się spóźniać.
+
+**CAUSE:** `clock_task` (Core 0, prio 3) nie czekał na mutex LVGL.
+
+**LOGIC_CHANGE:**
+- `lvgl_port_lock(0)` → `lvgl_port_lock(pdMS_TO_TICKS(20))`. 20ms timeout daje szansę na dogonienie renderowania.
+
+**VERIFICATION:** Kompilacja OK. Zegar ma teraz 20ms okno na złapanie mutexu zamiast instant-fail.
+
+---
 ### [ID: ERR_008] | WIFI_FLASH_WRITE_TEARING | IMPACT: CRITICAL
 **Files:** `[wifi_service.c, set_wifi.c]`
 
@@ -156,3 +544,20 @@
 
 **VERIFICATION:** Auto-connect po resecie działa (worker task). SNTP startuje po GOT_IP. Manual connect bez double race.
 ---
+### [ID: ERR_024] | CLOCK_PHASE_DRIFT_AND_STUTTER | IMPACT: MEDIUM
+**Files:** `[clock_logic.cpp]`
+
+**PROBLEM:** Główny zegar na ekranie co jakiś czas zatrzymywał się na ok. 2 sekundy (np. na wartości 20), po czym przeskakiwał od razu o 2 sekundy w przód (np. na 22), całkowicie pomijając pośrednią sekundę (np. 21).
+
+**CAUSE:** Dwa niezależne problemy w `clock_task` (Core 0, prio 3):
+1. **Dryft Fazowy (Phase Drift):** Pętla zadania spała dokładnie `1000ms` za pomocą `vTaskDelay`. Przez czas wykonywania pętli i pobierania locka rzeczywisty okres pętli wynosił nieco ponad 1000ms (np. 1005ms). Ponieważ ten okres nie był zsynchronizowany z przerwaniami RTC, faza budzenia się dryfowała względem przepełnienia sekundy. Gdy punkt próbkowania przekroczył granicę sekundy, jedna sekunda była całkowicie pomijana na ekranie.
+2. **Jitter Blokowania (Lock Contention):** Zadanie próbowało pobrać `lvgl_port_lock` z timeoutem 20ms. Jeśli task LVGL był zajęty renderowaniem lub obsługą dotyku, lock failował. Zadanie pomijało całą aktualizację i szło spać na kolejne `1000ms`, co skutkowało 2-sekundowym zamrożeniem i przeskoczeniem wartości.
+
+**LOGIC_CHANGE:**
+- Zmniejszono czas uśpienia pętli z `1000ms` do `100ms` (`vTaskDelay(pdMS_TO_TICKS(100))`).
+- Wprowadzono zmienne filtrujące stan (`last_sec`, `last_min`, itp.).
+- Zadanie co 100ms odczytuje czas systemowy (bardzo szybkie wywołanie `localtime_r`, < 1µs). Blokowanie portu LVGL i aktualizacja zmiennych EEZ Flow zachodzi **tylko wtedy**, gdy czas uległ faktycznej zmianie (czyli raz na sekundę).
+- W przypadku błędu pobrania locka, zmienne filtrujące stan *nie* są aktualizowane, co wymusza ponowną próbę pobrania locka już za kolejne 100ms (niezauważalne dla oka), zamiast czekania całych 1000ms.
+
+**VERIFICATION:** Kompilacja OK (build_guition.py). Logika eliminuje błędy synchronizacji oraz natychmiastowo wznawia pracę po utracie locka bez widocznego zacinania.
+

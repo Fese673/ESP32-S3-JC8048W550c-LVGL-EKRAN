@@ -41,8 +41,8 @@ static struct {
     bool initialized;
 } s_ctx;
 
-static uint32_t dc_offset_us(void) {
-    return (uint32_t)(esp_timer_get_time());
+static int64_t dc_offset_us(void) {
+    return esp_timer_get_time();
 }
 
 static uint32_t generate_ir_sample(uint32_t phase_us, uint32_t period_us, uint32_t ac_amp) {
@@ -101,21 +101,21 @@ static int16_t compute_diff(uint32_t filtered) {
     return (int16_t)diff;
 }
 
-static uint32_t respiration_amp(uint32_t now_us) {
-    uint32_t resp_period_us = 5000000;
-    uint32_t resp_phase = now_us % resp_period_us;
-    uint32_t t = (resp_phase * 2048) / resp_period_us;
+static uint32_t respiration_amp(int64_t now_us) {
+    int64_t resp_period_us = 5000000;
+    int64_t resp_phase = now_us % resp_period_us;
+    uint32_t t = (uint32_t)((resp_phase * 2048) / resp_period_us);
     uint32_t half = (t < 1024) ? t : (2048 - t);
     return PPG_AC_AMP * (512 + (half * 512) / 1024) / 1024;
 }
 
-static uint32_t variable_period(uint32_t now_us) {
-    uint32_t seed = s_ctx.beat_count * 2654435761U + (now_us >> 10);
+static uint32_t variable_period(int64_t now_us) {
+    uint32_t seed = s_ctx.beat_count * 2654435761U + ((uint32_t)(now_us >> 10));
     int32_t variation = (int32_t)(seed % 50001) - 25000;
     return (uint32_t)((int32_t)s_ctx.beat_period_us + variation);
 }
 
-static int16_t generate(uint32_t now_us) {
+static int16_t generate(int64_t now_us) {
     uint32_t ac = respiration_amp(now_us);
     uint32_t period = variable_period(now_us);
 
@@ -155,10 +155,13 @@ void bpm_service_init(void) {
 }
 
 void bpm_service_set_mock_mode(bool enabled) {
+    portENTER_CRITICAL(&s_ctx.mux);
     s_ctx.mock_enabled = enabled;
+    portEXIT_CRITICAL(&s_ctx.mux);
 }
 
 bool bpm_service_get_mock_mode(void) {
+    // bool = 1 bajt, atomic read na Xtensa — spinlock niepotrzebny
     return s_ctx.mock_enabled;
 }
 
@@ -182,6 +185,8 @@ void bpm_service_set_bpm(int bpm) {
     if (bpm < 30) bpm = 30;
     if (bpm > 220) bpm = 220;
 
+    portENTER_CRITICAL(&s_ctx.mux);
+
     uint32_t new_period = 60000000 / (uint32_t)bpm;
 
     if (s_ctx.beat_period_us > 0) {
@@ -193,24 +198,28 @@ void bpm_service_set_bpm(int bpm) {
 
     s_ctx.bpm = bpm;
     s_ctx.beat_period_us = new_period;
+
+    portEXIT_CRITICAL(&s_ctx.mux);
 }
 
 int bpm_service_get_bpm(void) {
+    // int = 4 bajty, aligned, atomic read na Xtensa LX7 — spinlock niepotrzebny.
+    // Setter (set_bpm) używa spinlocka dla multi-field atomic write (bpm + beat_period_us + phase_us).
     return s_ctx.bpm;
 }
 
 void bpm_service_set_spo2(uint8_t spo2) {
     if (spo2 > 100) spo2 = 100;
+    portENTER_CRITICAL(&s_ctx.mux);
     s_ctx.spo2 = spo2;
+    portEXIT_CRITICAL(&s_ctx.mux);
 }
 
 int bpm_service_get_spo2(void) {
+    // uint8_t = 1 bajt, atomic read na Xtensa — spinlock niepotrzebny
     return s_ctx.spo2;
 }
 
-int16_t bpm_service_current_diff(void) {
-    return s_ctx.last_diff;
-}
 
 uint16_t bpm_service_update(uint32_t now_ms) {
     if (!s_ctx.initialized) {
@@ -228,7 +237,7 @@ uint16_t bpm_service_update(uint32_t now_ms) {
 
         while (remaining_us >= SAMPLE_INTERVAL_US) {
             remaining_us -= SAMPLE_INTERVAL_US;
-            uint32_t now_us = dc_offset_us();
+            int64_t now_us = dc_offset_us();
             int16_t sample = generate(now_us);
             push_sample(sample);
             generated++;

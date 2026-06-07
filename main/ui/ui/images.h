@@ -10,7 +10,7 @@ extern "C" {
 extern const lv_img_dsc_t img_kfe_analiza;
 extern const lv_img_dsc_t img_kfe_czujniki;
 extern const lv_img_dsc_t img_kfe_menu;
-extern const lv_img_dsc_t img_kfe_skroty;
+extern const lv_img_dsc_t img_kfe_pogoda;
 extern const lv_img_dsc_t img_left_arrow;
 extern const lv_img_dsc_t img_moon;
 extern const lv_img_dsc_t img_right_arrow;
@@ -21,8 +21,8 @@ extern const lv_img_dsc_t img_bell_on_icon;
 extern const lv_img_dsc_t img_water_icon;
 extern const lv_img_dsc_t img_temp_icon;
 extern const lv_img_dsc_t img_pm_icon;
+extern const lv_img_dsc_t img_tvoc_icon;
 extern const lv_img_dsc_t img_air_icon;
-extern const lv_img_dsc_t img_kfe_harmonogram;
 extern const lv_img_dsc_t img_kfe_info;
 extern const lv_img_dsc_t img_kfe_log;
 extern const lv_img_dsc_t img_kfe_tools;
@@ -32,7 +32,7 @@ extern const lv_img_dsc_t img_kfe_statystyk;
 extern const lv_img_dsc_t img_kfe_gry;
 extern const lv_img_dsc_t img_kfe_alarm;
 extern const lv_img_dsc_t img_kfe_buzzer;
-extern const lv_img_dsc_t img_kfe_dotykekranu;
+extern const lv_img_dsc_t img_kfe_pin_dotyku;
 extern const lv_img_dsc_t img_kfe_mqtt;
 extern const lv_img_dsc_t img_kfe_muzykawtle;
 extern const lv_img_dsc_t img_kfe_pms;
@@ -60,6 +60,8 @@ extern const lv_img_dsc_t img_kfe_czas;
 extern const lv_img_dsc_t img_kfe_budzik;
 extern const lv_img_dsc_t img_kfe_stoper;
 extern const lv_img_dsc_t img_kfe_minutnik;
+extern const lv_img_dsc_t img_kfe_bpm;
+extern const lv_img_dsc_t img_kfe_ustawienia;
 
 #ifndef EXT_IMG_DESC_T
 #define EXT_IMG_DESC_T
@@ -69,7 +71,7 @@ typedef struct _ext_img_desc_t {
 } ext_img_desc_t;
 #endif
 
-extern const ext_img_desc_t images[53];
+extern const ext_img_desc_t images[55];
 
 #ifdef __cplusplus
 }

@@ -15,10 +15,10 @@ constexpr uint8_t kDeviceRoleDisplay = 0;
 constexpr uint32_t kHelloIntervalMs  = 250;
 constexpr uint32_t kKeepaliveTimeoutMs = 60000;
 
-static uint32_t s_bootId = 0;
-static PeerSyncState s_syncState = kSyncBooting;
-static uint32_t s_lastHelloSentMs = 0;
-static uint32_t s_lastFrameRxMs = 0;
+static volatile uint32_t s_bootId = 0;
+static volatile PeerSyncState s_syncState = kSyncBooting;
+static volatile uint32_t s_lastHelloSentMs = 0;
+static volatile uint32_t s_lastFrameRxMs = 0;
 
 } // namespace
 

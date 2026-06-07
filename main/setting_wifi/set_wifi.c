@@ -1,5 +1,6 @@
 #include "set_wifi.h"
 #include "ui/ui/screens.h"
+#include "ui/ui/fonts.h"
 #include "wifi_service.h"
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -10,17 +11,19 @@
 
 static const char *TAG = "WIFI_SET";
 static char selected_ssid[64] = "";
-static lv_timer_t * scan_timer = NULL;
+
 static lv_timer_t * results_poll_timer = NULL;
 static lv_timer_t * connect_poll_timer = NULL;
 static int64_t s_connect_start_us = 0;
 static wifi_ap_list_item_t s_last_scan_results[MAX_SCAN_RESULTS];
 static uint16_t s_last_scan_count = 0;
-static bool s_wifi_callbacks_registered = false;
 static bool s_connect_done_shown = false;
 static char s_status_buf[128];
+static lv_obj_t * s_wifi_connect_btn = NULL;
+static lv_obj_t * s_wifi_scan_btn = NULL;
 
 static void list_btn_event_handler(lv_event_t * e);
+static void scan_btn_event_handler(lv_event_t * e);
 static void set_status(const char *fmt, ...) {
     if (!objects.wifi_status_labe) return;
     va_list args;
@@ -60,12 +63,7 @@ static void results_poll_cb(lv_timer_t * t) {
     }
 }
 
-static void scan_timer_cb(lv_timer_t * t) {
-    ESP_LOGI(TAG, "Periodic scan start...");
-    wifi_service_scan_start();
-    if (results_poll_timer) lv_timer_resume(results_poll_timer);
-    set_status("Od\u015bwie\u017canie listy...");
-}
+
 
 static void connect_poll_cb(lv_timer_t * t) {
     if (atomic_exchange(&g_wifi_nvs_save_complete, false)) {
@@ -140,6 +138,16 @@ static void list_btn_event_handler(lv_event_t * e) {
     set_status("Wybrano: %s", selected_ssid);
 }
 
+static void scan_btn_event_handler(lv_event_t * e) {
+    lv_event_code_t code = lv_event_get_code(e);
+    if (code != LV_EVENT_CLICKED) return;
+
+    ESP_LOGI(TAG, "Skanowanie wywolane przyciskiem...");
+    wifi_service_scan_start();
+    if (results_poll_timer) lv_timer_resume(results_poll_timer);
+    set_status("Skanowanie sieci...");
+}
+
 static void connect_btn_event_handler(lv_event_t * e) {
     lv_event_code_t code = lv_event_get_code(e);
     if (code != LV_EVENT_CLICKED) return;
@@ -171,11 +179,50 @@ void wifi_screen_init(void) {
         lv_textarea_set_placeholder_text(objects.wifi_password_input, "Has\u0142o...");
     }
 
-    if (!s_wifi_callbacks_registered) {
-        if (objects.wifi_connect_btn) {
-            lv_obj_add_event_cb(objects.wifi_connect_btn, connect_btn_event_handler, LV_EVENT_CLICKED, NULL);
-        }
-        s_wifi_callbacks_registered = true;
+    // Usuń stare przyciski z poprzednich wejść (ekran persistentny, bez delete'a byłby wyciek)
+    if (s_wifi_connect_btn) { lv_obj_del(s_wifi_connect_btn); s_wifi_connect_btn = NULL; }
+    if (s_wifi_scan_btn)    { lv_obj_del(s_wifi_scan_btn);    s_wifi_scan_btn = NULL; }
+
+    if (objects.ustawienia_wifi) {
+        // Strefa textarea: x=306..662, y=66..240 (174px wysokosci)
+        // Kolumna przyciskow: x=672..789 (118px szer.)
+        // Dwa przyciski 54px, odstep 16px, razem 124px
+        // Wycentrowanie: (174 - 124) / 2 = 25px -> y_start = 66 + 25 = 91
+        // Przycisk POLACZ (wyzej - wazniejszy)
+        s_wifi_connect_btn = lv_button_create(objects.ustawienia_wifi);
+        lv_obj_set_pos(s_wifi_connect_btn, 672, 91);
+        lv_obj_set_size(s_wifi_connect_btn, 118, 54);
+        lv_obj_set_style_bg_color(s_wifi_connect_btn, lv_color_hex(0x18161b), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(s_wifi_connect_btn, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_border_color(s_wifi_connect_btn, lv_color_hex(0x7a7580), LV_PART_MAIN);
+        lv_obj_set_style_border_width(s_wifi_connect_btn, 1, LV_PART_MAIN);
+        lv_obj_set_style_radius(s_wifi_connect_btn, 12, LV_PART_MAIN);
+
+        lv_obj_t *lbl_connect = lv_label_create(s_wifi_connect_btn);
+        lv_label_set_text_static(lbl_connect, "Po\u0142\u0105cz");
+        lv_obj_set_style_text_color(lbl_connect, lv_color_hex(0xffffff), LV_PART_MAIN);
+        lv_obj_set_style_text_font(lbl_connect, &ui_font_consola_18, LV_PART_MAIN);
+        lv_obj_align(lbl_connect, LV_ALIGN_CENTER, 0, 0);
+
+        lv_obj_add_event_cb(s_wifi_connect_btn, connect_btn_event_handler, LV_EVENT_CLICKED, NULL);
+
+        // Przycisk SKANUJ (ponizej, atrap - bez obslugi zdarzen)
+        s_wifi_scan_btn = lv_button_create(objects.ustawienia_wifi);
+        lv_obj_set_pos(s_wifi_scan_btn, 672, 161);
+        lv_obj_set_size(s_wifi_scan_btn, 118, 54);
+        lv_obj_set_style_bg_color(s_wifi_scan_btn, lv_color_hex(0x18161b), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(s_wifi_scan_btn, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_border_color(s_wifi_scan_btn, lv_color_hex(0x7a7580), LV_PART_MAIN);
+        lv_obj_set_style_border_width(s_wifi_scan_btn, 1, LV_PART_MAIN);
+        lv_obj_set_style_radius(s_wifi_scan_btn, 12, LV_PART_MAIN);
+
+        lv_obj_t *lbl_scan = lv_label_create(s_wifi_scan_btn);
+        lv_label_set_text_static(lbl_scan, "Skanuj");
+        lv_obj_set_style_text_color(lbl_scan, lv_color_hex(0xffffff), LV_PART_MAIN);
+        lv_obj_set_style_text_font(lbl_scan, &ui_font_consola_18, LV_PART_MAIN);
+        lv_obj_align(lbl_scan, LV_ALIGN_CENTER, 0, 0);
+
+        lv_obj_add_event_cb(s_wifi_scan_btn, scan_btn_event_handler, LV_EVENT_CLICKED, NULL);
     }
 
     selected_ssid[0] = '\0';
@@ -184,9 +231,7 @@ void wifi_screen_init(void) {
 
     if (!results_poll_timer) {
         results_poll_timer = lv_timer_create(results_poll_cb, 500, NULL);
-    }
-    if (!scan_timer) {
-        scan_timer = lv_timer_create(scan_timer_cb, 60000, NULL);
+        lv_timer_pause(results_poll_timer);
     }
     if (!connect_poll_timer) {
         connect_poll_timer = lv_timer_create(connect_poll_cb, 1000, NULL);
@@ -194,15 +239,12 @@ void wifi_screen_init(void) {
     }
 
     lv_timer_pause(connect_poll_timer);
-    wifi_service_scan_start();
-    lv_timer_resume(results_poll_timer);
-    lv_timer_resume(scan_timer);
-    set_status("Skanowanie sieci...");
+    lv_timer_pause(results_poll_timer);
+    set_status("Naci\u015bnij Skanuj, aby znale\u017a\u0107 sieci.");
 }
 
 void wifi_timers_pause(void) {
     if (results_poll_timer) lv_timer_pause(results_poll_timer);
-    if (scan_timer) lv_timer_pause(scan_timer);
     if (connect_poll_timer) lv_timer_pause(connect_poll_timer);
 }
 

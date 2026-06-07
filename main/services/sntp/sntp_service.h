@@ -7,9 +7,6 @@
 extern "C" {
 #endif
 
-// Inicjalizuje SNTP i ustawia strefę czasową
-void sntp_service_init(void);
-
 // Sprawdza czy czas został już zsynchronizowany
 bool sntp_service_is_synced(void);
 

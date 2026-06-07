@@ -34,7 +34,6 @@ static SemaphoreHandle_t s_logMutex = NULL;
 static void log_add_to_buffer(const char *tag, const char *message) {
     if (!log_initialized) return;
 
-    if (s_logMutex == NULL) s_logMutex = xSemaphoreCreateMutex();
     if (s_logMutex) xSemaphoreTake(s_logMutex, portMAX_DELAY);
 
     log_change_counter++;
@@ -55,6 +54,9 @@ static void log_add_to_buffer(const char *tag, const char *message) {
 }
 
 void log_init(void) {
+    if (s_logMutex == NULL) {
+        s_logMutex = xSemaphoreCreateMutex();
+    }
     log_buffer[0] = '\0';
     log_buffer_pos = 0;
     log_change_counter = 0;
@@ -129,12 +131,7 @@ void log_error(const char *tag, const char *format, ...) {
     log_add_to_buffer(tag, message);
 }
 
-const char* log_get_all_text(void) {
-    return log_buffer;
-}
-
 void log_clear(void) {
-    if (s_logMutex == NULL) s_logMutex = xSemaphoreCreateMutex();
     if (s_logMutex) xSemaphoreTake(s_logMutex, portMAX_DELAY);
     log_buffer[0] = '\0';
     log_buffer_pos = 0;
@@ -155,7 +152,6 @@ void log_update_textarea(void) {
     if (now - last_update < 500000) return;
     last_update = now;
 
-    if (s_logMutex == NULL) s_logMutex = xSemaphoreCreateMutex();
     if (s_logMutex) xSemaphoreTake(s_logMutex, portMAX_DELAY);
 
     lv_textarea_set_max_length(objects.log_terminal, 0);

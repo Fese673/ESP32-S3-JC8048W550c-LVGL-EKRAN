@@ -3,8 +3,10 @@
 #include "communication/CommHandshake.h"
 #include "communication/CobsFraming.h"
 #include "communication/CommunicationState.h"
+#include "communication/time/timer_synchro.h"
 #include "services/bpm/bpm_service.h"
 #include "utils/comm_log/comm_log.h"
+#include "app/alarm_logic.h"
 #include <stdio.h>
 #include <string.h>
 #include "driver/uart.h"
@@ -13,6 +15,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include <atomic>
 
 namespace CommunicationProtocol {
 namespace {
@@ -42,7 +45,7 @@ FrameParser s_parser;
 TaskHandle_t s_rxTaskHandle = nullptr;
 TaskHandle_t s_txTaskHandle = nullptr;
 QueueHandle_t s_txQueue = nullptr;
-volatile bool s_started = false;
+std::atomic<bool> s_started{false};
 
 void resetParser() { s_parser.length = 0; }
 
@@ -85,6 +88,33 @@ void handleFrame(uint8_t type, const uint8_t *payload, uint16_t payloadLength) {
     case kTypeStatusBell:
         applyStatusBellPayload(payload, payloadLength);
         break;
+    case kTypeMusicMetadata:
+        applyMusicMetadataPayload(payload, payloadLength);
+        break;
+    case kTypeMusicStatus:
+        applyMusicStatusPayload(payload, payloadLength);
+        break;
+    case kTypeMusicVolumeState:
+        applyMusicVolumeStatePayload(payload, payloadLength);
+        break;
+    case kTypeMusicEQState:
+        applyMusicEQStatePayload(payload, payloadLength);
+        break;
+    case kTypeRadioMode:
+        applyRadioModePayload(payload, payloadLength);
+        break;
+    case kTypeAlarmList:
+        TimerSync::handleAlarmListPayload(payload, payloadLength);
+        break;
+    case kTypeTimerState:
+        TimerSync::handleTimerStatePayload(payload, payloadLength);
+        break;
+    case kTypeEditLock:
+        TimerSync::handleEditLockPayload(payload, payloadLength);
+        break;
+    case kTypeStopwatchState:
+        TimerSync::handleStopwatchStatePayload(payload, payloadLength);
+        break;
     case kTypeHelloAck:
         onHelloAckReceived(payload, payloadLength);
         onPeerHelloAckReceived();
@@ -120,7 +150,9 @@ void uartRxTask(void *) {
 void uartTxTask(void *) {
     UartTxMessage msg;
     while (s_started) {
-        if (xQueueReceive(s_txQueue, &msg, portMAX_DELAY) == pdTRUE) {
+        // Timeout 100ms zamiast portMAX_DELAY — task sprawdza s_started i może
+        // się sam zakończyć bez potrzeby xTaskAbortDelay z zewnątrz.
+        if (xQueueReceive(s_txQueue, &msg, pdMS_TO_TICKS(100)) == pdTRUE) {
             uart_write_bytes(kUartPort, msg.data, msg.length);
         }
     }
@@ -168,21 +200,6 @@ void beginUart() {
         if (xTaskCreatePinnedToCore(uartTxTask, "comm_uart1_tx", 3072, nullptr, 3, &s_txTaskHandle, 0) != pdPASS) {
             ESP_LOGE(kTag, "Failed to create UART TX task");
         }
-    }
-}
-
-void stopUart() {
-    s_started = false;
-    if (s_rxTaskHandle != nullptr) {
-        uint32_t waited = 0;
-        while (s_rxTaskHandle != nullptr && waited < 100) {
-            vTaskDelay(pdMS_TO_TICKS(1));
-            waited++;
-        }
-    }
-    if (s_txQueue) {
-        vQueueDelete(s_txQueue);
-        s_txQueue = nullptr;
     }
 }
 

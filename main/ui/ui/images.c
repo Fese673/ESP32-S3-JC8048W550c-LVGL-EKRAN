@@ -1,10 +1,10 @@
 #include "images.h"
 
-const ext_img_desc_t images[53] = {
+const ext_img_desc_t images[55] = {
     { "kfe_analiza", &img_kfe_analiza },
     { "kfe_czujniki", &img_kfe_czujniki },
     { "kfe_menu", &img_kfe_menu },
-    { "kfe_skroty", &img_kfe_skroty },
+    { "kfe_pogoda", &img_kfe_pogoda },
     { "left_arrow", &img_left_arrow },
     { "moon", &img_moon },
     { "right_arrow", &img_right_arrow },
@@ -15,8 +15,8 @@ const ext_img_desc_t images[53] = {
     { "water_icon", &img_water_icon },
     { "temp_icon", &img_temp_icon },
     { "pm_icon", &img_pm_icon },
+    { "tvoc_icon", &img_tvoc_icon },
     { "air_icon", &img_air_icon },
-    { "kfe_harmonogram", &img_kfe_harmonogram },
     { "kfe_info", &img_kfe_info },
     { "kfe_log", &img_kfe_log },
     { "kfe_tools", &img_kfe_tools },
@@ -26,7 +26,7 @@ const ext_img_desc_t images[53] = {
     { "kfe_gry", &img_kfe_gry },
     { "kfe_alarm", &img_kfe_alarm },
     { "kfe_buzzer", &img_kfe_buzzer },
-    { "kfe_dotykekranu", &img_kfe_dotykekranu },
+    { "kfe_pin_dotyku", &img_kfe_pin_dotyku },
     { "kfe_mqtt", &img_kfe_mqtt },
     { "kfe_muzykawtle", &img_kfe_muzykawtle },
     { "kfe_pms", &img_kfe_pms },
@@ -54,4 +54,6 @@ const ext_img_desc_t images[53] = {
     { "kfe_budzik", &img_kfe_budzik },
     { "kfe_stoper", &img_kfe_stoper },
     { "kfe_minutnik", &img_kfe_minutnik },
+    { "kfe_bpm", &img_kfe_bpm },
+    { "kfe_ustawienia", &img_kfe_ustawienia },
 };

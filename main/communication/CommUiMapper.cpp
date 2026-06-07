@@ -1,12 +1,26 @@
 #include "communication/CommUiMapper.h"
 #include "communication/CommunicationState.h"
-#include "notification_logic.h"
+#include "app/notification/notification_logic.h"
+#include "app/alarm_ui.h"
+#include "app/zasoby_sliders.h"
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "esp_log.h"
 #include "screens.h"
 #include "eez-flow.h"
 #include "vars.h"
+
+// This constant is used by EEZ Flow but may be missing from vars.h after EEZ Studio export
+#ifndef FLOW_GLOBAL_VARIABLE_RADIO_MODE
+#define FLOW_GLOBAL_VARIABLE_RADIO_MODE 63
+#endif
+
+// Timer flow variables — przeniesione do timer_synchro.cpp
+
+#include "services/music/music_ui_handler.h"
+#include "main_handler.h"
+#include "app/weather/weather_icon_handler.h"
 
 namespace CommunicationProtocol {
 
@@ -22,24 +36,53 @@ void formatWithComma(char *buffer, size_t bufferSize, float value,
 }
 
 const char* wmoCodeToText(uint8_t code) {
-  if (code == 0) return "Slonecznie";
-  if (code <= 3) return "Czesc. zachm.";
+  if (code == 0) return "S\u0142onecznie";
+  if (code <= 3) return "Cz\u0119\u015b\u0107. zachm.";
   if (code <= 9) return "Zachmurzenie";
-  if (code <= 19) return "Mgla";
+  if (code <= 19) return "Mg\u0142a";
   if (code <= 29) return "Burza piaskowa";
   if (code <= 35) return "Sucho";
-  if (code <= 39) return "Mraz";
-  if (code <= 49) return "Mgla gesta";
-  if (code <= 59) return "Mzawka";
+  if (code <= 39) return "Mr\u00f3z";
+  if (code <= 49) return "Mg\u0142a g\u0119sta";
+  if (code <= 59) return "M\u017cawka";
   if (code <= 69) return "Deszcz";
-  if (code <= 79) return "Snieg";
-  if (code <= 84) return "Deszcz snieg";
-  if (code <= 89) return "Deszcz snieg";
+  if (code <= 79) return "\u015anieg";
+  if (code <= 84) return "Deszcz ze \u015bniegiem";
+  if (code <= 89) return "Deszcz ze \u015bniegiem";
   if (code <= 99) return "Burza";
   return "N/A";
 }
 
+static void initLabelScroll() {
+  static bool s_scrollInited = false;
+  if (s_scrollInited) return;
+  s_scrollInited = true;
+
+  lv_obj_t* scrollLabels[] = {
+    objects.tvoc_in_8, objects.co2_in_6, objects.pm10_in_7,
+    objects.pm25_in_3, objects.hm_in_1, objects.txt_in_4,
+    objects.tm_in_2, objects.pressure_in_5,
+    objects.no2_out_8, objects.co2_out_6, objects.pm10_out_7,
+    objects.pm25_out_3, objects.hm_out_1, objects.txt_out_4,
+    objects.tm_out_2, objects.pressure_out_5,
+    objects.weather_in_label, objects.weather_out_label
+  };
+  for (unsigned i = 0; i < sizeof(scrollLabels) / sizeof(scrollLabels[0]); ++i) {
+    lv_obj_t *label = scrollLabels[i];
+    if (!label) continue;
+    lv_obj_t *parent = lv_obj_get_parent(label);
+    lv_coord_t parentW = lv_obj_get_width(parent);
+    lv_coord_t labelX = lv_obj_get_x(label);
+    lv_coord_t w = parentW - labelX - 4;
+    if (w < 40) w = 40;
+    lv_obj_set_width(label, w);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL);
+  }
+}
+
 void resetUi() {
+  initLabelScroll();
+
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PRESSURE_SENSOR_IN, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_AIR_QUALITY_TEXT_IN, eez::Value("Oczekiwanie..."));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM1_0_SENSOR_IN, eez::Value("---"));
@@ -48,6 +91,7 @@ void resetUi() {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TEMP_SENSOR_IN, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM2_5_SENSOR_IN, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_CO2_SENSOR_IN, eez::Value("---"));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TVOC_SENSOR_IN, eez::Value("---"));
 
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_HUMIDITY_SENSOR_OUT, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TEMP_SENSOR_OUT, eez::Value("---"));
@@ -57,6 +101,9 @@ void resetUi() {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_CO2_SENSOR_OUT, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM10_SENSOR_OUT, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM1_0_SENSOR_OUT, eez::Value("---"));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_NO2_SENSOR_OUT, eez::Value("---"));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_SUNRISE__WEATHER_TIME, eez::Value("--:--"));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_SUNSET__WEATHER_TIME, eez::Value("--:--"));
 
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TM_ODCZUWALNA_WEATHER_OUT, eez::Value("---"));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_WIND_WEATHER_OUT, eez::Value("---"));
@@ -79,6 +126,18 @@ void resetUi() {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_WIFI_STATE, eez::Value(0));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_BLE_STATE, eez::Value(0));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_BELL_STATE, eez::Value(0));
+
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_TITLE, eez::Value("---"));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_ARTIST, eez::Value("---"));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_CONNECTED, eez::Value(0));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_PLAYING, eez::Value(0));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_VOLUME, eez::Value(50));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_BASS, eez::Value(50));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_MID, eez::Value(50));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_TREBLE, eez::Value(50));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_RADIO_MODE, eez::Value(0));
+
+  music_ui_reset();
 }
 
 void applySnapshotToMainScreen(const Snapshot &snapshot) {
@@ -87,20 +146,22 @@ void applySnapshotToMainScreen(const Snapshot &snapshot) {
   static char temperatureBuffer[24];
   static char humidityBuffer[16];
   static char pressureBuffer[16];
-  static char pm01Buffer[16];
-  static char pm10Buffer[16];
-  static char pm25Buffer[16];
+  static char pm01Buffer[24];
+  static char pm10Buffer[24];
+  static char pm25Buffer[24];
   static char co2Buffer[16];
   static char airQualityTextBuffer[24];
+  static char tvocBuffer[16];
 
   snprintf(pressureBuffer, sizeof(pressureBuffer), "%uhPa", snapshot.pressureHpa);
-  snprintf(pm01Buffer, sizeof(pm01Buffer), "PM1 %u", snapshot.pm01UgM3);
-  snprintf(pm10Buffer, sizeof(pm10Buffer), "PM10 %u", snapshot.pm10UgM3);
-  snprintf(pm25Buffer, sizeof(pm25Buffer), "PM2.5 %u", snapshot.pm25UgM3);
+  snprintf(pm01Buffer, sizeof(pm01Buffer), "[1.0] %u \u00b5g/m\u00b3", snapshot.pm01UgM3);
+  snprintf(pm10Buffer, sizeof(pm10Buffer), "[10] %u \u00b5g/m\u00b3", snapshot.pm10UgM3);
+  snprintf(pm25Buffer, sizeof(pm25Buffer), "[2.5] %u \u00b5g/m\u00b3", snapshot.pm25UgM3);
   snprintf(humidityBuffer, sizeof(humidityBuffer), "%u%%", snapshot.humidityPct);
   snprintf(co2Buffer, sizeof(co2Buffer), "%u ppm", snapshot.eco2);
   snprintf(airQualityTextBuffer, sizeof(airQualityTextBuffer), "%s", snapshot.airQualityText);
-  formatWithComma(temperatureBuffer, sizeof(temperatureBuffer), snapshot.temperatureC, "°C");
+  formatWithComma(temperatureBuffer, sizeof(temperatureBuffer), snapshot.temperatureC, "\u00b0C");
+  snprintf(tvocBuffer, sizeof(tvocBuffer), "%u ppb", snapshot.tvoc);
 
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PRESSURE_SENSOR_IN, eez::Value(pressureBuffer));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_AIR_QUALITY_TEXT_IN, eez::Value(airQualityTextBuffer));
@@ -110,6 +171,7 @@ void applySnapshotToMainScreen(const Snapshot &snapshot) {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TEMP_SENSOR_IN, eez::Value(temperatureBuffer));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM2_5_SENSOR_IN, eez::Value(pm25Buffer));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_CO2_SENSOR_IN, eez::Value(co2Buffer));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TVOC_SENSOR_IN, eez::Value(tvocBuffer));
 }
 
 void applyOutdoorSnapshotToMainScreen(const OutdoorWeatherSnapshot &ow) {
@@ -118,15 +180,16 @@ void applyOutdoorSnapshotToMainScreen(const OutdoorWeatherSnapshot &ow) {
   static char temperatureBuffer[24];
   static char humidityBuffer[16];
   static char pressureBuffer[16];
-  static char pm25Buffer[16];
-  static char pm10Buffer[16];
+  static char pm25Buffer[24];
+  static char pm10Buffer[24];
   static char co2Buffer[16];
   static char airQualityTextBuffer[24];
+  static char no2Buffer[24];
 
-  formatWithComma(temperatureBuffer, sizeof(temperatureBuffer), ow.temperatureC, "°C");
+  formatWithComma(temperatureBuffer, sizeof(temperatureBuffer), ow.temperatureC, "\u00b0C");
   snprintf(humidityBuffer, sizeof(humidityBuffer), "%u%%", ow.humidityPct);
   snprintf(pressureBuffer, sizeof(pressureBuffer), "%uhPa", ow.pressureHpa);
-  snprintf(pm25Buffer, sizeof(pm25Buffer), "PM2.5 %u", ow.pm25UgM3);
+  snprintf(pm25Buffer, sizeof(pm25Buffer), "[2.5] %u \u00b5g/m\u00b3", ow.pm25UgM3);
 
   const char* status = wmoCodeToText(ow.weatherCode);
   snprintf(airQualityTextBuffer, sizeof(airQualityTextBuffer), "%s", status);
@@ -136,13 +199,16 @@ void applyOutdoorSnapshotToMainScreen(const OutdoorWeatherSnapshot &ow) {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PRESSURE_SENSOR_OUT, eez::Value(pressureBuffer));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM2_5_SENSOR_OUT, eez::Value(pm25Buffer));
 
-  snprintf(pm10Buffer, sizeof(pm10Buffer), "PM10 %u", ow.pm10UgM3);
+  snprintf(pm10Buffer, sizeof(pm10Buffer), "[10] %u \u00b5g/m\u00b3", ow.pm10UgM3);
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PM10_SENSOR_OUT, eez::Value(pm10Buffer));
 
   snprintf(co2Buffer, sizeof(co2Buffer), "%u ppm", ow.co2Ppm);
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_CO2_SENSOR_OUT, eez::Value(co2Buffer));
 
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_AIR_QUALITY_TEXT_OUT, eez::Value(airQualityTextBuffer));
+
+  snprintf(no2Buffer, sizeof(no2Buffer), "[NO\u2082] %u \u00b5g/m\u00b3", ow.no2UgM3);
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_NO2_SENSOR_OUT, eez::Value(no2Buffer));
 }
 
 void applySnapshotToWeatherScreen(const OutdoorWeatherSnapshot &ow) {
@@ -182,8 +248,25 @@ void applySnapshotToWeatherScreen(const OutdoorWeatherSnapshot &ow) {
   }
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_SUNSET__WEATHER_TIME, eez::Value(sunsetBuf));
 
+  if (ow.sunriseHour > 0 || ow.sunsetHour > 0) {
+    time_t now = time(NULL);
+    struct tm *local = localtime(&now);
+    if (local) {
+      bool is_day = true; // Default to Sun icon at startup/unsynced state
+      if (local->tm_year + 1900 >= 2020) { // Only calculate if system time is synced (year is valid)
+        int cur = local->tm_hour * 60 + local->tm_min;
+        int rise = (int)ow.sunriseHour * 60 + (int)ow.sunriseMin;
+        int set  = (int)ow.sunsetHour  * 60 + (int)ow.sunsetMin;
+        is_day = (cur >= rise && cur < set);
+      }
+      notification_logic_set_sun_moon(is_day);
+    }
+  }
+
   snprintf(textWeatherBuf, sizeof(textWeatherBuf), "%s", wmoCodeToText(ow.weatherCode));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TEXT_WEATHER, eez::Value(textWeatherBuf));
+
+  weather_icon_handler_set(ow.weatherCode);
 }
 
 void applyResourcesToUi(const SystemResources &sr) {
@@ -222,29 +305,13 @@ void applyResourcesToUi(const SystemResources &sr) {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_ERRORS_I2C_SYS, eez::Value((int)sr.errorsI2c));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TIMEOUTS_I2C_SYS, eez::Value((int)sr.timeoutsI2c));
 
-  if (objects.cpu_core0_slider) {
-    lv_slider_set_value(objects.cpu_core0_slider, sr.core0Cpu, LV_ANIM_OFF);
-  }
-  if (objects.cpu_core1_slider) {
-    lv_slider_set_value(objects.cpu_core1_slider, sr.core1Cpu, LV_ANIM_OFF);
-  }
-  {
-    uint32_t totalFlash = sr.freeFlash + sr.usedFlash;
-    if (totalFlash > 0) {
-      if (objects.free_flash_slider) {
-        lv_slider_set_value(objects.free_flash_slider, (sr.freeFlash * 100) / totalFlash, LV_ANIM_OFF);
-      }
-      if (objects.used_flash_slider) {
-        lv_slider_set_value(objects.used_flash_slider, (sr.usedFlash * 100) / totalFlash, LV_ANIM_OFF);
-      }
-    }
-  }
+  zasoby_sliders_update(sr.core0Cpu, sr.core1Cpu, sr.freeFlash, sr.usedFlash);
 
   if (objects.menu_kfe_zasoby_4) {
     lv_obj_remove_state(objects.menu_kfe_zasoby_4, LV_STATE_DISABLED);
   }
-  if (objects.menu_kfe_statystyk_1) {
-    lv_obj_remove_state(objects.menu_kfe_statystyk_1, LV_STATE_DISABLED);
+  if (objects.menu_kfe_statystyki_9) {
+    lv_obj_remove_state(objects.menu_kfe_statystyki_9, LV_STATE_DISABLED);
   }
 }
 
@@ -273,6 +340,39 @@ void applyStatusBellToUi(uint8_t value) {
   bool active = (value > 0);
   notification_logic_set_bell(active);
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_BELL_STATE, eez::Value((int)value));
+}
+
+void applyMusicMetadataToUi(const char *title, const char *artist) {
+    // WARNING: eez::Value(const char*) stores only the raw pointer, not a copy of the string!
+    // The buffers MUST be static so their memory remains alive permanently in SRAM.
+    static char s_titleBuf[128];
+    static char s_artistBuf[128];
+    snprintf(s_titleBuf, sizeof(s_titleBuf), "%s", title ? title : "");
+    snprintf(s_artistBuf, sizeof(s_artistBuf), "%s", artist ? artist : "");
+    eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_TITLE, eez::Value(s_titleBuf));
+    eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_ARTIST, eez::Value(s_artistBuf));
+}
+
+void applyMusicStatusToUi(bool connected, bool playing) {
+    eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_CONNECTED, eez::Value(connected ? 1 : 0));
+    eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_PLAYING, eez::Value(playing ? 1 : 0));
+}
+
+void applyMusicVolumeToUi(uint8_t volume) {
+    eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_VOLUME, eez::Value(static_cast<int>(volume)));
+    music_ui_set_volume(volume);
+}
+
+void applyMusicEQToUi(uint8_t bass, uint8_t mid, uint8_t treble) {
+    eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_BASS, eez::Value(static_cast<int>(bass)));
+    eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_MID, eez::Value(static_cast<int>(mid)));
+    eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_TREBLE, eez::Value(static_cast<int>(treble)));
+    music_ui_set_eq(bass, mid, treble);
+}
+
+void applyRadioModeToUi(uint8_t mode) {
+    eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_RADIO_MODE, eez::Value(static_cast<int>(mode)));
+    main_ui_set_radio_mode(mode);
 }
 
 void applySettingsToUi(const DeviceSettings &ds) {

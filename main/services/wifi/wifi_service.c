@@ -15,6 +15,8 @@
 
 static const char *TAG = "WifiService";
 
+#define WIFI_ENABLED 1 /* 0 = WiFi off (frees ~100KB PSRAM), 1 = normal */
+
 #define WIFI_WORKER_STACK 4096
 #define WIFI_WORKER_PRIORITY 2
 #define WIFI_WORKER_CORE 0
@@ -225,6 +227,7 @@ void wifi_service_init(void) {
     }
     ESP_ERROR_CHECK(ret);
 
+#if WIFI_ENABLED
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_create_default_wifi_sta();
@@ -253,15 +256,23 @@ void wifi_service_init(void) {
 
     wr_state(WIFI_IDLE);
     ESP_LOGI(TAG, "wifi_init_sta started");
+#else
+    ESP_LOGW(TAG, "WiFi DISABLED (WIFI_ENABLED=0) — saving PSRAM");
+#endif
 }
 
 bool wifi_service_is_connected(void) { return rd_bool(&s_connected); }
 wifi_connect_state_t wifi_service_get_state(void) { return rd_state(); }
 
 esp_err_t wifi_service_scan_start(void) {
+#if !WIFI_ENABLED
+    ESP_LOGW(TAG, "WiFi disabled, scan not available");
+    return ESP_ERR_NOT_SUPPORTED;
+#else
     wr_bool(&s_scan_done, false);
     wifi_scan_config_t scan_config = { .ssid = NULL, .bssid = NULL, .channel = 0, .show_hidden = false };
     return esp_wifi_scan_start(&scan_config, false);
+#endif
 }
 
 bool wifi_service_is_scan_done(void) { return rd_bool(&s_scan_done); }
@@ -288,6 +299,10 @@ uint16_t wifi_service_get_scan_results(wifi_ap_list_item_t *results, uint16_t ma
 }
 
 esp_err_t wifi_service_connect(const char* ssid, const char* password) {
+#if !WIFI_ENABLED
+    ESP_LOGW(TAG, "WiFi disabled, connect not available");
+    return ESP_ERR_NOT_SUPPORTED;
+#else
     if (!ssid || strlen(ssid) == 0) return ESP_ERR_INVALID_ARG;
     if (!s_work_queue || !s_worker_running) return ESP_ERR_INVALID_STATE;
 
@@ -310,6 +325,7 @@ esp_err_t wifi_service_connect(const char* ssid, const char* password) {
         return ESP_FAIL;
     }
     return ESP_OK;
+#endif
 }
 
 void wifi_service_disconnect(void) {
@@ -317,9 +333,11 @@ void wifi_service_disconnect(void) {
     wr_int(&s_retry_num, 11);
     wr_state(WIFI_IDLE);
     wr_bool(&s_connected, false);
+#if WIFI_ENABLED
     wifi_work_msg_t dummy;
     xQueueReceive(s_work_queue, &dummy, 0);
     esp_wifi_disconnect();
+#endif
 }
 
 const char* wifi_service_get_signal_desc(int8_t rssi) {

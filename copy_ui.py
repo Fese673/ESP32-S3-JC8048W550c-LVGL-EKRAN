@@ -1,7 +1,7 @@
 import os
 import shutil
 
-src_dir = r"C:\PROJEKTY\ESP32-S3-JC8048W550-LVGL-ESPIDF-EEZ-main\ekran_zegar_kopia\src\ui"
+src_dir = r"C:\PROJEKTY\ESP32-S3-JC8048W550-LVGL-ESPIDF-EEZ-main\PROJEKT_UI_EZZ_STUDIO\src\ui"
 dst_dir = r"C:\PROJEKTY\ESP32-S3-JC8048W550-LVGL-ESPIDF-EEZ-main\main\ui\ui"
 
 def copy_ui():
