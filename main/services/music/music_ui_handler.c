@@ -253,7 +253,7 @@ static void music_timer_cb(lv_timer_t *timer) {
         lv_obj_set_width(s_song_title_label, 370);
         lv_label_set_long_mode(s_song_title_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
         lv_obj_set_style_text_color(s_song_title_label, lv_color_hex(0xffffff), LV_PART_MAIN);
-        lv_obj_set_style_text_font(s_song_title_label, &ui_font_montserrat_regular_20, LV_PART_MAIN);
+        lv_obj_set_style_text_font(s_song_title_label, &ui_font_montserrat_regular_16, LV_PART_MAIN);
         lv_label_set_text_static(s_song_title_label, "Tytuł: Adventure Of A Lifetime");
 
         // Artist Info

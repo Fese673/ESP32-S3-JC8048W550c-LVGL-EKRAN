@@ -72,6 +72,12 @@ static VarHistory s_hist_tvoc = { {0}, 0, 0 };
 static VarHistory s_hist_temp = { {0}, 0, 0 };
 static VarHistory s_hist_hum  = { {0}, 0, 0 };
 static VarHistory s_hist_pres = { {0}, 0, 0 };
+static VarHistory s_hist_count0p3 = { {0}, 0, 0 };
+static VarHistory s_hist_count0p5 = { {0}, 0, 0 };
+static VarHistory s_hist_count1p0 = { {0}, 0, 0 };
+static VarHistory s_hist_count2p5 = { {0}, 0, 0 };
+static VarHistory s_hist_count5p0 = { {0}, 0, 0 };
+static VarHistory s_hist_count10p0 = { {0}, 0, 0 };
 
 static void push_history(VarHistory *h, float val) {
     h->buffer[h->index] = val;
@@ -705,7 +711,7 @@ void sensors_wiki_init(lv_obj_t *parent_screen) {
         s_section_title = lv_label_create(s_content_panel);
         lv_obj_set_pos(s_section_title, 15, 20);
         lv_obj_set_style_text_color(s_section_title, lv_color_hex(0xffffff), LV_PART_MAIN);
-        lv_obj_set_style_text_font(s_section_title, &ui_font_montserrat_regular_20, LV_PART_MAIN);
+        lv_obj_set_style_text_font(s_section_title, &ui_font_montserrat_regular_16, LV_PART_MAIN);
 
         s_workspace = lv_obj_create(s_content_panel);
         lv_obj_set_pos(s_workspace, 15, 60);
@@ -741,6 +747,12 @@ void sensors_wiki_update(void) {
         push_history(&s_hist_temp, sn.temperatureC);
         push_history(&s_hist_hum, sn.humidityPct);
         push_history(&s_hist_pres, sn.pressureHpa);
+        push_history(&s_hist_count0p3, sn.count0p3);
+        push_history(&s_hist_count0p5, sn.count0p5);
+        push_history(&s_hist_count1p0, sn.count1p0);
+        push_history(&s_hist_count2p5, sn.count2p5);
+        push_history(&s_hist_count5p0, sn.count5p0);
+        push_history(&s_hist_count10p0, sn.count10p0);
     }
 
     // Refresh Parameter mode variables
@@ -810,17 +822,21 @@ void sensors_wiki_update(void) {
                     sn.count5p0,
                     sn.count10p0
                 };
+                VarHistory *hist[6] = {
+                    &s_hist_count0p3,
+                    &s_hist_count0p5,
+                    &s_hist_count1p0,
+                    &s_hist_count2p5,
+                    &s_hist_count5p0,
+                    &s_hist_count10p0
+                };
                 for (int i = 0; i < 6; i++) {
                     if (s_lbl_micro_vals[i]) {
                         snprintf(buf, sizeof(buf), "%d", (int)counts[i]);
                         lv_label_set_text(s_lbl_micro_vals[i], buf);
                     }
                     if (s_lbl_micro_trends[i]) {
-                        // Dynamically fluctuate trends slightly for live UI feel
-                        int r = rand() % 100;
-                        if (r < 10) lv_label_set_text_static(s_lbl_micro_trends[i], "+");
-                        else if (r < 20) lv_label_set_text_static(s_lbl_micro_trends[i], "-");
-                        else lv_label_set_text_static(s_lbl_micro_trends[i], "=");
+                        lv_label_set_text_static(s_lbl_micro_trends[i], calculate_trend(hist[i], counts[i], 1.0f));
                     }
                 }
             }

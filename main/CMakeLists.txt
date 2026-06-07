@@ -15,26 +15,35 @@ file(GLOB_RECURSE SOURCES_UI_C
     ./ui/ui/**/*.c
 )
 
+# Odrzucamy nieużywane fonty — zastąpione lekkimi stubami (oszczędność ~1.1 MB)
+list(REMOVE_ITEM SOURCES_UI_C
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui/ui/ui_font_calibri_30.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui/ui/ui_font_consolai_13.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui/ui/ui_font_bebas_neue_regular52.c
+)
+
 file(GLOB_RECURSE SOURCES_UTILS_CXX
     ./utils/**/*.cpp
 )
 
 set(SOURCES_APP_CPP
-    ./app/clock_logic.cpp
-    ./app/notification_logic.cpp
-    ./app/stopwatch_logic.cpp
-    ./app/stopwatch_ui.cpp
-    ./app/timer_logic.cpp
-    ./app/timer_ui.cpp
+    ./app/clock/clock_logic.cpp
+    ./app/clock/clock_timezone_tiles.c
+    ./app/notification/notification_logic.cpp
+    ./app/stopwatch/stopwatch_logic.cpp
+    ./app/stopwatch/stopwatch_ui.cpp
+    ./app/timer/timer_logic.cpp
+    ./app/timer/timer_ui.cpp
     ./app/alarm_logic.cpp
     ./app/alarm_ui.cpp
     ./app/alarm/alarm_popup.cpp
     ./app/game/flappy_bird.cpp
     ./app/main_handler.cpp
     ./app/main.cpp
-    ./app/weather_icon_handler.c
+    ./app/weather/weather_icon_handler.c
     ./services/sensor/sensors_wiki.cpp
     ./diagnostics/lv_perf_diag.cpp
+    ./app/font_stubs.c
 )
 
 set(SOURCES_COMMUNICATION_CPP
@@ -78,6 +87,12 @@ idf_component_register(
                     "./services/sensor"
                     "./utils/log"
                     "./app"
+                    "./app/clock"
+                    "./app/alarm"
+                    "./app/timer"
+                    "./app/stopwatch"
+                    "./app/notification"
+                    "./app/weather"
                     "./app/game"
                     "./setting_wifi"
     REQUIRES        lvgl esp_lcd_touch_gt911 esp_timer esp_lcd esp_driver_ledc esp_driver_gpio esp_driver_uart esp_wifi esp_event nvs_flash esp_netif lwip

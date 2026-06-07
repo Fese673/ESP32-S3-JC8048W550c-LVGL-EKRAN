@@ -214,7 +214,7 @@ void updateUi() {
           snprintf(time_str, sizeof(time_str), "--:--");
         }
         const char *msg = TimerSync::isTimerRinging() ? "MINUTNIK!" : "BUDZIK!";
-        alarm_popup_show(time_str, msg);
+        alarm_popup_show(time_str, msg, TimerSync::isTimerRinging());
       } else if (value == 0) {
         alarm_popup_dismiss();
       }

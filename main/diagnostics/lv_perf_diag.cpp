@@ -47,8 +47,9 @@
 #define F_SRAM_DRAIN     (1U << 2)
 #define F_SRAM_FRAG      (1U << 3)
 #define F_PSRAM_SPIKE    (1U << 4)
-#define F_DRAW_STALL     (1U << 5)
-#define F_TICK_SLOW      (1U << 6)
+#define F_PSRAM_FRAG     (1U << 5)
+#define F_DRAW_STALL     (1U << 6)
+#define F_TICK_SLOW      (1U << 7)
 
 typedef struct {
     int64_t  tick_sum_us;
@@ -145,6 +146,11 @@ static uint32_t evaluate_alerts(const heap_snapshot_t *hp,
         hp->psram_free < PSRAM_FREE_LOW_BYTES) {
         flags |= F_PSRAM_SPIKE;
     }
+    /* PSRAM fragmentation: largest block < 64KB while >256KB free → no
+     * contiguous space for moderate allocations (draw buffers, images). */
+    if (hp->psram_largest < 65536U && hp->psram_free > 262144U) {
+        flags |= F_PSRAM_FRAG;
+    }
     if (handler_max_us >= REFR_STALL_WARN_US) {
         flags |= F_DRAW_STALL;
     }
@@ -170,6 +176,7 @@ static void append_alerts(char *buf, size_t buf_size, uint32_t flags)
         { F_SRAM_DRAIN,  "SRAM_DRAIN" },
         { F_SRAM_FRAG,   "SRAM_FRAG" },
         { F_PSRAM_SPIKE, "PSRAM_SPIKE" },
+        { F_PSRAM_FRAG,  "PSRAM_FRAG" },
         { F_DRAW_STALL,  "DRAW_STALL" },
         { F_TICK_SLOW,   "TICK_SLOW" },
     };

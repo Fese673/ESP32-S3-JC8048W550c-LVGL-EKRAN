@@ -1,6 +1,6 @@
 #include "communication/CommUiMapper.h"
 #include "communication/CommunicationState.h"
-#include "notification_logic.h"
+#include "app/notification/notification_logic.h"
 #include "app/alarm_ui.h"
 #include <stdio.h>
 #include <string.h>
@@ -19,7 +19,7 @@
 
 #include "services/music/music_ui_handler.h"
 #include "main_handler.h"
-#include "weather_icon_handler.h"
+#include "app/weather/weather_icon_handler.h"
 
 namespace CommunicationProtocol {
 

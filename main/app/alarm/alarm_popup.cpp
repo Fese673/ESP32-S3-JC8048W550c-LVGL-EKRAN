@@ -59,12 +59,26 @@ static void on_dismiss_click(lv_event_t *e) {
 void alarm_popup_init(void) {
     if (s_popup_container != NULL) return; // Already initialized
 
+    // Popup layout constants
+    #define POPUP_W 360
+    #define POPUP_H 80
+    #define LEFT_COL_W 68
+    #define SEP_X1 68
+    #define SEP_X2 256
+    #define CENTER_X 78
+    #define CENTER_W (SEP_X2 - CENTER_X)
+    #define RIGHT_COL_X 268
+    #define RIGHT_COL_W (POPUP_W - RIGHT_COL_X)
+    #define BTN_W 78
+    #define BTN_H 26
+    #define BTN_X (RIGHT_COL_X + (RIGHT_COL_W - BTN_W) / 2)
+
     // Parent to top layer so it floats over any other active screen
     s_popup_container = lv_obj_create(lv_layer_top());
     
-    // Set size and place off-screen initially
-    lv_obj_set_size(s_popup_container, 360, 80);
-    lv_obj_set_pos(s_popup_container, 220, -95);
+    // Set size and center horizontally on 800px screen: (800 - 360) / 2 = 220
+    lv_obj_set_size(s_popup_container, POPUP_W, POPUP_H);
+    lv_obj_set_pos(s_popup_container, (800 - POPUP_W) / 2, -95);
     
     // Styling the parent container card (Charcoal-violet 0x1e1a24 matching BPM tiles, border 0x3a3542, radius 16)
     lv_obj_set_style_bg_color(s_popup_container, lv_color_hex(0x1e1a24), LV_PART_MAIN);
@@ -87,49 +101,53 @@ void alarm_popup_init(void) {
     // Initially hidden
     lv_obj_add_flag(s_popup_container, LV_OBJ_FLAG_HIDDEN);
 
-    // Left Column: Orange-gold bell icon & time
+    // Left Column: Orange-gold bell icon (22x22) & time label
+    // Bell icon: horizontally centered in 68px column → (68 - 22) / 2 = 23
+    // Vertically centered in top half (above time at y=46) → (46 - 22) / 2 = 12
     s_bell_icon = lv_img_create(s_popup_container);
     lv_img_set_src(s_bell_icon, &img_bell_on_icon);
-    lv_obj_set_pos(s_bell_icon, 10, 6); // Mathematically centered inside 68px wide column: (68 - 48) / 2 = 10
+    lv_obj_set_pos(s_bell_icon, (LEFT_COL_W - 22) / 2, 12);
 
+    // Time label: horizontally centered in 68px column, below bell icon
     s_time_label = lv_label_create(s_popup_container);
-    lv_obj_set_pos(s_time_label, 9, 46); // Mathematically centered inside 68px wide column: (68 - 50) / 2 = 9
+    lv_obj_set_pos(s_time_label, (LEFT_COL_W - 50) / 2, 46);
     lv_obj_set_size(s_time_label, 50, LV_SIZE_CONTENT);
     lv_obj_set_style_text_font(s_time_label, &ui_font_consola_18, LV_PART_MAIN);
     lv_obj_set_style_text_color(s_time_label, lv_color_hex(0xffaa00), LV_PART_MAIN);
     lv_obj_set_style_text_align(s_time_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_label_set_text_static(s_time_label, s_static_time_buf);
 
-    // Separator 1
+    // Separator 1: vertically centered in 80px container
     lv_obj_t *sep1 = lv_obj_create(s_popup_container);
-    lv_obj_set_pos(sep1, 68, 15);
+    lv_obj_set_pos(sep1, SEP_X1, (POPUP_H - 50) / 2);
     lv_obj_set_size(sep1, 1, 50);
     lv_obj_set_style_bg_color(sep1, lv_color_hex(0x3a3542), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(sep1, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_border_width(sep1, 0, LV_PART_MAIN);
 
-    // Center Message: circular long scrolling
+    // Center Message: vertically centered, circular long scrolling
     s_msg_label = lv_label_create(s_popup_container);
-    lv_obj_set_pos(s_msg_label, 78, 30);
-    lv_obj_set_size(s_msg_label, 168, LV_SIZE_CONTENT);
+    lv_obj_set_pos(s_msg_label, CENTER_X, (POPUP_H - 14) / 2);
+    lv_obj_set_size(s_msg_label, CENTER_W, LV_SIZE_CONTENT);
     lv_obj_set_style_text_font(s_msg_label, &ui_font_montserrat_regular_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(s_msg_label, lv_color_hex(0xffffff), LV_PART_MAIN);
     lv_label_set_long_mode(s_msg_label, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_set_style_anim_duration(s_msg_label, 8000, LV_PART_MAIN);
     lv_label_set_text_static(s_msg_label, s_static_msg_buf);
 
-    // Separator 2
+    // Separator 2: vertically centered in 80px container
     lv_obj_t *sep2 = lv_obj_create(s_popup_container);
-    lv_obj_set_pos(sep2, 256, 15);
+    lv_obj_set_pos(sep2, SEP_X2, (POPUP_H - 50) / 2);
     lv_obj_set_size(sep2, 1, 50);
     lv_obj_set_style_bg_color(sep2, lv_color_hex(0x3a3542), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(sep2, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_border_width(sep2, 0, LV_PART_MAIN);
 
     // Right Column: Snooze and Dismiss action buttons
+    // Both buttons stacked: total height = 26 + 8 + 26 = 60, centered in 80px → y_start = 10
     s_snooze_btn = lv_button_create(s_popup_container);
-    lv_obj_set_pos(s_snooze_btn, 268, 10);
-    lv_obj_set_size(s_snooze_btn, 78, 26);
+    lv_obj_set_pos(s_snooze_btn, BTN_X, 10);
+    lv_obj_set_size(s_snooze_btn, BTN_W, BTN_H);
     lv_obj_set_style_radius(s_snooze_btn, 8, LV_PART_MAIN);
     lv_obj_set_style_bg_color(s_snooze_btn, lv_color_hex(0x342c3d), LV_PART_MAIN);
     lv_obj_set_style_border_color(s_snooze_btn, lv_color_hex(0x4d425a), LV_PART_MAIN);
@@ -145,8 +163,8 @@ void alarm_popup_init(void) {
     lv_obj_add_event_cb(s_snooze_btn, on_snooze_click, LV_EVENT_CLICKED, NULL);
 
     s_dismiss_btn = lv_button_create(s_popup_container);
-    lv_obj_set_pos(s_dismiss_btn, 268, 44);
-    lv_obj_set_size(s_dismiss_btn, 78, 26);
+    lv_obj_set_pos(s_dismiss_btn, BTN_X, 44);
+    lv_obj_set_size(s_dismiss_btn, BTN_W, BTN_H);
     lv_obj_set_style_radius(s_dismiss_btn, 8, LV_PART_MAIN);
     lv_obj_set_style_bg_color(s_dismiss_btn, lv_color_hex(0x5c1a24), LV_PART_MAIN);
     lv_obj_set_style_border_color(s_dismiss_btn, lv_color_hex(0x8c2a38), LV_PART_MAIN);
@@ -160,9 +178,22 @@ void alarm_popup_init(void) {
     lv_obj_set_style_text_color(lbl_dismiss, lv_color_hex(0xffffff), LV_PART_MAIN);
     lv_label_set_text_static(lbl_dismiss, "Wyłącz");
     lv_obj_add_event_cb(s_dismiss_btn, on_dismiss_click, LV_EVENT_CLICKED, NULL);
+
+    #undef POPUP_W
+    #undef POPUP_H
+    #undef LEFT_COL_W
+    #undef SEP_X1
+    #undef SEP_X2
+    #undef CENTER_X
+    #undef CENTER_W
+    #undef RIGHT_COL_X
+    #undef RIGHT_COL_W
+    #undef BTN_W
+    #undef BTN_H
+    #undef BTN_X
 }
 
-void alarm_popup_show(const char *time_str, const char *message_str) {
+void alarm_popup_show(const char *time_str, const char *message_str, bool is_timer) {
     if (s_popup_container == NULL) return;
 
     // Do not show the popup if Flappy Bird is active to avoid lag/stutter
@@ -182,6 +213,31 @@ void alarm_popup_show(const char *time_str, const char *message_str) {
         s_static_msg_buf[sizeof(s_static_msg_buf) - 1] = '\0';
         lv_label_set_text_static(s_msg_label, s_static_msg_buf);
     }
+
+    // Timer (minutnik) has no snooze — hide snooze button and center dismiss alone
+    // Alarm (budzik) shows both buttons stacked
+    #define BTN_W 78
+    #define BTN_H 26
+    #define RIGHT_COL_X 268
+    #define RIGHT_COL_W (360 - RIGHT_COL_X)
+    #define BTN_X (RIGHT_COL_X + (RIGHT_COL_W - BTN_W) / 2)
+
+    if (is_timer) {
+        lv_obj_add_flag(s_snooze_btn, LV_OBJ_FLAG_HIDDEN);
+        // Center dismiss button vertically in 80px container: (80 - 26) / 2 = 27
+        lv_obj_set_pos(s_dismiss_btn, BTN_X, (80 - BTN_H) / 2);
+    } else {
+        lv_obj_clear_flag(s_snooze_btn, LV_OBJ_FLAG_HIDDEN);
+        // Stack both buttons: total 26+8+26=60, centered → y_start=10
+        lv_obj_set_pos(s_snooze_btn, BTN_X, 10);
+        lv_obj_set_pos(s_dismiss_btn, BTN_X, 44);
+    }
+
+    #undef BTN_W
+    #undef BTN_H
+    #undef RIGHT_COL_X
+    #undef RIGHT_COL_W
+    #undef BTN_X
 
     // Enable visibility
     lv_obj_clear_flag(s_popup_container, LV_OBJ_FLAG_HIDDEN);
@@ -277,7 +333,7 @@ void alarm_popup_tick(void) {
         snprintf(time_str, sizeof(time_str), "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
 
         ESP_LOGI(TAG, "Mockup alarm auto-triggered: %s", time_str);
-        alarm_popup_show(time_str, "WSTAWAJ SZKODA DNIA - MOCKUP ALARM TEST!");
+        alarm_popup_show(time_str, "WSTAWAJ SZKODA DNIA - MOCKUP ALARM TEST!", false);
     }
 
     // Dismiss alarm popup automatically after 15 seconds safety window

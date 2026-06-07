@@ -665,7 +665,7 @@ void flappy_bird_init(lv_obj_t *parent_screen) {
 
         // 3. Score label (sitting in the background)
         s_score_label = lv_label_create(s_game_container);
-        lv_obj_set_style_text_font(s_score_label, &ui_font_bebas_neue_regular52, 0);
+        lv_obj_set_style_text_font(s_score_label, &ui_font_bebas_neue58, 0);
         lv_obj_set_style_text_color(s_score_label, lv_color_hex(0xffffff), 0);
         lv_obj_set_style_text_opa(s_score_label, 120, 0); // semi-transparent
         lv_obj_align(s_score_label, LV_ALIGN_TOP_MID, 0, 60);
@@ -776,7 +776,7 @@ void flappy_bird_init(lv_obj_t *parent_screen) {
         lv_obj_remove_flag(s_start_overlay, LV_OBJ_FLAG_CLICKABLE);
 
         s_start_title = lv_label_create(s_start_overlay);
-        lv_obj_set_style_text_font(s_start_title, &ui_font_bebas_neue_regular52, 0);
+        lv_obj_set_style_text_font(s_start_title, &ui_font_bebas_neue58, 0);
         lv_obj_set_style_text_color(s_start_title, lv_color_hex(0xff6f00), 0);
         lv_obj_align(s_start_title, LV_ALIGN_CENTER, 0, -80);
         lv_label_set_text(s_start_title, "NEON FLAPPY");
@@ -809,13 +809,13 @@ void flappy_bird_init(lv_obj_t *parent_screen) {
         lv_obj_add_flag(s_gameover_overlay, LV_OBJ_FLAG_HIDDEN); // Hidden by default
 
         s_gameover_title = lv_label_create(s_gameover_overlay);
-        lv_obj_set_style_text_font(s_gameover_title, &ui_font_bebas_neue_regular52, 0);
+        lv_obj_set_style_text_font(s_gameover_title, &ui_font_bebas_neue58, 0);
         lv_obj_set_style_text_color(s_gameover_title, lv_color_hex(0xff2a2a), 0); // Neon red
         lv_obj_align(s_gameover_title, LV_ALIGN_CENTER, 0, -110);
         lv_label_set_text(s_gameover_title, "KONIEC GRY");
 
         s_gameover_score = lv_label_create(s_gameover_overlay);
-        lv_obj_set_style_text_font(s_gameover_score, &ui_font_bebas_neue_regular52, 0);
+        lv_obj_set_style_text_font(s_gameover_score, &ui_font_bebas_neue58, 0);
         lv_obj_set_style_text_color(s_gameover_score, lv_color_hex(0xffffff), 0);
         lv_obj_align(s_gameover_score, LV_ALIGN_CENTER, 0, -45);
         lv_label_set_text(s_gameover_score, "WYNIK: 0");

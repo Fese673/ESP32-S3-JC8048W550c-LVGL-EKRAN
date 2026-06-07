@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Skaler zdjec + recolor - interaktywny skrypt.
-Wszystko trafia do folderu 'scaled/'.
+Zdjecia zrodlowe:zdjecia przed/
+Wynik:zdjecia po/
 """
 
 import os
@@ -11,8 +12,8 @@ from PIL import Image
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
-ZDJ_DIR = Path(__file__).parent / "ZDJ"
-SCALED_DIR = Path(__file__).parent / "scaled"
+SRC_DIR = Path(__file__).parent / "zdjęcia przed"
+DST_DIR = Path(__file__).parent / "zdjęcia po"
 SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp"}
 RESAMPLE = Image.Resampling.BICUBIC
 
@@ -25,10 +26,10 @@ def get_image_files(folder: Path) -> list:
     return sorted([f for f in folder.iterdir() if f.suffix.lower() in SUPPORTED_EXTENSIONS])
 
 
-def get_scaled_files() -> set:
-    if not SCALED_DIR.exists():
+def get_processed_files() -> set:
+    if not DST_DIR.exists():
         return set()
-    return {f.name for f in SCALED_DIR.iterdir() if f.suffix.lower() in SUPPORTED_EXTENSIONS}
+    return {f.name for f in DST_DIR.iterdir() if f.suffix.lower() in SUPPORTED_EXTENSIONS}
 
 
 def parse_hex_color(hex_str: str) -> tuple:
@@ -159,19 +160,19 @@ def ask_recolor() -> tuple:
 def main() -> None:
     print("\n=== SKALER ZDJEC + RECOLOR ===\n")
 
-    if not ZDJ_DIR.exists():
-        print(f"BLAD: folder ZDJ nie istnieje: {ZDJ_DIR}")
+    if not SRC_DIR.exists():
+        print(f"BLAD: folder ze zdjeciami nie istnieje: {SRC_DIR}")
         sys.exit(1)
 
-    all_images = get_image_files(ZDJ_DIR)
+    all_images = get_image_files(SRC_DIR)
     if not all_images:
-        print("Brak zdjec w folderze ZDJ!")
+        print(f"Brak zdjec w folderze: {SRC_DIR}")
         sys.exit(1)
 
-    scaled_files = get_scaled_files()
-    to_process = [f for f in all_images if f.name not in scaled_files]
+    processed_files = get_processed_files()
+    to_process = [f for f in all_images if f.name not in processed_files]
 
-    print(f"Zdjecia: {len(all_images)} | Gotowe: {len(scaled_files)} | Do przetworzenia: {len(to_process)}")
+    print(f"Zdjecia: {len(all_images)} | Gotowe: {len(processed_files)} | Do przetworzenia: {len(to_process)}")
 
     if not to_process:
         print("\nWSZYSTKIE zdjecia zostaly juz przetworzone!")
@@ -204,10 +205,10 @@ def main() -> None:
 
     print(f"\nPrzetwarzam {len(to_process)} zdjec na {num_workers} watkach...\n")
 
-    SCALED_DIR.mkdir(parents=True, exist_ok=True)
+    DST_DIR.mkdir(parents=True, exist_ok=True)
 
     tasks = [
-        (img_path, SCALED_DIR / img_path.name, scale_x, scale_y, recolor, recolor_opacity)
+        (img_path, DST_DIR / img_path.name, scale_x, scale_y, recolor, recolor_opacity)
         for img_path in to_process
     ]
 
@@ -220,7 +221,7 @@ def main() -> None:
                 success += 1
 
     print(f"\nGOTOWE! Przerobiono {success}/{len(to_process)} zdjec.")
-    print(f"Folder: {SCALED_DIR}")
+    print(f"Folder: {DST_DIR}")
 
 
 if __name__ == "__main__":

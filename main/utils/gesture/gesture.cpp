@@ -82,14 +82,12 @@ static int16_t get_back_target_screen(int16_t current_screen) {
             return SCREEN_ID_MENU;
         case SCREEN_ID_USTAWIENIA_WIFI:
             return SCREEN_ID_MENU;
-        case SCREEN_ID_GRY:
-            return SCREEN_ID_MENU;
         case SCREEN_ID_ZEGAR:
             return SCREEN_ID_MENU;
         case SCREEN_ID_LOGI:
             return SCREEN_ID_MENU;
         case SCREEN_ID_POGODA:
-            return SCREEN_ID_MENU;
+            return SCREEN_ID_MAIN;
         case SCREEN_ID_BPM:
             return SCREEN_ID_MENU;
         case SCREEN_ID_GRY_TEST:
