@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP32 Station — Info Screen Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;600&family=Source+Code+Pro:wght@400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d0d0d;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:Montserrat,sans-serif}
+#frame{background:#080808;border-radius:14px;padding:18px;box-shadow:0 24px 80px rgba(0,0,0,0.6);margin-top:20px}
+#screen{position:relative;width:800px;height:480px;background:#28252c;overflow:hidden;border-radius:6px}
+
+/* wszystkie elementy absolutne, niewidoczne */
+#screen>*{position:absolute;opacity:0}
+
+/* AUTORZY — flexbox, centrowany */
+#authors-wrap{
+    top:195px;left:0;width:100%;text-align:center;
+    font-family:'Bebas Neue',sans-serif;font-size:36px;color:#fff;letter-spacing:3px;
+}
+#authors-wrap span{display:inline-block}
+#author-left{margin-right:90px}
+#author-right{margin-right:0}
+
+/* PREZENTUJĄ */
+#present{
+    top:248px;left:0;width:100%;text-align:center;
+    font-family:Montserrat,sans-serif;font-size:14px;font-weight:600;
+    color:#85808a;letter-spacing:10px;text-transform:uppercase;
+}
+
+/* TYTUŁ */
+#title{
+    top:55px;left:0;width:100%;text-align:center;
+    font-family:'Bebas Neue',sans-serif;font-size:58px;color:#fff;letter-spacing:18px;
+}
+
+/* LINIA */
+#line{
+    left:50%;top:128px;width:0;height:1px;
+    background:linear-gradient(90deg,transparent 0%,#7a7580 10%,#7a7580 90%,transparent 100%);
+    transform:translateX(-50%);
+}
+
+/* PROWOKACJA */
+#provocation{
+    left:60px;right:60px;top:158px;text-align:center;
+    font-family:'Source Code Pro',monospace;font-size:18px;color:#b0acb5;line-height:1.6;
+}
+
+/* MANIFEST */
+#manifest{
+    left:80px;right:80px;top:218px;text-align:center;
+    font-family:'Source Code Pro',monospace;font-size:16px;color:#b0acb5;line-height:1.7;
+}
+
+/* KONTROLKI */
+#controls{margin-top:16px;display:flex;align-items:center;gap:18px}
+#replay{
+    padding:8px 20px;background:#28252c;color:#fff;
+    border:1px solid #7a7580;border-radius:6px;
+    font-family:Montserrat,sans-serif;font-size:13px;cursor:pointer;transition:background .15s;
+}
+#replay:hover{background:#3a3640}
+#phase{font-family:'Source Code Pro',monospace;font-size:12px;color:#85808a}
+#progress{margin-top:10px;width:800px;height:3px;background:#1a1a1a;border-radius:2px;overflow:hidden}
+#progress-bar{height:100%;width:0;background:#6c63ff;border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="frame">
+<div id="screen">
+    <div id="authors-wrap">
+        <span id="author-left">Paweł Jumper</span>
+        <span id="author-right">Kacper Kowalski</span>
+    </div>
+    <div id="present">PREZENTUJĄ</div>
+    <div id="title"></div>
+    <div id="line"></div>
+    <div id="provocation"></div>
+    <div id="manifest"></div>
+</div>
+</div>
+
+<div id="controls">
+    <button id="replay">↻ Odtwórz ponownie</button>
+    <div id="phase">—</div>
+</div>
+<div id="progress"><div id="progress-bar"></div></div>
+
+<script>
+/* ================================================================
+   KONFIGURACJA (ms)
+   ================================================================ */
+const C = {
+    TITLE_TEXT:   'TICKING BOMB',
+    QUEST_TEXT:   'Co można wycisnąć z mikrokontrolera za 15 zł?',
+    ANSWER_TEXT:  'Wielozadaniowy, potężny system łączący dwustrefową stację pogodową, analizator jakości powietrza, głośnik BT oraz monitor parametrów życiowych BPM/SpO2. Dowód na to, że optymalizacja kodu potrafi zdziałać cuda.',
+    AUTHOR_FADE:  600,
+    PRESENT_DELAY:1200,
+    PRESENT_FADE: 500,
+    HOLD_MS:      800,
+    SLIDE_DOWN:   450,
+    FADE_OUT:     350,
+    TITLE_FADE:   420,
+    TITLE_CHAR:   80,
+    LINE_DELAY:   200,
+    LINE_GROW:    350,
+    DRAMA_PAUSE:  700,
+    QUEST_CHAR:   22,
+    ANS_PAUSE:    500,
+    ANSWER_CHAR:  22,
+};
+
+/* ================================================================
+   NARZĘDZIA
+   ================================================================ */
+const $ = id => document.getElementById(id);
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const easeIn  = t => t * t * t;
+const lerp    = (a, b, t) => a + (b - a) * Math.min(Math.max(t, 0), 1);
+const delay   = ms => new Promise(r => setTimeout(r, ms));
+
+/* ── generacja do aborcji ── */
+let gen = 0;
+
+/* ── animacja rAF (zwracana obietnica) ── */
+function anim(obj, prop, from, to, dur, easeFn) {
+    const myGen = gen;
+    return new Promise(resolve => {
+        const t0 = performance.now();
+        const fn = easeFn || easeOut;
+        const tick = now => {
+            if (gen !== myGen) return resolve();       // przerwane przez replay
+            const p = Math.min((now - t0) / dur, 1);
+            const v = lerp(from, to, fn(p));
+            if (prop === 'opacity') obj.style.opacity = v;
+            else if (prop === 'y')     obj.style.transform = 'translateY(' + v + 'px)';
+            else if (prop === 'w')     obj.style.width = v + 'px';
+            else if (prop === 'top')   obj.style.top = v + 'px';
+            p < 1 ? requestAnimationFrame(tick) : resolve();
+        };
+        requestAnimationFrame(tick);
+    });
+}
+
+/* ── typewriter ── */
+let typeTimer = null;
+function typewrite(obj, text, charMs) {
+    const myGen = gen;
+    return new Promise(resolve => {
+        const cursor = '|';
+        let i = 0;
+        if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
+        typeTimer = setInterval(() => {
+            if (gen !== myGen) {
+                clearInterval(typeTimer);
+                typeTimer = null;
+                return resolve();
+            }
+            i++;
+            obj.textContent = text.slice(0, i) + cursor;
+            if (i >= text.length) {
+                clearInterval(typeTimer);
+                typeTimer = null;
+                obj.textContent = text;
+                resolve();
+            }
+        }, charMs);
+    });
+}
+
+/* ================================================================
+   GŁÓWNA SEKWENCJA
+   ================================================================ */
+async function run() {
+    const myGen = ++gen;
+
+    // ── pobierz referencje ──
+    const aw = $('authors-wrap'), pr = $('present');
+    const ti = $('title'), li = $('line'), qu = $('provocation'), ma = $('manifest');
+    const ph = $('phase'), pb = $('progress-bar');
+
+    // ── reset wszystkich styli ──
+    [aw, pr, ti, li, qu, ma].forEach(e => {
+        e.style.opacity = '0';
+        e.style.transform = '';
+        e.style.top = '';
+        e.style.width = '';
+    });
+    [ti, qu, ma].forEach(e => e.textContent = '');
+    li.style.width = '0px';
+    pb.style.width = '0%';
+    ph.textContent = '0/9 — Start';
+
+    if (gen !== myGen) return;
+    await delay(50);
+    if (gen !== myGen) return;
+
+    // ── pasek postępu ──
+    const totalMs = 10000;
+    const pStart = performance.now();
+    const pTick = n => {
+        if (gen !== myGen) return;
+        const pct = Math.min(((n - pStart) / totalMs) * 100, 100);
+        pb.style.width = pct + '%';
+        if (pct < 100) requestAnimationFrame(pTick);
+    };
+    requestAnimationFrame(pTick);
+    if (gen !== myGen) return;
+
+    /* ═══════════════════════════════════════════════════════════
+       1. AUTORZY — fade in
+       ═══════════════════════════════════════════════════════════ */
+    ph.textContent = '1/9 — Autorzy';
+    aw.style.opacity = '0';
+    await anim(aw, 'opacity', 0, 1, C.AUTHOR_FADE);
+    if (gen !== myGen) return;
+
+    /* ═══════════════════════════════════════════════════════════
+       2. PREZENTUJĄ — fade in
+       ═══════════════════════════════════════════════════════════ */
+    ph.textContent = '2/9 — Prezentują';
+    await delay(C.PRESENT_DELAY);
+    if (gen !== myGen) return;
+    pr.style.opacity = '0';
+    await anim(pr, 'opacity', 0, 1, C.PRESENT_FADE);
+    if (gen !== myGen) return;
+
+    /* ═══════════════════════════════════════════════════════════
+       3. PRZEJŚCIE — autorzy slide+present fade
+       ═══════════════════════════════════════════════════════════ */
+    ph.textContent = '3/9 — Przejście';
+    await delay(C.HOLD_MS);
+    if (gen !== myGen) return;
+    await Promise.all([
+        anim(aw, 'top', 195, 520, C.SLIDE_DOWN, easeIn),
+        anim(pr, 'opacity', 1, 0, C.FADE_OUT),
+    ]);
+    if (gen !== myGen) return;
+    aw.style.opacity = '0';
+    pr.style.opacity = '0';
+
+    /* ═══════════════════════════════════════════════════════════
+       4. TYTUŁ — slide z góry
+       ═══════════════════════════════════════════════════════════ */
+    ph.textContent = '4/9 — Tytuł';
+    ti.textContent = '';
+    ti.style.transform = 'translateY(-70px)';
+    ti.style.opacity = '0';
+    ti.offsetHeight; // flush
+    await Promise.all([
+        anim(ti, 'y', -70, 0, C.TITLE_FADE),
+        anim(ti, 'opacity', 0, 1, C.TITLE_FADE),
+    ]);
+    if (gen !== myGen) return;
+
+    /* ═══════════════════════════════════════════════════════════
+       5. TYPEWRITER TYTUŁU
+       ═══════════════════════════════════════════════════════════ */
+    ph.textContent = '5/9 — Typewriter';
+    await typewrite(ti, C.TITLE_TEXT, C.TITLE_CHAR);
+    if (gen !== myGen) return;
+
+    /* ═══════════════════════════════════════════════════════════
+       6. LINIA
+       ═══════════════════════════════════════════════════════════ */
+    ph.textContent = '6/9 — Linia';
+    await delay(C.LINE_DELAY);
+    if (gen !== myGen) return;
+    li.style.opacity = '1';
+    await anim(li, 'w', 0, 460, C.LINE_GROW);
+    if (gen !== myGen) return;
+
+    /* ═══════════════════════════════════════════════════════════
+       7. PROWOKACJA
+       ═══════════════════════════════════════════════════════════ */
+    ph.textContent = '7/9 — Pauza...';
+    await delay(C.DRAMA_PAUSE);
+    if (gen !== myGen) return;
+    qu.style.opacity = '1';
+    ph.textContent = '7/9 — Pytanie';
+    await typewrite(qu, C.QUEST_TEXT, C.QUEST_CHAR);
+    if (gen !== myGen) return;
+
+    /* ═══════════════════════════════════════════════════════════
+       8. MANIFEST
+       ═══════════════════════════════════════════════════════════ */
+    ph.textContent = '8/9 — Pauza...';
+    await delay(C.ANS_PAUSE);
+    if (gen !== myGen) return;
+    ma.style.opacity = '1';
+    ph.textContent = '8/9 — Manifest';
+    await typewrite(ma, C.ANSWER_TEXT, C.ANSWER_CHAR);
+    if (gen !== myGen) return;
+
+    /* ═══════════════════════════════════════════════════════════
+       9. GOTOWE
+       ═══════════════════════════════════════════════════════════ */
+    ph.textContent = '9/9 — Gotowe ✓';
+    pb.style.width = '100%';
+}
+
+/* ================================================================
+   START
+   ================================================================ */
+$('replay').addEventListener('click', run);
+document.addEventListener('DOMContentLoaded', run);
+</script>
+</body>
+</html>
