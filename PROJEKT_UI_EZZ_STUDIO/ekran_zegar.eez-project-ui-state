@@ -1,9 +1,9 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/5",
+    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/1",
     "selectedActionObject": "[ekran_zegar.eez-project]:/actions/13",
     "selectedGlobalVariableObject": "[ekran_zegar.eez-project]:/variables/globalVariables/55",
-    "selectedBitmapObject": "[ekran_zegar.eez-project]:/bitmaps/53",
+    "selectedBitmapObject": "[ekran_zegar.eez-project]:/bitmaps/56",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Local"
     }
@@ -26,7 +26,7 @@
           },
           {
             "type": "border",
-            "selected": 1,
+            "selected": 2,
             "size": 303.5,
             "location": "right",
             "children": [
@@ -207,10 +207,10 @@
                 {
                   "type": "tab",
                   "id": "#e1bfd780-0cc0-4551-80e1-4258f4112944",
-                  "name": "Zegar",
+                  "name": "Menu",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[ekran_zegar.eez-project]:/userPages/5",
+                    "objectPath": "[ekran_zegar.eez-project]:/userPages/1",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -296,7 +296,7 @@
                 {
                   "type": "tab",
                   "id": "#bcabac8b-2196-4c2d-b28d-6e6867a8d64f",
-                  "name": "Zasoby Systemu",
+                  "name": "Ustawienia_Wifi",
                   "component": "editor",
                   "config": {
                     "objectPath": "[ekran_zegar.eez-project]:/userPages/4",
@@ -1171,10 +1171,7 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "8": {},
-          "10": {
-            "$selected": true
-          }
+          "8": {}
         },
         "1": {},
         "2": {}
@@ -1197,8 +1194,10 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
+          "0": {},
           "1": {},
-          "2": {}
+          "2": {},
+          "3": {}
         },
         "1": {},
         "2": {},
@@ -1207,10 +1206,10 @@
       },
       "transform": {
         "translate": {
-          "x": -493.48156168759965,
-          "y": -308.0690975848313
+          "x": -401.48156168759965,
+          "y": -184.0690975848313
         },
-        "scale": 0.8
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1589,15 +1588,13 @@
     },
     "[ekran_zegar.eez-project]:/userPages/13[flow-state]": {
       "selectionFront": {},
-      "selectionBack": {
-        "1": {}
-      },
+      "selectionBack": {},
       "transform": {
         "translate": {
           "x": -331.80000000000007,
           "y": -278.4
         },
-        "scale": 1.1
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1656,5 +1653,5 @@
   "globalFlowZoom": true,
   "flowZoom": 1,
   "implementationLanguage": "C++",
-  "openDialogDefaultPath": "C:\\Users\\PC\\Desktop\\EKRAN_PROJEKT\\scaled\\ZEGAR\\kfe_minutniik.PNG"
+  "openDialogDefaultPath": "C:\\Users\\PC\\Desktop\\EKRAN_PROJEKT\\scaled\\USTAWIENIA\\kfe_geometria_ekranu.png"
 }

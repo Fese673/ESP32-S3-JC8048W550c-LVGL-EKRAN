@@ -1,6 +1,6 @@
 #include "images.h"
 
-const ext_img_desc_t images[55] = {
+const ext_img_desc_t images[57] = {
     { "kfe_analiza", &img_kfe_analiza },
     { "kfe_czujniki", &img_kfe_czujniki },
     { "kfe_menu", &img_kfe_menu },
@@ -56,4 +56,6 @@ const ext_img_desc_t images[55] = {
     { "kfe_minutnik", &img_kfe_minutnik },
     { "kfe_bpm", &img_kfe_bpm },
     { "kfe_ustawienia", &img_kfe_ustawienia },
+    { "kfe_jasność", &img_kfe_jasno__ },
+    { "kfe_geometria_ekranu", &img_kfe_geometria_ekranu },
 };

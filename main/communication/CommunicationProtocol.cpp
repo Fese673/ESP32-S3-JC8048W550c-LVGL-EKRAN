@@ -94,14 +94,15 @@ void requestSystemResources() {
   sendRawFrame(kTypeRequest, 0, payload, 1);
 }
 
-void sendDeviceSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody) {
-  uint8_t payload[6];
+void sendDeviceSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody, uint8_t sevenSegBrightness) {
+  uint8_t payload[7];
   payload[0] = buzzer ? 1 : 0;
   payload[1] = mqtt ? 1 : 0;
   payload[2] = touch ? 1 : 0;
   payload[3] = music ? 1 : 0;
   payload[4] = pms ? 1 : 0;
   payload[5] = static_cast<uint8_t>(alarmMelody);
+  payload[6] = sevenSegBrightness;
   sendRawFrame(kTypeSetSettings, 0, payload, sizeof(payload));
 }
 
@@ -134,7 +135,7 @@ void sendRadioModeSwitch() {
   sendRawFrame(kTypeRadioMode, 0, payload, 1);
 }
 
-void updateLocalSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody) {
+void updateLocalSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody, uint8_t sevenSegBrightness) {
   DeviceSettings ds;
   ds.buzzerEnabled = buzzer;
   ds.mqttEnabled = mqtt;
@@ -142,6 +143,7 @@ void updateLocalSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pm
   ds.backgroundMusicEnabled = music;
   ds.pmsEnabled = pms;
   ds.alarmMelodyIndex = alarmMelody;
+  ds.sevenSegBrightness = sevenSegBrightness;
   ds.valid = true;
   setLocalSettings(ds);
 }
@@ -292,32 +294,32 @@ void action_refresh_settings() {
 
 void action_toggle_buzzer() {
   CommunicationProtocol::DeviceSettings ds = CommunicationProtocol::currentSettings();
-  CommunicationProtocol::updateLocalSettings(!ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex);
-  CommunicationProtocol::sendDeviceSettings(!ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex);
+  CommunicationProtocol::updateLocalSettings(!ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex, ds.sevenSegBrightness);
+  CommunicationProtocol::sendDeviceSettings(!ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex, ds.sevenSegBrightness);
 }
 
 void action_toggle_mqtt() {
   CommunicationProtocol::DeviceSettings ds = CommunicationProtocol::currentSettings();
-  CommunicationProtocol::updateLocalSettings(ds.buzzerEnabled, !ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex);
-  CommunicationProtocol::sendDeviceSettings(ds.buzzerEnabled, !ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex);
+  CommunicationProtocol::updateLocalSettings(ds.buzzerEnabled, !ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex, ds.sevenSegBrightness);
+  CommunicationProtocol::sendDeviceSettings(ds.buzzerEnabled, !ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex, ds.sevenSegBrightness);
 }
 
 void action_toggle_touch() {
   CommunicationProtocol::DeviceSettings ds = CommunicationProtocol::currentSettings();
-  CommunicationProtocol::updateLocalSettings(ds.buzzerEnabled, ds.mqttEnabled, !ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex);
-  CommunicationProtocol::sendDeviceSettings(ds.buzzerEnabled, ds.mqttEnabled, !ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex);
+  CommunicationProtocol::updateLocalSettings(ds.buzzerEnabled, ds.mqttEnabled, !ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex, ds.sevenSegBrightness);
+  CommunicationProtocol::sendDeviceSettings(ds.buzzerEnabled, ds.mqttEnabled, !ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex, ds.sevenSegBrightness);
 }
 
 void action_toggle_music() {
   CommunicationProtocol::DeviceSettings ds = CommunicationProtocol::currentSettings();
-  CommunicationProtocol::updateLocalSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, !ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex);
-  CommunicationProtocol::sendDeviceSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, !ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex);
+  CommunicationProtocol::updateLocalSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, !ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex, ds.sevenSegBrightness);
+  CommunicationProtocol::sendDeviceSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, !ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex, ds.sevenSegBrightness);
 }
 
 void action_toggle_pms() {
   CommunicationProtocol::DeviceSettings ds = CommunicationProtocol::currentSettings();
-  CommunicationProtocol::updateLocalSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, !ds.pmsEnabled, ds.alarmMelodyIndex);
-  CommunicationProtocol::sendDeviceSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, !ds.pmsEnabled, ds.alarmMelodyIndex);
+  CommunicationProtocol::updateLocalSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, !ds.pmsEnabled, ds.alarmMelodyIndex, ds.sevenSegBrightness);
+  CommunicationProtocol::sendDeviceSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, !ds.pmsEnabled, ds.alarmMelodyIndex, ds.sevenSegBrightness);
 }
 
 void action_action_refresh_settings() { action_refresh_settings(); }

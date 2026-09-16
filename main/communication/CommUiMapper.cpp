@@ -16,6 +16,12 @@
 #define FLOW_GLOBAL_VARIABLE_RADIO_MODE 63
 #endif
 
+// Etap 3: nowa zmienna flow dla jasnosci 7-seg. Indeks 64 (po ostatnim
+// enum FLOW_GLOBAL_VARIABLE_MUSIC_TREBLE=62 i RADIO_MODE=63).
+#ifndef FLOW_GLOBAL_VARIABLE_7SEG_BRIGHTNESS
+#define FLOW_GLOBAL_VARIABLE_7SEG_BRIGHTNESS 64
+#endif
+
 // Timer flow variables — przeniesione do timer_synchro.cpp
 
 #include "services/music/music_ui_handler.h"
@@ -136,6 +142,7 @@ void resetUi() {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_MID, eez::Value(50));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_TREBLE, eez::Value(50));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_RADIO_MODE, eez::Value(0));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_7SEG_BRIGHTNESS, eez::Value(100));
 
   music_ui_reset();
 }
@@ -310,9 +317,15 @@ void applyResourcesToUi(const SystemResources &sr) {
   if (objects.menu_kfe_zasoby_4) {
     lv_obj_remove_state(objects.menu_kfe_zasoby_4, LV_STATE_DISABLED);
   }
+  /* TODO(regression-fix): menu_kfe_statystyki_9 usuniete w screens.h
+   * v2.1 ale referencja zostala w CommUiMapper.cpp (dodana v2.0).
+   * Wymaga decyzji: przywrocic element w EEZ Studio lub usunac te linie.
+   * Tymczasowo wylaczone, zeby build przeszedl. */
+#if 0
   if (objects.menu_kfe_statystyki_9) {
     lv_obj_remove_state(objects.menu_kfe_statystyki_9, LV_STATE_DISABLED);
   }
+#endif
 }
 
 void applyBpmStatusToUi(int bpm, int spo2) {
@@ -381,10 +394,52 @@ void applySettingsToUi(const DeviceSettings &ds) {
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_TOUCH_STATE, eez::Value(ds.touchTestEnabled ? 1 : 0));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_MUSIC_STATE, eez::Value(ds.backgroundMusicEnabled ? 1 : 0));
   eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_PMS_STATE, eez::Value(ds.pmsEnabled ? 1 : 0));
+  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_7SEG_BRIGHTNESS, eez::Value((int)ds.sevenSegBrightness));
 
   if (objects.settings_melody_dropdown) {
     lv_dropdown_set_selected(objects.settings_melody_dropdown, ds.alarmMelodyIndex);
   }
+
+  /* Etap 3: dropdown jasnosci 7-seg. Opcje: 100/75/50/25/10/5/2% (indeksy 0..6).
+   * Mapujemy wartosc 0..100 na najblizszy indeks, zeby zawsze trafic w
+   * jedna z 7 opcji. */
+  if (objects.settings_jasnosc_7seg) {
+    uint8_t idx = brightnessToDropdownIndex(ds.sevenSegBrightness);
+    lv_dropdown_set_selected(objects.settings_jasnosc_7seg, idx);
+  }
+}
+
+/* Etap 3: mapowanie dropdown <-> brightness.
+ *
+ * Tablica opcji dropdowna (z screens.c):
+ *   "100%\n75%\n50%\n25%\n10%\n5%\n2%" — indeksy 0..6.
+ *
+ * Algorytm: progi — kazda opcja pokrywa zakres [midpoint miedzy nia a
+ * sasiadem]. Dla stabilnosci obrana strategia: floor do najblizszej
+ * opcji (np. 80 -> indeks 1 = 75%, 24 -> indeks 3 = 25%, 1 -> indeks 6 = 2%). */
+static const uint8_t kBrightnessOptions[] = {100, 75, 50, 25, 10, 5, 2};
+static const uint8_t kBrightnessOptionCount = sizeof(kBrightnessOptions);
+
+uint8_t brightnessToDropdownIndex(uint8_t brightness)
+{
+  if (brightness > 100U) brightness = 100U;
+  /* Progi: opcja[i] obowiazuje gdy brightness >= opcja[i] (po sorted desc).
+   * 100 >= 100 -> 0, 75-99 -> 1, 50-74 -> 2, 25-49 -> 3, 10-24 -> 4,
+   * 5-9 -> 5, 0-4 -> 6. */
+  for (uint8_t i = 0; i < kBrightnessOptionCount; ++i) {
+    if (brightness >= kBrightnessOptions[i]) {
+      return i;
+    }
+  }
+  return (uint8_t)(kBrightnessOptionCount - 1U);
+}
+
+uint8_t dropdownIndexToBrightness(uint8_t index)
+{
+  if (index >= kBrightnessOptionCount) {
+    return kBrightnessOptions[0];   /* default 100% dla nieznanego indeksu */
+  }
+  return kBrightnessOptions[index];
 }
 
 } // namespace CommunicationProtocol

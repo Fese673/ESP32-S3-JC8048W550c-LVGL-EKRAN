@@ -446,6 +446,14 @@ void applySettingsPayload(const uint8_t *payload, uint16_t payloadLength) {
     if (payloadLength >= 6U) {
       ds.alarmMelodyIndex = payload[5];
     }
+    /* Etap 3: bajt [6] = sevenSegBrightness 0..100.
+     * Stary ZEGAR (6-bajtowy) nie wysyla tego bajtu, wowczas
+     * sevenSegBrightness zostaje default 100 (zachowany RAM). */
+    if (payloadLength >= 7U) {
+      uint8_t b = payload[6];
+      if (b > 100U) b = 100U;
+      ds.sevenSegBrightness = b;
+    }
     ds.valid = true;
     setLocalSettings(ds);
   }

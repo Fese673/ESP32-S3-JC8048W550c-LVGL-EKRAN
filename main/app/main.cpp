@@ -9,6 +9,7 @@
 #include "alarm/alarm_popup.h"
 #include "main_handler.h"
 #include "communication/CommunicationProtocol.h"
+#include "communication/CommUiMapper.h"
 #include "wifi_service.h"
 #include "bpm_chart_handler.h"
 #include "weather/weather_icon_handler.h"
@@ -50,8 +51,22 @@ static void my_dropdown_event_cb(lv_event_t * e) {
     uint32_t selected = lv_dropdown_get_selected(dropdown);
 
     CommunicationProtocol::DeviceSettings ds = CommunicationProtocol::currentSettings();
-    CommunicationProtocol::updateLocalSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, (int)selected);
-    CommunicationProtocol::sendDeviceSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, (int)selected);
+    CommunicationProtocol::updateLocalSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, (int)selected, ds.sevenSegBrightness);
+    CommunicationProtocol::sendDeviceSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, (int)selected, ds.sevenSegBrightness);
+}
+
+/* Etap 3: callback dropdownu jasnosci 7-seg. Indeks 0..6 mapowany
+ * na wartosc 100/75/50/25/10/5/2% (helper w CommUiMapper). Wysyla
+ * 7-bajtowy kTypeSetSettings z bajtem [6] = sevenSegBrightness. */
+static void brightness_7seg_dropdown_cb(lv_event_t * e) {
+    lv_obj_t * dropdown = (lv_obj_t *)lv_event_get_target(e);
+    uint32_t selected = lv_dropdown_get_selected(dropdown);
+    if (selected > 6U) return;   /* 7 opcji (0..6) */
+
+    uint8_t brightness = CommunicationProtocol::dropdownIndexToBrightness((uint8_t)selected);
+    CommunicationProtocol::DeviceSettings ds = CommunicationProtocol::currentSettings();
+    CommunicationProtocol::updateLocalSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex, brightness);
+    CommunicationProtocol::sendDeviceSettings(ds.buzzerEnabled, ds.mqttEnabled, ds.touchTestEnabled, ds.backgroundMusicEnabled, ds.pmsEnabled, ds.alarmMelodyIndex, brightness);
 }
 
 static void style_premium_switch(lv_obj_t *sw) {
@@ -99,6 +114,7 @@ static void style_system_slider(lv_obj_t *slider) {
 
 static void init_custom_dropdown_hook() {
     static bool s_dropdown_hook_inited = false;
+    static bool s_brightness_dropdown_hook_inited = false;
 
     // Aplikowanie stylistyki premium na przełączniki ekranu Ustawienia
     style_premium_switch(objects.obj12);
@@ -115,6 +131,21 @@ static void init_custom_dropdown_hook() {
         if (!s_dropdown_hook_inited) {
             lv_obj_add_event_cb(objects.settings_melody_dropdown, my_dropdown_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
             s_dropdown_hook_inited = true;
+        }
+    }
+
+    /* Etap 3: dropdown jasnosci 7-seg. Sync z currentSettings (zeby po
+     * wejsciu na ekran USTAWIENIA od razu byl aktualny stan z ZEGAR,
+     * nie stale pierwszy element listy). */
+    if (objects.settings_jasnosc_7seg) {
+        CommunicationProtocol::DeviceSettings ds = CommunicationProtocol::currentSettings();
+        uint8_t idx = CommunicationProtocol::brightnessToDropdownIndex(ds.sevenSegBrightness);
+        lv_dropdown_set_selected(objects.settings_jasnosc_7seg, idx);
+
+        // Rejestracja callbacka TYLKO RAZ
+        if (!s_brightness_dropdown_hook_inited) {
+            lv_obj_add_event_cb(objects.settings_jasnosc_7seg, brightness_7seg_dropdown_cb, LV_EVENT_VALUE_CHANGED, NULL);
+            s_brightness_dropdown_hook_inited = true;
         }
     }
 }

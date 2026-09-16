@@ -119,6 +119,9 @@ struct DeviceSettings {
     bool backgroundMusicEnabled = true;
     bool pmsEnabled = true;
     int alarmMelodyIndex = 0;
+    /* Etap 3: jasnosc 7-seg (0..100). Trzymana w struct dla UI flow
+     * oraz protokolu. Wartosc domyslna 100 = pelna jasnosc. */
+    uint8_t sevenSegBrightness = 100;
     bool valid = false;
 };
 
@@ -148,8 +151,9 @@ bool ingestFrame(const uint8_t* data, size_t length);
 void updateUi();
 void requestDeviceSettings();
 void requestSystemResources();
-void sendDeviceSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody);
-void updateLocalSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody);
+/* Etap 3: 7-bajtowy payload kTypeSetSettings (bajt [6] = sevenSegBrightness 0..100). */
+void sendDeviceSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody, uint8_t sevenSegBrightness);
+void updateLocalSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody, uint8_t sevenSegBrightness);
 void sendMusicCommand(uint8_t cmd);
 void sendMusicVolume(uint8_t vol);
 void sendMusicEQ(uint8_t bass, uint8_t mid, uint8_t treble);

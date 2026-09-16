@@ -24,4 +24,11 @@ void applyMusicVolumeToUi(uint8_t volume);
 void applyMusicEQToUi(uint8_t bass, uint8_t mid, uint8_t treble);
 void applyRadioModeToUi(uint8_t mode);
 
+/* Etap 3: mapowanie dropdownu jasnosci 7-seg. Dropdown ma 7 opcji:
+ * 100/75/50/25/10/5/2% (indeksy 0..6). brightnessToDropdownIndex()
+ * wybiera najblizszy indeks dla wartosci 0..100.
+ * dropdownIndexToBrightness() odwraca operacje. */
+uint8_t brightnessToDropdownIndex(uint8_t brightness);
+uint8_t dropdownIndexToBrightness(uint8_t index);
+
 } // namespace CommunicationProtocol
