@@ -38,6 +38,10 @@ set(SOURCES_APP_CPP
     ./app/alarm_ui.cpp
     ./app/alarm/alarm_popup.cpp
     ./app/game/flappy_bird.cpp
+    ./app/screen_geometry/screen_geometry_ui.cpp
+    ./app/screen_geometry/screen_geometry_logic.cpp
+    ./app/radar/radar_logic.cpp
+    ./app/radar/radar_ui.cpp
     ./app/main_handler.cpp
     ./app/main.cpp
     ./app/weather/weather_icon_handler.c
@@ -95,6 +99,8 @@ idf_component_register(
                     "./app/notification"
                     "./app/weather"
                     "./app/game"
+                    "./app/screen_geometry"
+                    "./app/radar"
                     "./setting_wifi"
     REQUIRES        lvgl esp_lcd_touch_gt911 esp_timer esp_lcd esp_driver_ledc esp_driver_gpio esp_driver_uart esp_wifi esp_event nvs_flash esp_netif lwip
     )

@@ -135,6 +135,83 @@ void sendRadioModeSwitch() {
   sendRawFrame(kTypeRadioMode, 0, payload, 1);
 }
 
+void sendStepperExecute(uint16_t deg, uint16_t speed) {
+  uint8_t payload[5];
+  payload[0] = 0x01;
+  payload[1] = static_cast<uint8_t>(deg & 0xFFU);
+  payload[2] = static_cast<uint8_t>((deg >> 8) & 0xFFU);
+  payload[3] = static_cast<uint8_t>(speed & 0xFFU);
+  payload[4] = static_cast<uint8_t>((speed >> 8) & 0xFFU);
+  sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
+void sendStepperHold(int8_t dir, uint16_t speed) {
+  uint8_t payload[4];
+  payload[0] = 0x02;
+  payload[1] = static_cast<uint8_t>(dir);
+  payload[2] = static_cast<uint8_t>(speed & 0xFFU);
+  payload[3] = static_cast<uint8_t>((speed >> 8) & 0xFFU);
+  sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
+void sendStepperStop() {
+  uint8_t payload[1] = { 0x03 };
+  sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
+void sendStepperCal(uint8_t step) {
+  uint8_t payload[1] = { (step == 0) ? (uint8_t)0x05 : (uint8_t)0x06 };
+  sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
+void sendStepperCalMode(bool en) {
+  uint8_t payload[2] = { (uint8_t)0x0A, (uint8_t)(en ? 1 : 0) };
+  sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
+void sendStepperSetHome(uint16_t deg) {
+  uint8_t payload[3];
+  payload[0] = 0x07;
+  payload[1] = static_cast<uint8_t>(deg & 0xFFU);
+  payload[2] = static_cast<uint8_t>((deg >> 8) & 0xFFU);
+  sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
+void sendStepperSetTarget(uint16_t deg) {
+  uint8_t payload[3];
+  payload[0] = 0x09;
+  payload[1] = static_cast<uint8_t>(deg & 0xFFU);
+  payload[2] = static_cast<uint8_t>((deg >> 8) & 0xFFU);
+  sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
+void sendStepperSetRadar(bool en) {
+  uint8_t payload[2];
+  payload[0] = 0x08;
+  payload[1] = en ? 1 : 0;
+  sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
+void sendStepperSetAutoClose(uint16_t seconds) {
+  uint8_t payload[3];
+  payload[0] = 0x0B;
+  payload[1] = static_cast<uint8_t>(seconds & 0xFFU);
+  payload[2] = static_cast<uint8_t>((seconds >> 8) & 0xFFU);
+  sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
+void sendStepperSetSens(uint8_t code) {
+  uint8_t payload[2];
+  payload[0] = 0x0C;
+  payload[1] = static_cast<uint8_t>(code <= 2U ? code : 0U);
+  sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
+void requestStepperState() {
+  uint8_t payload[1] = { 0x04 };
+  sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
 void updateLocalSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody, uint8_t sevenSegBrightness) {
   DeviceSettings ds;
   ds.buzzerEnabled = buzzer;
@@ -244,6 +321,31 @@ void updateUi() {
     uint8_t bass, mid, treble;
     if (consumeMusicEQState(bass, mid, treble)) {
       applyMusicEQToUi(bass, mid, treble);
+    }
+  }
+  {
+    bool busy;
+    int32_t posSteps;
+    uint16_t targetDeg;
+    uint8_t flags;
+    uint16_t speed;
+    uint16_t homeDeg;
+    uint16_t autoCloseS;
+    if (consumeStepperState(busy, posSteps, targetDeg, flags, speed, homeDeg,
+                            autoCloseS)) {
+      applyStepperStateToUi(busy, posSteps, targetDeg, flags, speed, homeDeg,
+                            autoCloseS);
+    }
+  }
+  {
+    uint8_t presence;
+    uint16_t movDist, statDist, detectDist;
+    uint8_t movEnergy, statEnergy;
+    uint8_t movGates[9], statGates[9];
+    if (consumeRadarState(presence, movDist, movEnergy, statDist, statEnergy,
+                          detectDist, movGates, statGates)) {
+      applyRadarToUi(presence, movDist, movEnergy, statDist, statEnergy,
+                     detectDist, movGates, statGates);
     }
   }
   {

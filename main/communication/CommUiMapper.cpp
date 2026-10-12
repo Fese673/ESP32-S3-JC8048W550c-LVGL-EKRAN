@@ -25,7 +25,9 @@
 // Timer flow variables — przeniesione do timer_synchro.cpp
 
 #include "services/music/music_ui_handler.h"
+#include "app/radar/radar.h"
 #include "main_handler.h"
+#include "screen_geometry.h"
 #include "app/weather/weather_icon_handler.h"
 
 namespace CommunicationProtocol {
@@ -386,6 +388,37 @@ void applyMusicEQToUi(uint8_t bass, uint8_t mid, uint8_t treble) {
 void applyRadioModeToUi(uint8_t mode) {
     eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_RADIO_MODE, eez::Value(static_cast<int>(mode)));
     main_ui_set_radio_mode(mode);
+}
+
+void applyStepperStateToUi(bool busy, int32_t posSteps, uint16_t targetDeg,
+                            uint8_t flags, uint16_t speed, uint16_t homeDeg,
+                            uint16_t autoCloseS) {
+    // Modul screen_geometry zyje w tasku LVGL — bezposrednie wywolanie.
+    screen_geometry_set_remote_state(busy, posSteps, targetDeg, flags, speed,
+                                     homeDeg, autoCloseS);
+    // Czulosc OUT radaru (bity 2-3 flags) — ekran radaru adoptuje
+    // z ochrona pending (tylko uzytkownik zmienia).
+    radar_set_remote_sens(static_cast<uint8_t>((flags >> 2) & 0x03U));
+}
+
+void applyRadarToUi(uint8_t presence, uint16_t movDist, uint8_t movEnergy,
+                    uint16_t statDist, uint8_t statEnergy, uint16_t detectDist,
+                    const uint8_t *movGates, const uint8_t *statGates) {
+    // Modul radar zyje w tasku LVGL — bezposrednie wywolanie.
+    radar_set_remote_state(presence, movDist, movEnergy, statDist, statEnergy,
+                           detectDist, movGates, statGates);
+    // OUT (bit b3) prosto do automatu geometrii (push, bez flagi dirty).
+    screen_geometry_set_radar_out((presence & 0x08U) != 0);
+    // ETAP 3 (diagnostyka do czasu ekranu): log tylko przy zmianie presence.
+    static uint8_t s_lastLogged = 0xFF;
+    if (presence != s_lastLogged) {
+        s_lastLogged = presence;
+        ESP_LOGI("RADAR", "P=%c%c%c mov=%ucm/%u stat=%ucm/%u det=%u",
+                 (presence & 0x01) ? 'P' : '-',
+                 (presence & 0x02) ? 'M' : '-',
+                 (presence & 0x04) ? 'S' : '-',
+                 movDist, movEnergy, statDist, statEnergy, detectDist);
+    }
 }
 
 void applySettingsToUi(const DeviceSettings &ds) {

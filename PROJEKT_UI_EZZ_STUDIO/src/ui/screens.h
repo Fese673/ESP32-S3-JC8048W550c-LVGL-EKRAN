@@ -25,7 +25,8 @@ enum ScreensEnum {
     SCREEN_ID_CZUJNIKI = 12,
     SCREEN_ID_INFO = 13,
     SCREEN_ID_GEOMETRIA_EKRANU = 14,
-    _SCREEN_ID_LAST = 14
+    SCREEN_ID_RADAR = 15,
+    _SCREEN_ID_LAST = 15
 };
 
 typedef struct _objects_t {
@@ -43,6 +44,7 @@ typedef struct _objects_t {
     lv_obj_t *czujniki;
     lv_obj_t *info;
     lv_obj_t *geometria_ekranu;
+    lv_obj_t *radar;
     lv_obj_t *weather_in;
     lv_obj_t *pressure_in_5;
     lv_obj_t *co2_in_6;
@@ -106,6 +108,7 @@ typedef struct _objects_t {
     lv_obj_t *info_wifi_on_icon_1;
     lv_obj_t *info_wifi_off_icon_1;
     lv_obj_t *menu_kfe_geometria_9;
+    lv_obj_t *menu_kfe_geometria_10;
     lv_obj_t *settings_melody_dropdown;
     lv_obj_t *obj11;
     lv_obj_t *obj12;
@@ -288,6 +291,18 @@ typedef struct _objects_t {
     lv_obj_t *info_ble_off_icon_13;
     lv_obj_t *info_wifi_on_icon_13;
     lv_obj_t *info_wifi_off_icon_13;
+    lv_obj_t *obj64;
+    lv_obj_t *seconds_text_24;
+    lv_obj_t *obj65;
+    lv_obj_t *minutes_text_30;
+    lv_obj_t *obj66;
+    lv_obj_t *hour_text_30;
+    lv_obj_t *info_bell_of_icon_on_14;
+    lv_obj_t *info_bell_of_icon_off_14;
+    lv_obj_t *info_ble_on_icon_14;
+    lv_obj_t *info_ble_off_icon_14;
+    lv_obj_t *info_wifi_on_icon_14;
+    lv_obj_t *info_wifi_off_icon_14;
 } objects_t;
 
 extern objects_t objects;
@@ -353,6 +368,10 @@ void tick_screen_info();
 void create_screen_geometria_ekranu();
 void delete_screen_geometria_ekranu();
 void tick_screen_geometria_ekranu();
+
+void create_screen_radar();
+void delete_screen_radar();
+void tick_screen_radar();
 
 void create_screen_by_id(enum ScreensEnum screenId);
 void delete_screen_by_id(enum ScreensEnum screenId);

@@ -103,6 +103,12 @@ void handleFrame(uint8_t type, const uint8_t *payload, uint16_t payloadLength) {
     case kTypeRadioMode:
         applyRadioModePayload(payload, payloadLength);
         break;
+    case kTypeRadar:
+        applyRadarPayload(payload, payloadLength);
+        break;
+    case kTypeStepperState:
+        applyStepperStatePayload(payload, payloadLength);
+        break;
     case kTypeAlarmList:
         TimerSync::handleAlarmListPayload(payload, payloadLength);
         break;

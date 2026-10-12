@@ -44,6 +44,8 @@ void applyMusicStatusPayload(const uint8_t *payload, uint16_t payloadLength);
 void applyMusicVolumeStatePayload(const uint8_t *payload, uint16_t payloadLength);
 void applyMusicEQStatePayload(const uint8_t *payload, uint16_t payloadLength);
 void applyRadioModePayload(const uint8_t *payload, uint16_t payloadLength);
+void applyStepperStatePayload(const uint8_t *payload, uint16_t payloadLength);
+void applyRadarPayload(const uint8_t *payload, uint16_t payloadLength);
 
 OutdoorWeatherSnapshot getLocalOutdoorWeather();
 void setLocalOutdoorWeather(const OutdoorWeatherSnapshot& ow);
@@ -63,6 +65,12 @@ bool consumeMusicStatus(bool &connected, bool &playing);
 bool consumeMusicVolumeState(uint8_t &volume);
 bool consumeMusicEQState(uint8_t &bass, uint8_t &mid, uint8_t &treble);
 bool consumeRadioMode(uint8_t &mode);
+bool consumeStepperState(bool &busy, int32_t &posSteps, uint16_t &targetDeg,
+                          uint8_t &flags, uint16_t &speed, uint16_t &homeDeg,
+                          uint16_t &autoCloseS);
+bool consumeRadarState(uint8_t &presence, uint16_t &movDist, uint8_t &movEnergy,
+                       uint16_t &statDist, uint8_t &statEnergy, uint16_t &detectDist,
+                       uint8_t *movGates, uint8_t *statGates);
 
 // Handshake
 void onHelloAckReceived(const uint8_t *payload, uint16_t payloadLength);

@@ -32,6 +32,14 @@ namespace CommunicationProtocol {
     kTypeMusicVolumeState = 0x36,
     kTypeMusicEQState = 0x37,
     kTypeRadioMode = 0x38,
+    // Radar LD2410 (ZEGAR ESP32 -> Guition). Lustro STM32 0xA3 + 18 B bramek:
+    // [presence][movD u16 LE][movE][statD u16 LE][statE][detect][movGate0..8][statGate0..8].
+    kTypeRadar = 0x39,       // Z -> G, 8 lub 26 B
+    // Silnik ekranu (Guition -> ZEGAR ESP32 -> STM32). Lustro kontraktu
+    // ZEGAR-ESP32 (Esptogution.h: kTypeStepperCmd/State + sub-komendy).
+    // Zmieniasz tu = zmieniasz tam.
+    kTypeStepperCmd = 0x3A,   // G -> Z: [sub][args]
+    kTypeStepperState = 0x3B, // Z -> G: [busy][pos i32 LE][targetDeg u16 LE][flags][speed u16 LE][homeDeg u16 LE]
     // TimeSyncProtocol — alarmy + minutnik
     kTypeAlarmList      = 0x0D,
     kTypeSetAlarm       = 0x0E,
@@ -159,6 +167,32 @@ void sendMusicVolume(uint8_t vol);
 void sendMusicEQ(uint8_t bass, uint8_t mid, uint8_t treble);
 void requestMusicState();
 void sendRadioModeSwitch();
+// Silnik ekranu — sub-komendy 0x3A (lustro Esptogution.h).
+// EXECUTE: ZEGAR zapisuje kat i sam jedzie (MOVE_ABS). HOLD: chunk 2048,
+// puszczenie = STOP (jak live w skrypcie PC). STOP idempotentny.
+// CAL: 0 = zapisz biezacy pos jako zero, 1 = zapisz rozpietosc + wroc do 0.
+void sendStepperExecute(uint16_t deg, uint16_t speed);
+void sendStepperHold(int8_t dir, uint16_t speed);
+void sendStepperStop();
+void sendStepperCal(uint8_t step);
+// CAL_MODE: [en] — wstrzymaj automat radaru na czas kalibracji (STM32 trzyma
+// do en=0 albo auto-timeout). Guition: en=1 przy wejsciu w kalibracje
+// (+ keepalive), en=0 po zapisie (calOk 0->1) / wyjsciu z ekranu.
+void sendStepperCalMode(bool en);
+// Cel powrotu po resecie (double-click presetu) — preferencja w STM32.
+void sendStepperSetHome(uint16_t deg);
+// Wybrany kat z UI (single-click presetu) — zapis w NVS ZEGAR-a, bez ruchu.
+// Automaty (radar) zmieniaja tylko pozycje silnika; tego NIE nadpisuja.
+void sendStepperSetTarget(uint16_t deg);
+// Automat LD2410C (przycisk na geometrii) — preferencja we flash STM32.
+void sendStepperSetRadar(bool en);
+// Czas auto-zjazdu radaru (przyciski pod kafelkiem) — presety 30/120/300/600 s;
+// walidacja + zapis we flash STM32, echo wraca ramka 0x3B.
+void sendStepperSetAutoClose(uint16_t seconds);
+// Czulosc OUT radaru (ekran radaru) — presety 0=SREDNIA, 1=WYSOKA, 2=MALA;
+// walidacja + zapis we flash STM32, echo wraca ramka 0x3B (bity 2-3 flags).
+void sendStepperSetSens(uint8_t code);
+void requestStepperState();
 
 }  // namespace CommunicationProtocol
 

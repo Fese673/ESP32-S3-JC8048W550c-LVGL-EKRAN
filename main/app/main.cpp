@@ -15,6 +15,8 @@
 #include "weather/weather_icon_handler.h"
 #include "sntp_service.h"
 #include "flappy_bird.h"
+#include "screen_geometry/screen_geometry.h"
+#include "app/radar/radar.h"
 #include "services/sensor/sensors_wiki.h"
 #include "driver/i2c_master.h"
 #include "driver/gpio.h"
@@ -318,6 +320,8 @@ extern "C" void app_main(void)
         bpm_chart_handler_init();
         weather_icon_handler_init();
         music_ui_handler_init();
+        screen_geometry_init();
+        radar_init();
         main_ui_init();
         lvgl_port_unlock();
         clock_logic_start();

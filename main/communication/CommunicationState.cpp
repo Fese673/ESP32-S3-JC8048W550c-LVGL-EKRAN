@@ -75,6 +75,35 @@ struct RadioModeState {
 };
 RadioModeState s_radioMode;
 
+// Silnik ekranu — stan z ZEGAR ESP32 (ramka 0x3B). ZEGAR jest zrodlem prawdy
+// dla POS/busy/celu/predkosci; Guition tylko wyswietla i wysyla komendy 0x3A.
+struct StepperStateR {
+    bool busy = false;
+    int32_t posSteps = 0;
+    uint16_t targetDeg = 45;
+    uint8_t flags = 0;  // bit0 = skalibrowany, bit1 = automat radaru
+    uint16_t speed = 0xFFFF; // kroki/s z NVS ZEGAR-a; 0xFFFF = brak (stary ZEGAR)
+    uint16_t homeDeg = 0xFFFF; // cel powrotu STM32 po resecie; 0xFFFF = brak
+    uint16_t autoCloseS = 0xFFFF; // auto-zjazd radaru (s); 0xFFFF = brak (stary ZEGAR)
+    volatile bool dirty = false;
+};
+StepperStateR s_stepperState;
+
+// Radar LD2410 — stan z ZEGAR ESP32 (ramka 0x39). ZEGAR jest zrodlem prawdy;
+// Guition tylko wyswietla. 8 B = basic (stary ZEGAR), 26 B = + bramki.
+struct RadarStateR {
+    uint8_t presence = 0x80;  // domyslnie LINK-BAD do pierwszej ramki
+    uint16_t movDist = 0;
+    uint8_t movEnergy = 0;
+    uint16_t statDist = 0;
+    uint8_t statEnergy = 0;
+    uint16_t detectDist = 0;
+    uint8_t movGates[9] = {0};
+    uint8_t statGates[9] = {0};
+    volatile bool dirty = false;
+};
+RadarStateR s_radarState;
+
 uint32_t currentMs() {
   return static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
 }
@@ -636,6 +665,100 @@ bool consumeMusicEQState(uint8_t &bass, uint8_t &mid, uint8_t &treble) {
         mid = s_musicEQ.mid;
         treble = s_musicEQ.treble;
         s_musicEQ.dirty = false;
+    }
+    unlockSnapshot();
+    return dirty;
+}
+
+void applyStepperStatePayload(const uint8_t *payload, uint16_t payloadLength) {
+    if (payload == nullptr || payloadLength < 8) return;
+    lockSnapshot();
+    s_stepperState.busy = payload[0] != 0;
+    s_stepperState.posSteps =
+        static_cast<int32_t>(static_cast<uint32_t>(payload[1]) |
+                             (static_cast<uint32_t>(payload[2]) << 8U) |
+                             (static_cast<uint32_t>(payload[3]) << 16U) |
+                             (static_cast<uint32_t>(payload[4]) << 24U));
+    s_stepperState.targetDeg =
+        static_cast<uint16_t>(payload[5] | (static_cast<uint16_t>(payload[6]) << 8U));
+    s_stepperState.flags = payload[7];
+    // 10-bajtowy stan niesie predkosc z NVS ZEGAR-a; 8-bajtowy (stary ZEGAR)
+    // zostawia poprzednia (0xFFFF po starcie = nie adoptuj).
+    if (payloadLength >= 10) {
+        s_stepperState.speed =
+            static_cast<uint16_t>(payload[8] | (static_cast<uint16_t>(payload[9]) << 8U));
+    }
+    // 12-bajtowy stan niesie cel powrotu po resecie (STM32 truth).
+    if (payloadLength >= 12) {
+        s_stepperState.homeDeg =
+            static_cast<uint16_t>(payload[10] | (static_cast<uint16_t>(payload[11]) << 8U));
+    }
+    // 14-bajtowy stan niesie czas auto-zjazdu radaru (STM32 truth).
+    if (payloadLength >= 14) {
+        s_stepperState.autoCloseS =
+            static_cast<uint16_t>(payload[12] | (static_cast<uint16_t>(payload[13]) << 8U));
+    }
+    s_stepperState.dirty = true;
+    unlockSnapshot();
+}
+
+bool consumeStepperState(bool &busy, int32_t &posSteps, uint16_t &targetDeg,
+                          uint8_t &flags, uint16_t &speed, uint16_t &homeDeg,
+                          uint16_t &autoCloseS) {
+    lockSnapshot();
+    bool dirty = s_stepperState.dirty;
+    if (dirty) {
+        busy = s_stepperState.busy;
+        posSteps = s_stepperState.posSteps;
+        targetDeg = s_stepperState.targetDeg;
+        flags = s_stepperState.flags;
+        speed = s_stepperState.speed;
+        homeDeg = s_stepperState.homeDeg;
+        autoCloseS = s_stepperState.autoCloseS;
+        s_stepperState.dirty = false;
+    }
+    unlockSnapshot();
+    return dirty;
+}
+
+void applyRadarPayload(const uint8_t *payload, uint16_t payloadLength) {
+    if (payload == nullptr || payloadLength < 8) return;
+    lockSnapshot();
+    s_radarState.presence = payload[0];
+    s_radarState.movDist =
+        static_cast<uint16_t>(payload[1] | (static_cast<uint16_t>(payload[2]) << 8U));
+    s_radarState.movEnergy = payload[3];
+    s_radarState.statDist =
+        static_cast<uint16_t>(payload[4] | (static_cast<uint16_t>(payload[5]) << 8U));
+    s_radarState.statEnergy = payload[6];
+    s_radarState.detectDist = payload[7];
+    // 26-bajtowy stan niesie energie bramek; 8-bajtowy (stary ZEGAR) zeruje.
+    if (payloadLength >= 26) {
+        memcpy(s_radarState.movGates, payload + 8, 9);
+        memcpy(s_radarState.statGates, payload + 17, 9);
+    } else {
+        memset(s_radarState.movGates, 0, 9);
+        memset(s_radarState.statGates, 0, 9);
+    }
+    s_radarState.dirty = true;
+    unlockSnapshot();
+}
+
+bool consumeRadarState(uint8_t &presence, uint16_t &movDist, uint8_t &movEnergy,
+                       uint16_t &statDist, uint8_t &statEnergy, uint16_t &detectDist,
+                       uint8_t *movGates, uint8_t *statGates) {
+    lockSnapshot();
+    bool dirty = s_radarState.dirty;
+    if (dirty) {
+        presence = s_radarState.presence;
+        movDist = s_radarState.movDist;
+        movEnergy = s_radarState.movEnergy;
+        statDist = s_radarState.statDist;
+        statEnergy = s_radarState.statEnergy;
+        detectDist = s_radarState.detectDist;
+        if (movGates != nullptr) memcpy(movGates, s_radarState.movGates, 9);
+        if (statGates != nullptr) memcpy(statGates, s_radarState.statGates, 9);
+        s_radarState.dirty = false;
     }
     unlockSnapshot();
     return dirty;

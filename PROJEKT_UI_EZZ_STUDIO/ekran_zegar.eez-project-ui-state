@@ -1,6 +1,6 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/1",
+    "selectedUserPageObject": "[ekran_zegar.eez-project]:/userPages/2",
     "selectedActionObject": "[ekran_zegar.eez-project]:/actions/13",
     "selectedGlobalVariableObject": "[ekran_zegar.eez-project]:/variables/globalVariables/55",
     "selectedBitmapObject": "[ekran_zegar.eez-project]:/bitmaps/56",
@@ -206,11 +206,11 @@
               "children": [
                 {
                   "type": "tab",
-                  "id": "#e1bfd780-0cc0-4551-80e1-4258f4112944",
-                  "name": "Menu",
+                  "id": "#5cfed0e9-a8b3-4dd9-af63-6e0dbb7ebfc1",
+                  "name": "Ustawienia",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[ekran_zegar.eez-project]:/userPages/1",
+                    "objectPath": "[ekran_zegar.eez-project]:/userPages/2",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -240,7 +240,7 @@
                 {
                   "type": "tab",
                   "id": "#007cd0e4-4592-4e73-8258-b12e20e7adce",
-                  "name": "Pogoda",
+                  "name": "GRY TEST",
                   "component": "editor",
                   "config": {
                     "objectPath": "[ekran_zegar.eez-project]:/userPages/9",
@@ -1181,7 +1181,7 @@
           "x": -362.6491485623425,
           "y": -296.45532541018656
         },
-        "scale": 1
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1206,10 +1206,10 @@
       },
       "transform": {
         "translate": {
-          "x": -401.48156168759965,
-          "y": -184.0690975848313
+          "x": -401.32646408212463,
+          "y": -92.93698047831668
         },
-        "scale": 1
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1229,7 +1229,7 @@
           "x": -428.498995093795,
           "y": -252.36803520923525
         },
-        "scale": 0.8
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1249,7 +1249,7 @@
           "x": -521.8199962434264,
           "y": -269.882442980573
         },
-        "scale": 1
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1271,7 +1271,7 @@
           "x": -596.8199962434264,
           "y": -267.882442980573
         },
-        "scale": 1
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1429,7 +1429,7 @@
           "x": -594.3891587038356,
           "y": -375.1035966003317
         },
-        "scale": 0.8
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1448,7 +1448,7 @@
           "x": -344,
           "y": -348
         },
-        "scale": 1
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1460,14 +1460,19 @@
     "[ekran_zegar.eez-project]:/userPages/10[flow-state]": {
       "selectionFront": {},
       "selectionBack": {
-        "0": {}
+        "0": {
+          "0": {},
+          "1": {
+            "$selected": true
+          }
+        }
       },
       "transform": {
         "translate": {
           "x": -344,
           "y": -348
         },
-        "scale": 0.8
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1488,7 +1493,7 @@
           "x": -707,
           "y": -364
         },
-        "scale": 0.8
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1588,13 +1593,15 @@
     },
     "[ekran_zegar.eez-project]:/userPages/13[flow-state]": {
       "selectionFront": {},
-      "selectionBack": {},
+      "selectionBack": {
+        "0": {}
+      },
       "transform": {
         "translate": {
-          "x": -331.80000000000007,
-          "y": -278.4
+          "x": -302.30666666666696,
+          "y": -345.40888888888884
         },
-        "scale": 1
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1608,10 +1615,10 @@
       "selectionBack": {},
       "transform": {
         "translate": {
-          "x": -518,
-          "y": -240
+          "x": -522,
+          "y": 60
         },
-        "scale": 1.1
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1646,12 +1653,11 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "POSITION AND SIZE",
-    "TEXT"
+    "BACKGROUND"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 1,
+  "flowZoom": 0.75,
   "implementationLanguage": "C++",
   "openDialogDefaultPath": "C:\\Users\\PC\\Desktop\\EKRAN_PROJEKT\\scaled\\USTAWIENIA\\kfe_geometria_ekranu.png"
 }
