@@ -16,6 +16,10 @@ void setLocalSnapshot(const Snapshot& s);
 DeviceSettings getLocalSettings();
 void setLocalSettings(const DeviceSettings& ds);
 
+// True po pierwszym echu ustawien z ZEGARA — dopiero wtedy wolno wysylac
+// zmiany (przed syncem cache ma tylko defaulty).
+bool settingsEverSynced();
+
 SystemResources getLocalResources();
 void setLocalResources(const SystemResources& sr);
 

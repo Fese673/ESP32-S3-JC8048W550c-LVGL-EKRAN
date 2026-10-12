@@ -23,7 +23,7 @@ typedef enum {
 #define GEOM_FLAG_RADAR_EN 0x02
 
 // Automat LD2410C (OUT -> wybrany kat, cisza -> 0°) zyje w STM32
-// (stepper_link.c: czas z truth — presety 30s/2m/5m/10m). Tu tylko HMI.
+// (stepper_link.c: czas z truth — presety 30s/3m/10m/45m). Tu tylko HMI.
 
 // --- logika -> UI ---
 void        geom_ui_build(lv_obj_t *screen);
@@ -68,8 +68,8 @@ void        geom_logic_radar_toggle(void); // klik: optymistyczny flip + SET_RAD
 int         geom_logic_radar_en(void);     // 1 = automat wlaczony (adopcja z 0x3B)
 int         geom_logic_radar_out(void);    // 1 = OUT HIGH (radar widzi kogos, live)
 
-// --- czas auto-zjazdu radaru (przyciski 30s/2m/5m/10m pod kafelkiem) ---
-// Presety w sekundach: 30/120/300/600. Zapis + walidacja we flash STM32,
+// --- czas auto-zjazdu radaru (przyciski 30s/3m/10m/45m pod kafelkiem) ---
+// Presety w sekundach: 30/180/600/2700. Zapis + walidacja we flash STM32,
 // echo 0x3B adoptowane z ochrona pending (tylko uzytkownik zmienia).
 void        geom_logic_auto_close_set(uint16_t seconds);
 int         geom_logic_auto_close_sec(void); // aktywna wartosc w sekundach

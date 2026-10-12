@@ -24,6 +24,9 @@ volatile bool s_outdoorDirty = false;
 volatile bool s_settingsDirty = false;
 volatile bool s_resourcesDirty = false;
 volatile bool s_resetUiPending = false;
+// Ustawiane po pierwszym echu ustawien z ZEGARA (applySettingsPayload).
+// Do tego czasu cache trzyma same defaulty — nie wolno ich wysylac.
+volatile bool s_settingsEverSynced = false;
 
 // Sensor WiFi status
 bool s_sensorWifiConnected = false;
@@ -314,6 +317,10 @@ void applyWeatherPayload(const uint8_t *payload, uint16_t payloadLength) {
     if (payloadLength >= 15U && (flags & 0x80U) != 0U) {
       nextSnapshot.tvoc = static_cast<uint16_t>(payload[13] | (payload[14] << 8U));
     }
+    // Stopien kalibracji ENS160 (0/1/2/3) — starszy ZEGAR nie dokleja bajtu.
+    if (payloadLength >= 16U) {
+      nextSnapshot.gasStage = payload[15];
+    }
   } else {
     sampleAgeMs = static_cast<uint32_t>(payload[6]) |
                   (static_cast<uint32_t>(payload[7]) << 8U) |
@@ -485,7 +492,12 @@ void applySettingsPayload(const uint8_t *payload, uint16_t payloadLength) {
     }
     ds.valid = true;
     setLocalSettings(ds);
+    s_settingsEverSynced = true;
   }
+}
+
+bool settingsEverSynced() {
+  return s_settingsEverSynced;
 }
 
 void applySystemResourcesPayload(const uint8_t *payload, uint16_t payloadLength) {

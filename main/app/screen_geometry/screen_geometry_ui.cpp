@@ -59,8 +59,8 @@ static int s_preset_built = 0;
 // Presety czasu auto-zjazdu radaru (pod kafelkiem RADAR MIKROFALOWY).
 // Wartosci w sekundach; walidacja + zapis we flash STM32.
 #define GEOM_ACLOSE_COUNT 4
-static const uint16_t kAcloseSec[GEOM_ACLOSE_COUNT] = { 30U, 120U, 300U, 600U };
-static const char *const kAcloseTxt[GEOM_ACLOSE_COUNT] = { "30s", "2m", "5m", "10m" };
+static const uint16_t kAcloseSec[GEOM_ACLOSE_COUNT] = { 30U, 180U, 600U, 2700U };
+static const char *const kAcloseTxt[GEOM_ACLOSE_COUNT] = { "30s", "3m", "10m", "45m" };
 static lv_obj_t *s_aclose_btns[GEOM_ACLOSE_COUNT] = { NULL };
 static int s_last_aclose = -1;
 

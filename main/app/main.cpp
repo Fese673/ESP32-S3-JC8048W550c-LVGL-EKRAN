@@ -118,12 +118,16 @@ static void init_custom_dropdown_hook() {
     static bool s_dropdown_hook_inited = false;
     static bool s_brightness_dropdown_hook_inited = false;
 
-    // Aplikowanie stylistyki premium na przełączniki ekranu Ustawienia
+    // Aplikowanie stylistyki premium na przełączniki ekranu Ustawienia.
+    // UWAGA: obj16 to NIE switch — to ramka (pill) zegara na tym ekranie;
+    // kiedys bylo tu obj16 zamiast obj11 (stara wersja EEZ) i outline
+    // znikal (style_premium_switch zeruje outline/border). Przelaczniki
+    // na USTAWIENIACH to obj11..obj15.
+    style_premium_switch(objects.obj11);
     style_premium_switch(objects.obj12);
     style_premium_switch(objects.obj13);
     style_premium_switch(objects.obj14);
     style_premium_switch(objects.obj15);
-    style_premium_switch(objects.obj16);
 
     if (objects.settings_melody_dropdown) {
         CommunicationProtocol::DeviceSettings ds = CommunicationProtocol::currentSettings();

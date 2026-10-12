@@ -1,6 +1,6 @@
 // Ekran radaru LD2410 — radar-sweep. Geometria co do piksela:
 // tresc x27..774, pasek statusu y55..99, sweep C=(400,370) R=264
-// (9 okregow co 33 px = bramki), slupki bramek y384..444 (9 slotow po 83 px).
+// (9 okregow co 33 px = bramki). Po prawej ramka CZULOSC (3 presety OUT).
 // Paleta 1:1 z music_ui_handler.c + zielony/amber z geometrii.
 #include "app/radar/radar.h"
 #include "app/radar/radar_internal.h"
@@ -26,8 +26,6 @@ constexpr int kCx = 400;
 constexpr int kCy = 370;
 constexpr int kRout = 264;
 constexpr int kRingStep = 33;   // 264 / 8 bramek
-constexpr int kBarBaseY = 444;
-constexpr int kBarMaxH = 56;
 
 lv_obj_t *s_status = nullptr;
 lv_obj_t *s_mov_val = nullptr;
@@ -36,8 +34,6 @@ lv_obj_t *s_det_val = nullptr;
 lv_obj_t *s_beam = nullptr;
 lv_obj_t *s_mov_blip = nullptr;
 lv_obj_t *s_stat_blip = nullptr;
-lv_obj_t *s_mov_bar[9] = {nullptr};
-lv_obj_t *s_stat_bar[9] = {nullptr};
 lv_point_precise_t s_beam_pts[2] = {{kCx, kCy}, {kCx, kCy - kRout}};
 int s_beam_deg = -80;  // kat od pionu, ping-pong +-80
 int s_beam_dir = 1;
@@ -83,19 +79,6 @@ lv_obj_t *make_ring(lv_obj_t *parent, int r) {
     lv_obj_set_style_border_color(o, lv_color_hex(C_BORDER), LV_PART_MAIN);
     lv_obj_set_style_border_width(o, 1, LV_PART_MAIN);
     lv_obj_set_style_radius(o, d / 2, LV_PART_MAIN);
-    return o;
-}
-
-lv_obj_t *make_bar(lv_obj_t *parent, int x, uint32_t color) {
-    lv_obj_t *o = lv_obj_create(parent);
-    lv_obj_set_pos(o, x, kBarBaseY - 2);
-    lv_obj_set_size(o, 26, 2);
-    lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_pad_all(o, 0, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(o, lv_color_hex(color), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(o, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_border_width(o, 0, LV_PART_MAIN);
-    lv_obj_set_style_radius(o, 2, LV_PART_MAIN);
     return o;
 }
 
@@ -162,21 +145,35 @@ void radar_ui_build(lv_obj_t *screen) {
     lv_obj_add_flag(s_mov_blip, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(s_stat_blip, LV_OBJ_FLAG_HIDDEN);
 
-    // --- slupki bramek: 9 slotow po 83 px, srodki 68..732 ---
-    for (int i = 0; i < 9; i++) {
-        const int cx = 27 + 83 * i + 41;
-        s_mov_bar[i] = make_bar(screen, cx - 30, C_AMBER);
-        s_stat_bar[i] = make_bar(screen, cx + 4, C_DIM);
-    }
+    // --- slupki bramek usuniete (dane bramek niedostepne) — zostaje sweep.
 
-    // --- czulosc OUT: 3 presety po prawej (wolna strefa x668..790,
-    // y105..350; nie koliduje z sweepem max x~660, "6m" y360 ani swipe y>=390).
-    for (int i = 0; i < 3; i++) {
-        lv_obj_t *b = make_sens_button(screen, 670, 110 + i * 74, 118, 64,
-                                       kSensTxt[i]);
-        lv_obj_add_event_cb(b, sens_cb, LV_EVENT_CLICKED,
-                            (void *)(intptr_t)kSensOrder[i]);
-        s_sens_btn[i] = b;
+    // --- ramka CZULOSC: 3 presety po prawej (strefa x666..796, y96..336;
+    // nie koliduje z sweepem max x=665, "6m" y360 ani swipe y>=390).
+    {
+        lv_obj_t *fr = lv_obj_create(screen);
+        lv_obj_set_pos(fr, 666, 96);
+        lv_obj_set_size(fr, 130, 240);
+        lv_obj_remove_flag(fr, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_style_pad_all(fr, 0, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(fr, lv_color_hex(C_BG_BTN), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(fr, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_border_color(fr, lv_color_hex(C_BORDER_DIM), LV_PART_MAIN);
+        lv_obj_set_style_border_width(fr, 1, LV_PART_MAIN);
+        lv_obj_set_style_radius(fr, 10, LV_PART_MAIN);
+
+        lv_obj_t *t = lv_label_create(fr);
+        lv_obj_align(t, LV_ALIGN_TOP_MID, 0, 6);
+        lv_obj_set_style_text_font(t, &ui_font_montserrat_regular_16, LV_PART_MAIN);
+        lv_obj_set_style_text_color(t, lv_color_hex(C_DIM), LV_PART_MAIN);
+        lv_label_set_text_static(t, "CZUŁOŚĆ");
+
+        for (int i = 0; i < 3; i++) {
+            lv_obj_t *b = make_sens_button(fr, 6, 34 + i * 66, 118, 60,
+                                           kSensTxt[i]);
+            lv_obj_add_event_cb(b, sens_cb, LV_EVENT_CLICKED,
+                                (void *)(intptr_t)kSensOrder[i]);
+            s_sens_btn[i] = b;
+        }
     }
 
     gesture_register_recursive(screen);
@@ -187,6 +184,9 @@ void radar_ui_sync(uint8_t presence, uint16_t mov_dist, uint8_t mov_energy,
                    const uint8_t *mov_gates, const uint8_t *stat_gates,
                    uint8_t sens) {
     if (s_status == nullptr) return;
+
+    (void)mov_gates;   // bramki nie sa juz rysowane (dane niedostepne)
+    (void)stat_gates;
 
     char buf[32];
     const bool offline = (presence & 0x80U) != 0;
@@ -252,16 +252,6 @@ void radar_ui_sync(uint8_t presence, uint16_t mov_dist, uint8_t mov_energy,
         lv_obj_clear_flag(s_stat_blip, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(s_stat_blip, LV_OBJ_FLAG_HIDDEN);
-    }
-
-    // --- slupki bramek ---
-    for (int i = 0; i < 9; i++) {
-        const int mh = (mov_gates != nullptr && !offline) ? (int)mov_gates[i] * kBarMaxH / 100 : 0;
-        const int sh = (stat_gates != nullptr && !offline) ? (int)stat_gates[i] * kBarMaxH / 100 : 0;
-        lv_obj_set_pos(s_mov_bar[i], lv_obj_get_x(s_mov_bar[i]), kBarBaseY - (mh > 0 ? mh : 2));
-        lv_obj_set_size(s_mov_bar[i], 26, mh > 0 ? mh : 2);
-        lv_obj_set_pos(s_stat_bar[i], lv_obj_get_x(s_stat_bar[i]), kBarBaseY - (sh > 0 ? sh : 2));
-        lv_obj_set_size(s_stat_bar[i], 26, sh > 0 ? sh : 2);
     }
 
     // --- czulosc OUT: podswietlenie aktywnego presetu (jak presety geometrii) ---

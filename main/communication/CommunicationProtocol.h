@@ -86,6 +86,9 @@ struct Snapshot {
     uint16_t count10p0 = 0;
     uint16_t eco2 = 0;
     uint16_t tvoc = 0;
+    // Stopien kalibracji ENS160 z ZEGAR (bajt 15 ramki 0x01):
+    // 0=rozgrzewanie, 1=nieskalibrowane, 2=wstepnie, 3=w pelni, 0xFF=brak.
+    uint8_t gasStage = 0xFF;
     uint32_t sampleAgeMs = 0;
     uint32_t timeUnixSeconds = 0;
     uint8_t airQualityIndex = 0;

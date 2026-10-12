@@ -95,6 +95,13 @@ void requestSystemResources() {
 }
 
 void sendDeviceSettings(bool buzzer, bool mqtt, bool touch, bool music, bool pms, int alarmMelody, uint8_t sevenSegBrightness) {
+  // Dopoki ZEGAR nie potwierdzil stanu (echo 0x04), cache to same defaulty —
+  // wyslanie ich nadpisaloby prawdziwe ustawienia (jasnosc, melodie itd.).
+  // Zamiast tego dopraszamy o sync; kolejna proba przejdzie po echu.
+  if (!settingsEverSynced()) {
+    requestDeviceSettings();
+    return;
+  }
   uint8_t payload[7];
   payload[0] = buzzer ? 1 : 0;
   payload[1] = mqtt ? 1 : 0;

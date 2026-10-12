@@ -106,6 +106,20 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_off = objects.info_wifi_off_icon_10;
       break;
     case SCREEN_ID_CZUJNIKI:
+      w.bell_on = objects.info_bell_of_icon_on_11;
+      w.bell_off = objects.info_bell_of_icon_off_11;
+      w.ble_on = objects.info_ble_on_icon_11;
+      w.ble_off = objects.info_ble_off_icon_11;
+      w.wifi_on = objects.info_wifi_on_icon_11;
+      w.wifi_off = objects.info_wifi_off_icon_11;
+      break;
+    case SCREEN_ID_INFO:
+      w.bell_on = objects.info_bell_of_icon_on_12;
+      w.bell_off = objects.info_bell_of_icon_off_12;
+      w.ble_on = objects.info_ble_on_icon_12;
+      w.ble_off = objects.info_ble_off_icon_12;
+      w.wifi_on = objects.info_wifi_on_icon_12;
+      w.wifi_off = objects.info_wifi_off_icon_12;
       break;
     case SCREEN_ID_GEOMETRIA_EKRANU:
       w.bell_on = objects.info_bell_of_icon_on_13;
@@ -114,6 +128,14 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.ble_off = objects.info_ble_off_icon_13;
       w.wifi_on = objects.info_wifi_on_icon_13;
       w.wifi_off = objects.info_wifi_off_icon_13;
+      break;
+    case SCREEN_ID_RADAR:
+      w.bell_on = objects.info_bell_of_icon_on_14;
+      w.bell_off = objects.info_bell_of_icon_off_14;
+      w.ble_on = objects.info_ble_on_icon_14;
+      w.ble_off = objects.info_ble_off_icon_14;
+      w.wifi_on = objects.info_wifi_on_icon_14;
+      w.wifi_off = objects.info_wifi_off_icon_14;
       break;
     default:
       break;

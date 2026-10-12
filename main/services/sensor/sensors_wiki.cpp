@@ -46,6 +46,7 @@ static lv_obj_t *s_lbl_micro_trends[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
 static lv_obj_t *s_sensor_panels[4] = {NULL, NULL, NULL, NULL};
 static lv_obj_t *s_theory_panel = NULL;
 static lv_obj_t *s_section_title = NULL;
+static lv_obj_t *s_ens_stage_label = NULL; // etykieta stopnia kalibracji ENS160
 static bool s_ui_initialized = false;
 
 // Per-sensor label references (stable pointers, set once during panel creation)
@@ -338,6 +339,14 @@ static void create_ens_panel(void) {
     create_param_card_stable(s_sensor_panels[1], 0, 15, 165, 125, "Indeks eCO2", "ppm", &s_val_labels[1][0], &s_trend_labels[1][0]);
     create_param_card_stable(s_sensor_panels[1], 180, 15, 165, 125, "LZO / TVOC", "ppb", &s_val_labels[1][1], &s_trend_labels[1][1]);
     create_param_card_stable(s_sensor_panels[1], 360, 15, 165, 125, "Indeks AQI", "", &s_val_labels[1][2], &s_trend_labels[1][2]);
+
+    // Stopien kalibracji gazow — mowi, na ile ufac wartosciom powyzej
+    // (dane plyna od razu, ale przed 1 h / 24 h maja inna wiarygodnosc).
+    s_ens_stage_label = lv_label_create(s_sensor_panels[1]);
+    lv_obj_set_pos(s_ens_stage_label, 0, 158);
+    lv_obj_set_style_text_color(s_ens_stage_label, lv_color_hex(0x6a6570), LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_ens_stage_label, &ui_font_montserrat_regular_16, LV_PART_MAIN);
+    lv_label_set_text_static(s_ens_stage_label, "");
 
     lv_obj_t *badge = lv_label_create(s_sensor_panels[1]);
     lv_obj_set_pos(badge, 0, 200);
@@ -841,6 +850,35 @@ void sensors_wiki_update(void) {
             }
 
         } else if (s_active_sensor == 1) { // ENS160
+            // Etykieta stopnia kalibracji (bajt 15 ramki 0x01 z ZEGAR-a).
+            if (s_ens_stage_label) {
+                const char *stage_txt = "";
+                uint32_t stage_col = 0x6a6570; // szary = brak danych
+                switch (sn.gasStage) {
+                    case 0:
+                        stage_txt = "ROZGRZEWANIE - dane nieskalibrowane";
+                        stage_col = 0xff9f00;
+                        break;
+                    case 1:
+                        stage_txt = "NIESKALIBROWANE - trwa pierwsza godzina pracy";
+                        stage_col = 0xff9f00;
+                        break;
+                    case 2:
+                        stage_txt = "WST\u0118PNIE SKALIBROWANE - po 1 h pracy";
+                        stage_col = 0xffffff;
+                        break;
+                    case 3:
+                        stage_txt = "W PE\u0141NI SKALIBROWANE - 24 h ci\u0105g\u0142ej pracy";
+                        stage_col = 0x00ff7f;
+                        break;
+                    default:
+                        stage_txt = "OCZEKIWANIE NA DANE ENS160...";
+                        break;
+                }
+                lv_label_set_text(s_ens_stage_label, stage_txt);
+                lv_obj_set_style_text_color(s_ens_stage_label, lv_color_hex(stage_col), LV_PART_MAIN);
+            }
+
             // eCO2
             if (s_lbl_val1 && sn.valid) {
                 snprintf(buf, sizeof(buf), "%d", sn.eco2);
@@ -936,6 +974,7 @@ void sensors_wiki_update(void) {
 void sensors_wiki_deinit(void) {
     s_lbl_val1 = s_lbl_val2 = s_lbl_val3 = NULL;
     s_lbl_trend1 = s_lbl_trend2 = s_lbl_trend3 = NULL;
+    s_ens_stage_label = NULL;
     for (int i = 0; i < 6; i++) {
         s_lbl_micro_vals[i] = NULL;
         s_lbl_micro_trends[i] = NULL;
