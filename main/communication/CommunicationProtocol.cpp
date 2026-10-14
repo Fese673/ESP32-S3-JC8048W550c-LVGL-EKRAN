@@ -214,6 +214,21 @@ void sendStepperSetSens(uint8_t code) {
   sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
 }
 
+void sendStepperSetOnOff(bool en) {
+  uint8_t payload[2];
+  payload[0] = 0x0D;
+  payload[1] = en ? 1 : 0;
+  sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
+void sendStepperSetSpeed(uint16_t speed) {
+  uint8_t payload[3];
+  payload[0] = 0x0E;
+  payload[1] = static_cast<uint8_t>(speed & 0xFFU);
+  payload[2] = static_cast<uint8_t>((speed >> 8) & 0xFFU);
+  sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
 void requestStepperState() {
   uint8_t payload[1] = { 0x04 };
   sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));

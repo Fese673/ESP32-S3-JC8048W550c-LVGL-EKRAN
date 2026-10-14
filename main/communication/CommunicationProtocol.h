@@ -190,12 +190,19 @@ void sendStepperSetHome(uint16_t deg);
 void sendStepperSetTarget(uint16_t deg);
 // Automat LD2410C (przycisk na geometrii) — preferencja we flash STM32.
 void sendStepperSetRadar(bool en);
-// Czas auto-zjazdu radaru (przyciski pod kafelkiem) — presety 30/120/300/600 s;
-// walidacja + zapis we flash STM32, echo wraca ramka 0x3B.
+// Czas auto-zjazdu radaru (panel opcji na ekranie RADAR) — presety
+// 30/180/600/2700 s; walidacja + zapis we flash STM32, echo wraca ramka 0x3B.
 void sendStepperSetAutoClose(uint16_t seconds);
 // Czulosc OUT radaru (ekran radaru) — presety 0=SREDNIA, 1=WYSOKA, 2=MALA;
 // walidacja + zapis we flash STM32, echo wraca ramka 0x3B (bity 2-3 flags).
 void sendStepperSetSens(uint8_t code);
+// "Plynne wylaczenie" (panel opcji na ekranie RADAR) — bramka premium dimu
+// 7-seg przy zjezdzie; zapis we flash STM32, echo wraca ramka 0x3B (bit4 flags).
+void sendStepperSetOnOff(bool en);
+// Predkosc auto-powrotu (suwak/presety na Geometrii) — persist we flash
+// STM32, echo wraca ramka 0x3B (pole speed). Wolane tylko na commit
+// (RELEASED suwaka / klik presetu), nie w trakcie przeciagania.
+void sendStepperSetSpeed(uint16_t speed);
 void requestStepperState();
 
 }  // namespace CommunicationProtocol

@@ -149,8 +149,12 @@ static void gesture_event_cb(lv_event_t * e) {
             handle_press_event(indev);
             break;
         case LV_EVENT_RELEASED:
-        case LV_EVENT_PRESS_LOST:
             handle_release_event(indev, e);
+            break;
+        case LV_EVENT_PRESS_LOST:
+            // Utrata trackingu (np. panel przestal sledzic palec) NIE jest
+            // swipe'em — bez tego nawigacja odpalala sie przypadkowo.
+            stop_tracking();
             break;
         default:
             break;

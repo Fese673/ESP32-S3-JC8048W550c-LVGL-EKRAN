@@ -1720,9 +1720,9 @@ void create_screen_menu() {
             // menu_kfe_geometria_10
             lv_obj_t *obj = lv_imagebutton_create(parent_obj);
             objects.menu_kfe_geometria_10 = obj;
-            lv_obj_set_pos(obj, 512, 308);
-            lv_obj_set_size(obj, LV_SIZE_CONTENT, 96);
-            lv_imagebutton_set_src(obj, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &img_kfe_geometria_ekranu, NULL);
+            lv_obj_set_pos(obj, 515, 307);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, 887);
+            lv_imagebutton_set_src(obj, LV_IMAGEBUTTON_STATE_RELEASED, NULL, &img_kfe_radar, NULL);
             lv_obj_add_event_cb(obj, event_handler_cb_menu_menu_kfe_geometria_10, LV_EVENT_ALL, flowState);
         }
     }

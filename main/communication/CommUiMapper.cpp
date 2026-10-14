@@ -426,7 +426,10 @@ void applyRadarToUi(uint8_t presence, uint16_t movDist, uint8_t movEnergy,
     radar_set_remote_state(presence, movDist, movEnergy, statDist, statEnergy,
                            detectDist, movGates, statGates);
     // OUT (bit b3) prosto do automatu geometrii (push, bez flagi dirty).
-    screen_geometry_set_radar_out((presence & 0x08U) != 0);
+    // OUT tylko przy zdrowym linku — przy LINK-BAD (b7) bit3 bywa smieciem
+    // i ramka przycisku swiecilaby zielono przy OFFLINE.
+    screen_geometry_set_radar_out(((presence & 0x08U) != 0U) &&
+                                  ((presence & 0x80U) == 0U));
     // ETAP 3 (diagnostyka do czasu ekranu): log tylko przy zmianie presence.
     static uint8_t s_lastLogged = 0xFF;
     if (presence != s_lastLogged) {

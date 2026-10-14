@@ -5,11 +5,12 @@
 //
 // ARCHITEKTURA:
 //  - Wysylane komendy: EXECUTE / HOLD / STOP / STATUS_REQ / CAL_ZERO /
-//    CAL_SPAN / SET_HOME / SET_SPEED. Wszystkie nieblokuja (kolejka TX,
-//    xQueueSend 0 — drop+log przy pelnej).
-//  - STOP idempotentny: powtarzany co 200 ms az busy=0 (max 1 s).
-//    Polisa na zgubiona ramke — silnik nie moze "uciec" z chunkiem.
-//  - EXECUTE wysylany RAZ (powtorka = restart ruchu — zabronione).
+//    CAL_SPAN / SET_HOME / SET_TARGET / SET_SPEED / SET_RADAR / CAL_MODE /
+//    SET_AUTOCLOSE / SET_SENS / SET_ONOFF. Wszystkie nieblokujace.
+//  - STOP idempotentny: wysylany ZAWSZE (bez warunkow) + powtarzany co
+//    200 ms az busy=0 (max 1 s) — polisa na zgubiona ramke.
+//  - EXECUTE wysylany RAZ (powtorka = restart ruchu — debounce 500 ms).
+//  - SET_SPEED tylko na commit (RELEASED suwaka / klik presetu).
 //  - STATUS_REQ na wejscie na ekran + co 2 s (zywy POS w trakcie jazdy).
 
 #include "screen_geometry.h"
@@ -35,6 +36,10 @@
 // Kalibracja: trzymaj automat radaru STM32 wstrzymany przez CAL_MODE.
 // Keepalive co 5 s (STM32 timeout 30 s), gaszenie po zapisie/wyjsciu.
 #define GEOM_CAL_HOLD_GAP 5000
+// Debounce krokow kalibracji (CLICKED bywa 2x z jednego tapniecia).
+#define GEOM_CAL_STEP_GAP_MS 500
+// Debounce WYKONAJ: drugie EXECUTE w tym oknie = restart ruchu (zakaz).
+#define GEOM_EXEC_GAP_MS 500
 
 // Presety kata — strojenie w kodzie. 0° i 75° na zyczenie operatora.
 // Klik = wybor celu (JEDŹ DO), DWUKLIK = pozycja bazowa po resecie (zielony).
@@ -56,6 +61,9 @@ static int s_hold_dir = 0; // -1 = dol, 0 = stop, +1 = gora
 static int s_selected_deg = 45; // wybrany preset (cel dla WYKONAJ)
 static cal_state_t s_cal = CAL_IDLE;
 static uint32_t s_lastCalHoldMs = 0; // keepalive CAL_MODE (automat STM32 off)
+static uint32_t s_calStepMs = 0;     // debounce krokow kalibracji
+static bool s_calIdleSeen = false;   // swieze busy=0 po STOPie sesji kalibracji
+static uint32_t s_lastExecMs = 0;    // debounce WYKONAJ (dwuklik = restart — zakaz)
 
 // Stan z ZEGAR ESP32 (ramka 0x3B).
 // s_remoteKnown: przyszla juz pierwsza ramka — strzega flasha SKALIBRACJA
@@ -84,7 +92,7 @@ static uint16_t s_home_pending = 0xFFFF;
 static uint32_t s_home_pending_ms = 0;
 static uint16_t s_target_pending = 0xFFFF;   // to samo dla wyboru celu (highlight)
 static uint32_t s_target_pending_ms = 0;
-// Auto-zjazd radaru (sekundy; presety 30/120/300/600 jak w STM32).
+// Auto-zjazd radaru (sekundy; presety 30/180/600/2700 jak w STM32).
 // Default 30 = fabryczny — od startu jeden przycisk podswietlony.
 static int s_auto_close_s = 30;
 static uint16_t s_lastStateAutoClose = 0xFFFF;
@@ -95,6 +103,19 @@ static uint32_t s_aclose_pending_ms = 0;
 static bool s_radar_en = false;
 static bool s_lastStateRadarEn = false;
 static bool s_radar_first_frame = true;
+// Pending radaru: po kliknieciu przyjmujemy TYLKO potwierdzenie z STM32
+// (bez tego optymistyczny flip zostawal na zawsze, gdy komenda zginela —
+// napis "WYLACZONY" klamal, a automat w STM32 chodzil dalej).
+static uint16_t s_radar_pending = 0xFFFF;   // 0/1 = czekamy; 0xFFFF = brak
+static uint32_t s_radar_pending_ms = 0;
+
+// "Plynne wylaczenie" (przycisk na ekranie RADAR): bramka dimu 7-seg
+// w STM32. Adopcja z bit4 flag 0x3B + pending jak radar/home/auto-close.
+static bool s_onoff_en = false;
+static bool s_lastStateOnOff = false;
+static bool s_onoff_first_frame = true;
+static uint16_t s_onoff_pending = 0xFFFF;
+static uint32_t s_onoff_pending_ms = 0;
 // OUT radaru (push z 0x39 przez applyRadarToUi) — WYLACZNIE HMI (ramka
 // przycisku zielona/czerwona). Automat ruchu zyje w STM32 (E1).
 static bool s_radar_out = false;
@@ -174,10 +195,12 @@ static void geom_timer_cb(lv_timer_t *t)
         s_lastPollMs = lv_tick_get();
     }
     if (!on && s_was_on_screen) {
-        // SAFETY: wyjscie z ekranu kasuje ruch. Wyslij STOP na droge
-        // (palec mogl zejsc z przycisku juz poza ekranem).
+        // SAFETY: wyjscie z ekranu kasuje ruch reczny. Wyslij STOP na droge
+        // (palec mogl zejsc z przycisku juz poza ekranem) takze wtedy, gdy
+        // trwa polisa repeat STOP (busy jeszcze nie potwierdzone).
+        // Uwaga: NIE STOPujemy automatu radaru (ZEGAR jedzie dalej).
         s_was_on_screen = false;
-        if (s_hold_dir != 0) {
+        if (s_hold_dir != 0 || s_stopRepeat) {
             CommunicationProtocol::sendStepperStop();
         }
         geom_all_stop();
@@ -205,19 +228,52 @@ static void geom_timer_cb(lv_timer_t *t)
     }
 
     // Ochrona pending: brak potwierdzenia z STM32 przez 3 s = komenda
-    // prawdopodobnie zgubiona; pusc ogrodzenie (kolejne ramki / poll REF
-    // przywroca prawdziwa wartosc z flash).
+    // prawdopodobnie zgubiona. Puszczamy ogrodzenie ORAZ wracamy do ostatniej
+    // prawdy z 0x3B — bez rollbacku optymistyczny wybor zostawal na zawsze
+    // (highlight klamal, gdy prawda sie nie zmienila).
     if (s_home_pending != 0xFFFF &&
         (uint32_t)(now - s_home_pending_ms) >= 3000U) {
         s_home_pending = 0xFFFF;
+        if (s_lastStateHome != 0xFFFF && s_lastStateHome <= 360U) {
+            s_home_deg = (int)s_lastStateHome;
+        }
+        CommunicationProtocol::requestStepperState();
+        geom_flash("STATUS: POZ. BAZOWA BEZ POTWIERDZENIA");
     }
     if (s_target_pending != 0xFFFF &&
         (uint32_t)(now - s_target_pending_ms) >= 3000U) {
         s_target_pending = 0xFFFF;
+        if (s_lastStateTarget != 0xFFFF && s_lastStateTarget <= 360U) {
+            s_selected_deg = (int)s_lastStateTarget;
+        }
+        CommunicationProtocol::requestStepperState();
+        geom_flash("STATUS: CEL BEZ POTWIERDZENIA");
     }
     if (s_aclose_pending != 0xFFFF &&
         (uint32_t)(now - s_aclose_pending_ms) >= 3000U) {
         s_aclose_pending = 0xFFFF;
+        if (s_lastStateAutoClose != 0xFFFF) {
+            s_auto_close_s = (int)s_lastStateAutoClose;
+        }
+        CommunicationProtocol::requestStepperState();
+        geom_flash("STATUS: AUTO-ZJAZD BEZ POTWIERDZENIA");
+    }
+    // Brak potwierdzenia radaru: wroc do ostatniej prawdy z 0x3B i dopytaj
+    // (UI nie moze klamac stanem optymistycznym).
+    if (s_radar_pending != 0xFFFF &&
+        (uint32_t)(now - s_radar_pending_ms) >= 3000U) {
+        s_radar_pending = 0xFFFF;
+        s_radar_en = s_lastStateRadarEn;
+        CommunicationProtocol::requestStepperState();
+        geom_flash("STATUS: RADAR BEZ POTWIERDZENIA");
+    }
+    // To samo dla "plynnego wylaczenia".
+    if (s_onoff_pending != 0xFFFF &&
+        (uint32_t)(now - s_onoff_pending_ms) >= 3000U) {
+        s_onoff_pending = 0xFFFF;
+        s_onoff_en = s_lastStateOnOff;
+        CommunicationProtocol::requestStepperState();
+        geom_flash("STATUS: PLYNNE WYL. BEZ POTWIERDZENIA");
     }
 
     if (!on) {
@@ -250,6 +306,7 @@ void screen_geometry_set_remote_state(bool busy, int32_t pos_steps,
     const bool wasCal = s_rCalOk;
     s_remoteKnown = true;
     s_rBusy = busy;
+    if (!busy) s_calIdleSeen = true; // swiezy postoj (bramka potwierdzen kalibracji)
     s_rPos = pos_steps;
     s_rTarget = target_deg;
     s_rCalOk = (flags & GEOM_FLAG_CAL_OK) != 0;
@@ -309,14 +366,38 @@ void screen_geometry_set_remote_state(bool busy, int32_t pos_steps,
             s_auto_close_s = (int)auto_close_s;
         }
     }
-    // Adopcja flagi automatu LD2410C z flash STM32. Tylko zmiana w ramce
-    // (pierwsza ramka zawsze) — optymistyczny flip z przycisku nietkniety.
+    // Adopcja flagi automatu LD2410C z flash STM32. Pending po kliknieciu:
+    // przyjmujemy TYLKO potwierdzona wartosc (stare echa w locie nie moga
+    // cofnac swiezego wyboru); bez pending — adopcja przy zmianie ramki.
     {
         const bool re = (flags & GEOM_FLAG_RADAR_EN) != 0;
-        if (s_radar_first_frame || re != s_lastStateRadarEn) {
+        if (s_radar_pending != 0xFFFF) {
+            if ((re ? 1U : 0U) == s_radar_pending) {
+                s_radar_pending = 0xFFFF;
+                s_radar_first_frame = false;
+                s_lastStateRadarEn = re;
+                s_radar_en = re;
+            }
+        } else if (s_radar_first_frame || re != s_lastStateRadarEn) {
             s_radar_first_frame = false;
             s_lastStateRadarEn = re;
             s_radar_en = re;
+        }
+    }
+    // Adopcja "plynnego wylaczenia" (bit4 flags 0x3B) — wzorzec radaru.
+    {
+        const bool ro = (flags & GEOM_FLAG_ONOFF) != 0;
+        if (s_onoff_pending != 0xFFFF) {
+            if ((ro ? 1U : 0U) == s_onoff_pending) {
+                s_onoff_pending = 0xFFFF;
+                s_onoff_first_frame = false;
+                s_lastStateOnOff = ro;
+                s_onoff_en = ro;
+            }
+        } else if (s_onoff_first_frame || ro != s_lastStateOnOff) {
+            s_onoff_first_frame = false;
+            s_lastStateOnOff = ro;
+            s_onoff_en = ro;
         }
     }
     if (!busy) {
@@ -364,13 +445,12 @@ void geom_logic_hold_stop(void)
 
 void geom_logic_stop_press(void)
 {
-    // STOP kasuje wszystko: jazde i kalibracje.
-    const bool had_hold = (s_hold_dir != 0);
+    // STOP kasuje wszystko: jazde i kalibracje. Komenda jest idempotentna,
+    // wiec wysylamy ZAWSZE — wczesniej warunek "had_hold || s_rBusy" gubil
+    // STOP tuz po WYKONAJ (ramka busy=1 jeszcze nie dotarla), a silnik jechal.
     geom_all_stop();
     s_flash[0] = '\0';
-    if (had_hold || s_rBusy) {
-        geom_send_stop();
-    }
+    geom_send_stop();
 }
 
 void geom_logic_set_speed(int steps_per_s)
@@ -404,6 +484,13 @@ void geom_logic_execute_selected(void)
         geom_flash("STATUS: TRWA KALIBRACJA");
         return;
     }
+    // Debounce: dwuklik WYKONAJ = 2x EXECUTE = restart ruchu (kontrakt:
+    // EXECUTE wysylany RAZ). Min. 500 ms od poprzedniego.
+    const uint32_t now = lv_tick_get();
+    if ((uint32_t)(now - s_lastExecMs) < GEOM_EXEC_GAP_MS) {
+        return;
+    }
+    s_lastExecMs = now;
     s_hold_dir = 0;
     s_stopRepeat = false;
     // Cel jawnie do flash STM32 (na wypadek wyboru przed pierwsza ramka stanu).
@@ -417,13 +504,16 @@ void geom_logic_execute_selected(void)
 
 // LD2410C: klik = optymistyczny flip + SET_RADAR (persist we flash STM32,
 // echo wraca bitem flag 0x3B). Automat ruchu dziala w STM32 — tu tylko HMI.
-// UWAGA: NIE dotykamy s_lastStateRadarEn — pierwszy (stary) echo-stan z ZEGAR-a
-// nie moze cofnac optymistycznego flipa (bylby błysk zlego koloru).
+// Pending: swiezy wybor potwierdza tylko echo z STM32; przy braku
+// potwierdzenia (3 s) timer wraca do ostatniej prawdy z 0x3B.
 void geom_logic_radar_toggle(void)
 {
     const bool nv = !s_radar_en;
     s_radar_en = nv;
+    s_radar_pending = nv ? 1U : 0U;
+    s_radar_pending_ms = lv_tick_get();
     CommunicationProtocol::sendStepperSetRadar(nv);
+    CommunicationProtocol::requestStepperState(); // szybkie potwierdzenie
 }
 
 int geom_logic_radar_en(void)
@@ -431,17 +521,35 @@ int geom_logic_radar_en(void)
     return s_radar_en ? 1 : 0;
 }
 
+// "Plynne wylaczenie": klik = optymistyczny flip + SET_ONOFF; potwierdzenie
+// przychodzi bitem 4 flag 0x3B (truth STM32), pending jak wyzej.
+void geom_logic_onoff_toggle(void)
+{
+    const bool nv = !s_onoff_en;
+    s_onoff_en = nv;
+    s_onoff_pending = nv ? 1U : 0U;
+    s_onoff_pending_ms = lv_tick_get();
+    CommunicationProtocol::sendStepperSetOnOff(nv);
+    CommunicationProtocol::requestStepperState(); // szybkie potwierdzenie
+}
+
+int geom_logic_onoff_en(void)
+{
+    return s_onoff_en ? 1 : 0;
+}
+
 int geom_logic_radar_out(void)
 {
     return s_radar_out ? 1 : 0;
 }
 
-// Auto-zjazd radaru: klik przycisku = optymistyczny wybor + SET_AUTOCLOSE
+// Auto-zjazd radaru: klik presetu = optymistyczny wybor + SET_AUTOCLOSE
 // (persist we flash STM32, echo wraca 0x3B). Pending chroni przed starym
-// echo-stanem. Wartosci spoza presetow (30/120/300/600) ignorowane.
+// echo-stanem. Wartosci spoza presetow (30/180/600/2700 — ac_sanitize
+// w STM32 stepper_truth.c) ignorowane.
 void geom_logic_auto_close_set(uint16_t seconds)
 {
-    if (seconds != 30U && seconds != 120U && seconds != 300U && seconds != 600U) {
+    if (seconds != 30U && seconds != 180U && seconds != 600U && seconds != 2700U) {
         return;
     }
     s_auto_close_s = (int)seconds;
@@ -463,6 +571,14 @@ int geom_logic_auto_close_sec(void)
 {
     return s_auto_close_s;
 }
+
+// --- publiczne API (screen_geometry.h) dla panelu opcji na ekranie RADAR ---
+void screen_geometry_radar_toggle(void) { geom_logic_radar_toggle(); }
+int  screen_geometry_radar_enabled(void) { return geom_logic_radar_en(); }
+void screen_geometry_auto_close_set(uint16_t seconds) { geom_logic_auto_close_set(seconds); }
+int  screen_geometry_auto_close_sec(void) { return geom_logic_auto_close_sec(); }
+void screen_geometry_onoff_toggle(void) { geom_logic_onoff_toggle(); }
+int  screen_geometry_onoff_enabled(void) { return geom_logic_onoff_en(); }
 
 // Tap presetu: pojedynczy = wybor celu (JEDŹ DO + zapis w NVS ZEGAR-a),
 // podwojny (2x w GEOM_DBLCLICK_MS ten sam) = pozycja bazowa STM32 po
@@ -492,39 +608,56 @@ void geom_logic_preset_tap(int deg)
     geom_preset_select(deg);
 }
 
-// Kalibracja reczna: jeden przycisk, dwa potwierdzenia, powrot do 0.
-// Potwierdzenia wysylaja CAL_ZERO/CAL_SPAN (ZEGAR zapisuje + wraca do 0 sam).
+// Kalibracja reczna: jeden przycisk, 3 stany (start / 0° / 90°).
+// Potwierdzenia wysylaja CAL_ZERO/CAL_SPAN (STM32 zapisuje + wraca do 0 sam).
 // Potwierdzenie zapisu = flaga calOk 0->1 w stanie 0x3B.
+// Zabezpieczenia: debounce krokow (500 ms) + potwierdzenia TYLKO na
+// potwierdzonym postoju (swieza ramka busy=0 po STOPie sesji) — bez tego
+// double-tap przelatywal cala kalibracje, a CAL_ZERO lecialo w ruchu
+// (STM32 odrzuca po cichu, UI awansowalo dalej na zlej referencji).
 void geom_logic_cal_next(void)
 {
+    const uint32_t now = lv_tick_get();
+    if ((uint32_t)(now - s_calStepMs) < GEOM_CAL_STEP_GAP_MS) {
+        return; // debounce: drugi CLICKED z tego samego tapniecia
+    }
+
     if (s_cal == CAL_IDLE) {
-        // Start sesji: STOP (ucina ewentualny ruch automatu w toku) +
-        // CAL_MODE (automat radaru wstrzymany w STM32 na czas kalibracji).
+        s_calStepMs = now;
+        s_calIdleSeen = false; // czekamy na SWIEZE busy=0 po STOPie sesji
         s_hold_dir = 0;
         s_stopRepeat = false;
         CommunicationProtocol::sendStepperStop();
-        s_lastCalHoldMs = lv_tick_get();
+        s_lastCalHoldMs = now;
         CommunicationProtocol::sendStepperCalMode(true);
         s_cal = CAL_WAIT_ZERO;
-    } else if (s_cal == CAL_WAIT_ZERO) {
-        // SET_ZERO w STM32 jest odrzucane w ruchu — nie zgaduj, kaz postac.
-        if (s_rBusy) {
-            geom_flash("STATUS: ZATRZYMAJ W 0° I ZATWIERDŹ");
-            return;
-        }
+        return;
+    }
+
+    if (s_rBusy || !s_calIdleSeen) {
+        geom_flash(s_cal == CAL_WAIT_ZERO
+                       ? "STATUS: ZATRZYMAJ W 0° I ZATWIERDŹ"
+                       : "STATUS: ZATRZYMAJ PRZED ZAPISEM 90°");
+        return; // NIE awansujemy — postac i poczekaj na potwierdzony stop
+    }
+
+    s_calStepMs = now;
+    if (s_cal == CAL_WAIT_ZERO) {
         CommunicationProtocol::sendStepperCal(0);
         s_cal = CAL_WAIT_90;
     } else {
-        // SET_SPAN tez tylko na postoju.
-        if (s_rBusy) {
-            geom_flash("STATUS: ZATRZYMAJ PRZED ZAPISEM 90°");
-            return;
-        }
         CommunicationProtocol::sendStepperCal(1);
-        // CAL_MODE zdjemie calOk 0->1 (zapis potwierdzony) albo wyjscie
+        // CAL_MODE zdejmie calOk 0->1 (zapis potwierdzony) albo wyjscie
         // z ekranu / auto-timeout STM32.
         s_cal = CAL_IDLE;
     }
+}
+
+// Zatwierdzenie predkosci dla auto-powrotu STM32 (SET_SPEED do flash).
+// Wolane na RELEASED suwaka i przy presetach — nie spamuje w trakcie drag.
+void geom_logic_speed_commit(void)
+{
+    CommunicationProtocol::sendStepperSetSpeed((uint16_t)s_speed);
 }
 
 // --- gettery ---

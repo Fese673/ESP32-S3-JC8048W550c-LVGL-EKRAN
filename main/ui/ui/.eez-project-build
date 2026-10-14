@@ -58,6 +58,7 @@
     "ui_image_kfe_pms.c",
     "ui_image_kfe_pogoda.c",
     "ui_image_kfe_pressures.c",
+    "ui_image_kfe_radar.c",
     "ui_image_kfe_rainfall.c",
     "ui_image_kfe_ram.c",
     "ui_image_kfe_statystyk.c",

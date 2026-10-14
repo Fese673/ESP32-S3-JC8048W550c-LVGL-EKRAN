@@ -25,6 +25,19 @@ void screen_geometry_set_remote_state(bool busy, int32_t pos_steps,
 // Push z updateUi() = task LVGL. Automat w geom_timer_cb.
 void screen_geometry_set_radar_out(bool out);
 
+// Panel opcji radaru (ekran RADAR): automat WL/WYL + czas auto-zjazdu.
+// Ten sam stan co przycisk "RADAR MIKROFALOWY" na Geometrii (mirror 0x3B,
+// komendy 0x3A SET_RADAR / SET_AUTOCLOSE, walidacja + flash w STM32).
+void screen_geometry_radar_toggle(void);
+int  screen_geometry_radar_enabled(void);
+void screen_geometry_auto_close_set(uint16_t seconds);
+int  screen_geometry_auto_close_sec(void);
+
+// "Plynne wylaczenie" (przycisk na ekranie RADAR): bramka premium dimu
+// 7-seg przy zjezdzie (bit3 flags truth, echo 0x3B bit4). Ruch bez zmian.
+void screen_geometry_onoff_toggle(void);
+int  screen_geometry_onoff_enabled(void);
+
 #ifdef __cplusplus
 }
 #endif

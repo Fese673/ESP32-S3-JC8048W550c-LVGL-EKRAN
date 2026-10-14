@@ -56,14 +56,6 @@ static lv_obj_t *s_preset_btns[GEOM_MAX_PRESETS] = { NULL };
 static lv_obj_t *s_preset_labels[GEOM_MAX_PRESETS] = { NULL };
 static int s_preset_built = 0;
 
-// Presety czasu auto-zjazdu radaru (pod kafelkiem RADAR MIKROFALOWY).
-// Wartosci w sekundach; walidacja + zapis we flash STM32.
-#define GEOM_ACLOSE_COUNT 4
-static const uint16_t kAcloseSec[GEOM_ACLOSE_COUNT] = { 30U, 180U, 600U, 2700U };
-static const char *const kAcloseTxt[GEOM_ACLOSE_COUNT] = { "30s", "3m", "10m", "45m" };
-static lv_obj_t *s_aclose_btns[GEOM_ACLOSE_COUNT] = { NULL };
-static int s_last_aclose = -1;
-
 static int s_last_hold = 99;
 static int s_last_status = -1;
 static int s_last_sel = -1;
@@ -205,6 +197,7 @@ static void speed_preset_cb(lv_event_t *e)
     // VALUE_CHANGED, przez co label zostawal ze stara wartoscia. Ustawiamy
     // slider/logike/label jawnie i deterministycznie (ANIM_OFF).
     geom_logic_set_speed(v);
+    geom_logic_speed_commit(); // preset = commit SET_SPEED od razu
     v = geom_logic_speed();
     if (s_speed_slider) {
         lv_slider_set_value(s_speed_slider, v, LV_ANIM_OFF);
@@ -241,13 +234,6 @@ static void radar_cb(lv_event_t *e)
     geom_logic_radar_toggle();
 }
 
-static void aclose_cb(lv_event_t *e)
-{
-    if (lv_event_get_code(e) != LV_EVENT_CLICKED) return;
-    uint16_t sec = (uint16_t)(intptr_t)lv_event_get_user_data(e);
-    geom_logic_auto_close_set(sec);
-}
-
 // --- budowa ---
 
 static void build_manual_panel(void)
@@ -273,19 +259,10 @@ static void build_manual_panel(void)
     lv_obj_set_style_text_color(s_radar_btn_label, lv_color_hex(C_RED), LV_PART_MAIN);
     lv_label_set_text_static(s_radar_btn_label, "RADAR MIKROFALOWY");
 
-    // Presety czasu auto-zjazdu (4 male przyciski pod kafelkiem, ta sama
-    // szerokosc co kafelek): klik = SET_AUTOCLOSE do STM32 (persist, echo 0x3B).
-    for (int i = 0; i < GEOM_ACLOSE_COUNT; i++) {
-        lv_obj_t *b = make_small_button(p, 240 + i * 51, 48, 47, 26,
-                                        kAcloseTxt[i]);
-        lv_obj_add_event_cb(b, aclose_cb, LV_EVENT_CLICKED,
-                            (void *)(intptr_t)kAcloseSec[i]);
-        s_aclose_btns[i] = b;
-    }
-
+    // Presety czasu auto-zjazdu przeniesione na ekran RADAR (panel opcji);
+    // tu zostaje sam kafelek RADAR MIKROFALOWY (WL/WYL automatu).
     s_pos_label = make_label(p, 20, 44, 320, &ui_font_bebas_neue30, C_TXT, "POS 0");
-    // Label nie moze konsumowac dotyku (jego box nachodzi na przyciski
-    // auto-zjazdu radaru w prawym gornym rogu panelu).
+    // Label nie moze konsumowac dotyku.
     lv_obj_remove_flag(s_pos_label, LV_OBJ_FLAG_CLICKABLE);
     s_sub_label = make_label(p, 20, 82, 400, &ui_font_montserrat_regular_14,
                              C_TXT_FAINT, "0.00 OBR | 400 KR/S");
@@ -352,6 +329,18 @@ static void build_manual_panel(void)
     lv_slider_set_range(s_speed_slider, 100, 1000);
     lv_slider_set_value(s_speed_slider, geom_logic_speed(), LV_ANIM_OFF);
     lv_obj_add_event_cb(s_speed_slider, speed_slider_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    // Po puszczeniu palca: SET_SPEED do STM32 (auto-powrot jedzie ta
+    // predkoscia). Drag tylko aktualizuje RAM/label.
+    lv_obj_add_event_cb(s_speed_slider,
+                        [](lv_event_t *e) {
+                            if (lv_event_get_code(e) == LV_EVENT_RELEASED) {
+                                geom_logic_speed_commit();
+                            }
+                        },
+                        LV_EVENT_RELEASED, NULL);
+    // Znacznik: main.cpp NIE nadpisuje tego slidera globalnym stylem
+    // (inaczej headline premium styl znika przy wejsciu na ekran).
+    lv_obj_add_flag(s_speed_slider, LV_OBJ_FLAG_USER_1);
     style_premium_slider(s_speed_slider);
 
     static const char *spd_txt[] = { "100", "400", "700", "1000" };
@@ -553,28 +542,6 @@ void geom_ui_sync(void)
             lv_obj_set_style_border_color(s_radar_btn,
                                           lv_color_hex(rout ? C_GREEN : C_RED),
                                           LV_PART_MAIN);
-        }
-    }
-
-    // Auto-zjazd radaru: aktywny preset podswietlony (wzorzec presetow kata).
-    int ac = geom_logic_auto_close_sec();
-    if (ac != s_last_aclose) {
-        s_last_aclose = ac;
-        for (int i = 0; i < GEOM_ACLOSE_COUNT; i++) {
-            if (!s_aclose_btns[i]) continue;
-            bool act = (ac == (int)kAcloseSec[i]);
-            lv_obj_set_style_bg_color(s_aclose_btns[i],
-                                      lv_color_hex(act ? C_BG_ACTIVE : C_BG_BTN),
-                                      LV_PART_MAIN);
-            lv_obj_set_style_border_color(s_aclose_btns[i],
-                                          lv_color_hex(act ? C_TXT : C_BORDER_DIM),
-                                          LV_PART_MAIN);
-            lv_obj_t *lbl = lv_obj_get_child(s_aclose_btns[i], 0);
-            if (lbl) {
-                lv_obj_set_style_text_color(lbl,
-                                            lv_color_hex(act ? C_TXT : C_TXT_DIM),
-                                            LV_PART_MAIN);
-            }
         }
     }
 

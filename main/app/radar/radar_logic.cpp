@@ -33,6 +33,7 @@ bool s_was_on_screen = false;
 // swiezego wyboru. 0xFF = brak oczekiwania; timeout 3 s.
 uint8_t s_sens_pending = 0xFF;
 uint32_t s_sens_pending_ms = 0;
+uint8_t s_sens_last_remote = 0xFF; // ostatnia POTWIERDZONA czulosc (0xFF = brak)
 
 bool radar_on_screen(void) {
     return eez_flow_get_current_screen() == SCREEN_ID_RADAR
@@ -59,10 +60,15 @@ void radar_timer_cb(lv_timer_t *t) {
     if (!on || !s_built) return;
 
     // Timeout ochrony pending: brak potwierdzenia z STM32 przez 3 s
-    // (komenda prawdopodobnie zgubiona) — kolejne ramki przywroca prawde.
+    // (komenda prawdopodobnie zgubiona). Rollback do ostatniej POTWIERDZONEJ
+    // czulosci (bez tego highlight klamal) + dopytaj o stan.
     if (s_sens_pending != 0xFF &&
         (uint32_t)(lv_tick_get() - s_sens_pending_ms) >= 3000U) {
         s_sens_pending = 0xFF;
+        if (s_sens_last_remote <= 2U) {
+            s_cache.sens = s_sens_last_remote;
+        }
+        CommunicationProtocol::requestStepperState();
     }
 
     // Push ze strony ZEGAR-a (250 ms) — ekran tylko odswieza cache.
@@ -99,10 +105,12 @@ void radar_set_remote_sens(uint8_t code) {
         if (code == s_sens_pending) {
             s_sens_pending = 0xFF;
             s_cache.sens = code;
+            s_sens_last_remote = code;
         }
         return;
     }
     s_cache.sens = code;
+    s_sens_last_remote = code;
 }
 
 void radar_logic_set_sens(uint8_t code) {
@@ -111,6 +119,7 @@ void radar_logic_set_sens(uint8_t code) {
     s_sens_pending = code;
     s_sens_pending_ms = lv_tick_get();
     CommunicationProtocol::sendStepperSetSens(code);
+    CommunicationProtocol::requestStepperState(); // szybkie potwierdzenie
 }
 
 uint8_t radar_logic_sens(void) {

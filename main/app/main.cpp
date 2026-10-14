@@ -162,7 +162,10 @@ static void style_widgets_recursive(lv_obj_t * obj) {
     if (lv_obj_check_type(obj, &lv_switch_class)) {
         style_premium_switch(obj);
     } else if (lv_obj_check_type(obj, &lv_slider_class)) {
-        style_system_slider(obj);
+        // USER_1 = ekran ma wlasny styl premium (Geometria) — nie nadpisujemy.
+        if (!lv_obj_has_flag(obj, LV_OBJ_FLAG_USER_1)) {
+            style_system_slider(obj);
+        }
     }
 
     uint32_t child_cnt = lv_obj_get_child_cnt(obj);
