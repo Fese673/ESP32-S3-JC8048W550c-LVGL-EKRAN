@@ -7,12 +7,14 @@
 #include "communication/time/timer_synchro.h"
 #include "esp_timer.h"
 #include <stdio.h>
+#include <string.h>
 
 static lv_timer_t *s_timer = NULL;
 
 static lv_obj_t *s_min_label = NULL;
 static lv_obj_t *s_sec_label = NULL;
 static lv_obj_t *s_cs_label = NULL;
+static lv_obj_t *s_unit_label = NULL;
 static lv_obj_t *s_start_stop_label = NULL;
 
 // Pending command tracking
@@ -22,6 +24,20 @@ static int64_t s_pendingCmdTimeUs = 0;
 // Catch-up state: remote elapsed at the moment local START was sent
 static int64_t s_catchupStartUs = 0;
 static int64_t s_catchupRemoteElapsedUs = 0;
+
+// --- Wyświetlanie: < 60 min -> MM:SS:CS + indeks "ms"; >= 60 min -> HH:MM:SS + indeks "s" ---
+// Wiersz cyfr jest przeliczany tylko przy zmianie szerokości (flaga dirty), nie co tick.
+static const int64_t kHoursModeThresholdMs = 3600000LL;
+static bool s_layout_dirty = true;
+
+// Ustawia tekst etykiety tylko gdy naprawdę się zmienił (zero churnu co 20 ms).
+static void stoper_label_set(lv_obj_t *label, const char *text) {
+    if (!label) return;
+    const char *cur = lv_label_get_text(label);
+    if (cur != NULL && strcmp(cur, text) == 0) return;
+    lv_label_set_text(label, text);
+    s_layout_dirty = true;
+}
 
 static void on_start_stop_stoper(lv_event_t *e) {
     (void)e;
@@ -67,6 +83,66 @@ void stopwatch_ui_sync_start_stop_label(void) {
     if (strcmp(current_text, expected_text) != 0) {
         lv_label_set_text(s_start_stop_label, expected_text);
     }
+}
+
+// Ustawia wiersz [min][:][sek][:][setne] w kontenerze: dobiera font (bebas35->bebas30)
+// i letter_space (2->0), centruje i pozycjonuje separatory obj40/obj42. Przelicza
+// tylko gdy dirty (zmiana liczby cyfr/szerokości) — nie w każdym ticku 20 ms.
+static void stoper_apply_layout(void) {
+    if (!s_layout_dirty) return;
+    if (!s_min_label || !s_sec_label || !s_cs_label) return;
+    s_layout_dirty = false;
+
+    lv_obj_t *parent = lv_obj_get_parent(s_min_label);
+    if (!parent) return;
+    const int32_t container_w = lv_obj_get_width(parent);
+    const int32_t avail_w = container_w - 12; // margines 6 px z każdej strony
+    if (avail_w <= 0) return;
+
+    lv_obj_t *digits[3] = { s_min_label, s_sec_label, s_cs_label };
+    lv_obj_t *colon1 = objects.obj40;
+    lv_obj_t *colon2 = objects.obj42;
+
+    static const uint32_t kFontSize[3] = { 35, 35, 30 };
+    static const int32_t kLetterSpace[3] = { 2, 0, 0 };
+    static const int32_t kGap = 2;
+    static const int32_t kColonFallbackW = 7;
+
+    int32_t w_digit[3] = { 0, 0, 0 };
+    int32_t w_colon1 = kColonFallbackW;
+    int32_t w_colon2 = kColonFallbackW;
+    int32_t total_w = 0;
+
+    for (uint8_t c = 0; c < 3; c++) {
+        const lv_font_t *font = (kFontSize[c] >= 33) ? &ui_font_bebas_neue35 : &ui_font_bebas_neue30;
+        for (int i = 0; i < 3; i++) {
+            lv_obj_set_style_text_font(digits[i], font, 0);
+            lv_obj_set_style_text_letter_space(digits[i], kLetterSpace[c], 0);
+        }
+        if (colon1) lv_obj_set_style_text_font(colon1, font, 0);
+        if (colon2) lv_obj_set_style_text_font(colon2, font, 0);
+        for (int i = 0; i < 3; i++) {
+            lv_obj_update_layout(digits[i]);
+            w_digit[i] = lv_obj_get_width(digits[i]);
+        }
+        if (colon1) { lv_obj_update_layout(colon1); w_colon1 = lv_obj_get_width(colon1); }
+        if (colon2) { lv_obj_update_layout(colon2); w_colon2 = lv_obj_get_width(colon2); }
+
+        total_w = w_digit[0] + w_digit[1] + w_digit[2] + w_colon1 + w_colon2 + 4 * kGap;
+        if (total_w <= avail_w) break;
+        // ostatnia (najmniejsza) kandydatura zostaje nawet gdy nadal się nie mieści
+    }
+
+    int32_t x = (container_w - total_w) / 2;
+    if (x < 6) x = 6; // nie wychodź poza lewy margines przy skrajnych długościach
+
+    lv_obj_set_x(s_min_label, x); x += w_digit[0] + kGap;
+    if (colon1) lv_obj_set_x(colon1, x);
+    x += w_colon1 + kGap;
+    lv_obj_set_x(s_sec_label, x); x += w_digit[1] + kGap;
+    if (colon2) lv_obj_set_x(colon2, x);
+    x += w_colon2 + kGap;
+    lv_obj_set_x(s_cs_label, x);
 }
 
 static void stopwatch_timer_cb(lv_timer_t *timer) {
@@ -125,16 +201,36 @@ static void stopwatch_timer_cb(lv_timer_t *timer) {
     }
 
     // --- Phase 2: Display — ZAWSZE lokalny (płynne 50fps) ---
+    // < 60 min: MM:SS:CS + indeks "ms"; >= 60 min: HH:MM:SS + indeks "s".
     int64_t elapsed_us = stopwatch_get_elapsed_us();
     int64_t total_ms = elapsed_us / 1000;
-    int minutes = (int)(total_ms / 60000);
-    int seconds = (int)((total_ms / 1000) % 60);
-    int centiseconds = (int)((total_ms % 1000) / 10);
+    bool hours_mode = total_ms >= kHoursModeThresholdMs;
+
+    int field1, field2, field3;
+    if (hours_mode) {
+        field1 = (int)(total_ms / 3600000LL);
+        field2 = (int)((total_ms / 60000LL) % 60);
+        field3 = (int)((total_ms / 1000LL) % 60);
+    } else {
+        field1 = (int)(total_ms / 60000LL);
+        field2 = (int)((total_ms / 1000LL) % 60);
+        field3 = (int)((total_ms % 1000LL) / 10);
+    }
 
     char buf[8];
-    snprintf(buf, sizeof(buf), "%02d", minutes); lv_label_set_text(s_min_label, buf);
-    snprintf(buf, sizeof(buf), "%02d", seconds); lv_label_set_text(s_sec_label, buf);
-    snprintf(buf, sizeof(buf), "%02d", centiseconds); lv_label_set_text(s_cs_label, buf);
+    snprintf(buf, sizeof(buf), "%02d", field1); stoper_label_set(s_min_label, buf);
+    snprintf(buf, sizeof(buf), "%02d", field2); stoper_label_set(s_sec_label, buf);
+    snprintf(buf, sizeof(buf), "%02d", field3); stoper_label_set(s_cs_label, buf);
+
+    if (s_unit_label) {
+        const char *unit = hours_mode ? "s" : "ms";
+        const char *cur_unit = lv_label_get_text(s_unit_label);
+        if (cur_unit == NULL || strcmp(cur_unit, unit) != 0) {
+            lv_label_set_text(s_unit_label, unit);
+        }
+    }
+
+    stoper_apply_layout();
 }
 
 void stopwatch_ui_init(void) {
@@ -167,6 +263,16 @@ void stopwatch_ui_init(void) {
     lv_obj_set_style_text_font(s_cs_label, &ui_font_bebas_neue35, 0);
     lv_obj_set_style_text_letter_space(s_cs_label, 2, 0);
     lv_label_set_text(s_cs_label, "00");
+
+    // Indeks jednostki — prawy dolny róg kontenera, wewnątrz zdjęcia kfe_stoper.
+    // Montserrat 18: zwykłe małe litery "ms"/"s" (nie kapitaliki jak w Bebas),
+    // ~30% mniejsze od bebas30; dosunięty do samego rogu.
+    s_unit_label = lv_label_create(parent);
+    lv_obj_set_size(s_unit_label, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_style_text_color(s_unit_label, lv_color_hex(0xffffff), 0);
+    lv_obj_set_style_text_font(s_unit_label, &lv_font_montserrat_18, 0);
+    lv_label_set_text(s_unit_label, "ms");
+    lv_obj_align(s_unit_label, LV_ALIGN_BOTTOM_RIGHT, -1, 0);
 
     if (objects.start_stop_stoper_button) {
         lv_obj_add_event_cb(objects.start_stop_stoper_button, on_start_stop_stoper, LV_EVENT_PRESSED, NULL);
