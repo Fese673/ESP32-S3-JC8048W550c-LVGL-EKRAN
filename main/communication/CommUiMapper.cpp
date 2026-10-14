@@ -331,8 +331,26 @@ void applyResourcesToUi(const SystemResources &sr) {
 }
 
 void applyBpmStatusToUi(int bpm, int spo2) {
-  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_BPM_VALUE, eez::Value(bpm));
-  eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_SPO2_VALUE, eez::Value(spo2));
+  // Brak pomiaru (0) -> placeholder "---" zamiast "0"/"00". String ustawiamy
+  // tylko przy zmianie stanu, zeby nie alokowac co tick; Value(int) jest tanie.
+  static bool bpmPlaceholder = false;
+  static bool spo2Placeholder = false;
+
+  if (bpm > 0) {
+    eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_BPM_VALUE, eez::Value(bpm));
+    bpmPlaceholder = false;
+  } else if (!bpmPlaceholder) {
+    eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_BPM_VALUE, eez::Value("---"));
+    bpmPlaceholder = true;
+  }
+
+  if (spo2 > 0) {
+    eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_SPO2_VALUE, eez::Value(spo2));
+    spo2Placeholder = false;
+  } else if (!spo2Placeholder) {
+    eez::flow::setGlobalVariable(FLOW_GLOBAL_VARIABLE_SPO2_VALUE, eez::Value("---"));
+    spo2Placeholder = true;
+  }
 }
 
 void applyWifiStatusToUi(bool connected, int8_t rssi, const uint8_t *ip) {

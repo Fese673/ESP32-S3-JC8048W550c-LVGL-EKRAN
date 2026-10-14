@@ -168,6 +168,10 @@ bool bpm_service_get_mock_mode(void) {
 void bpm_service_feed_sample(int16_t diff) {
     if (!s_ctx.initialized) {
         bpm_service_init();
+        if (!s_ctx.mock_enabled) {
+            // Real mode: 72/98 to defaulty trybu mock — nie udawaj pomiaru.
+            bpm_service_clear();
+        }
     }
     if (s_ctx.mock_enabled) {
         return;
@@ -182,6 +186,9 @@ void bpm_service_feed_sample(int16_t diff) {
 }
 
 void bpm_service_set_bpm(int bpm) {
+    if (!s_ctx.initialized) {
+        bpm_service_init();
+    }
     if (bpm < 30) bpm = 30;
     if (bpm > 220) bpm = 220;
 
@@ -209,9 +216,25 @@ int bpm_service_get_bpm(void) {
 }
 
 void bpm_service_set_spo2(uint8_t spo2) {
+    if (!s_ctx.initialized) {
+        bpm_service_init();
+    }
     if (spo2 > 100) spo2 = 100;
     portENTER_CRITICAL(&s_ctx.mux);
     s_ctx.spo2 = spo2;
+    portEXIT_CRITICAL(&s_ctx.mux);
+}
+
+/* Wyczysc pomiar (brak palca / czujnik padl): 0 = "brak danych" na UI,
+ * bez ruszania okresu uzywanego przez generator trybu mock. */
+void bpm_service_clear(void) {
+    if (!s_ctx.initialized) {
+        bpm_service_init();
+    }
+    portENTER_CRITICAL(&s_ctx.mux);
+    s_ctx.bpm = 0;
+    s_ctx.spo2 = 0;
+    s_ctx.phase_us = 0;
     portEXIT_CRITICAL(&s_ctx.mux);
 }
 

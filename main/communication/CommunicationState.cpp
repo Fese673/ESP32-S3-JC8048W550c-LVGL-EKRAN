@@ -93,7 +93,8 @@ struct StepperStateR {
 StepperStateR s_stepperState;
 
 // Radar LD2410 — stan z ZEGAR ESP32 (ramka 0x39). ZEGAR jest zrodlem prawdy;
-// Guition tylko wyswietla. 8 B = basic (stary ZEGAR), 26 B = + bramki.
+// Guition tylko wyswietla. 8 B = basic (stary ZEGAR), 26 B = + bramki,
+// 28 B = + pelny detectDist u16 LE na [26..27] (append-only; off 0..25 bez zmian).
 struct RadarStateR {
     uint8_t presence = 0x80;  // domyslnie LINK-BAD do pierwszej ramki
     uint16_t movDist = 0;
@@ -743,7 +744,7 @@ void applyRadarPayload(const uint8_t *payload, uint16_t payloadLength) {
     s_radarState.statDist =
         static_cast<uint16_t>(payload[4] | (static_cast<uint16_t>(payload[5]) << 8U));
     s_radarState.statEnergy = payload[6];
-    s_radarState.detectDist = payload[7];
+    s_radarState.detectDist = payload[7]; // legacy dolny bajt (<=255 cm)
     // 26-bajtowy stan niesie energie bramek; 8-bajtowy (stary ZEGAR) zeruje.
     if (payloadLength >= 26) {
         memcpy(s_radarState.movGates, payload + 8, 9);
@@ -751,6 +752,12 @@ void applyRadarPayload(const uint8_t *payload, uint16_t payloadLength) {
     } else {
         memset(s_radarState.movGates, 0, 9);
         memset(s_radarState.statGates, 0, 9);
+    }
+    // 28-bajtowy stan (nowy ZEGAR) niesie pelny dystans detekcji u16 LE;
+    // [7] powyzej zostaje jako fallback dla 26-bajtowych nadawcow.
+    if (payloadLength >= 28) {
+        s_radarState.detectDist = static_cast<uint16_t>(
+            payload[26] | (static_cast<uint16_t>(payload[27]) << 8U));
     }
     s_radarState.dirty = true;
     unlockSnapshot();
@@ -845,6 +852,11 @@ void applyBpmStatusPayload(const uint8_t *payload, uint16_t payloadLength) {
   if (payload == nullptr || payloadLength != 2) return;
   uint8_t bpm = payload[0];
   uint8_t spo2 = payload[1];
+  if (bpm == 0) {
+    // Palec zdjety / brak pomiaru: wyczysc, nie trzymaj starego BPM.
+    bpm_service_clear();
+    return;
+  }
   if (bpm >= 30 && bpm <= 250) {
     bpm_service_set_bpm(bpm);
     bpm_service_set_spo2(spo2);

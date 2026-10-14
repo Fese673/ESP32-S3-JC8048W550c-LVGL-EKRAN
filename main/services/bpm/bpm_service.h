@@ -18,6 +18,7 @@ void bpm_service_set_bpm(int bpm);
 int bpm_service_get_bpm(void);
 void bpm_service_set_spo2(uint8_t spo2);
 int bpm_service_get_spo2(void);
+void bpm_service_clear(void);
 
 uint16_t bpm_service_update(uint32_t now_ms);
 

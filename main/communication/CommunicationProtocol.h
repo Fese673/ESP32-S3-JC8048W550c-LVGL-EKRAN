@@ -33,8 +33,9 @@ namespace CommunicationProtocol {
     kTypeMusicEQState = 0x37,
     kTypeRadioMode = 0x38,
     // Radar LD2410 (ZEGAR ESP32 -> Guition). Lustro STM32 0xA3 + 18 B bramek:
-    // [presence][movD u16 LE][movE][statD u16 LE][statE][detect][movGate0..8][statGate0..8].
-    kTypeRadar = 0x39,       // Z -> G, 8 lub 26 B
+    // [presence][movD u16 LE][movE][statD u16 LE][statE][detect][movGate0..8][statGate0..8],
+    // 28 B = + [detect_lo,detect_hi] append-only na [26..27] (pelny dystans u16 LE).
+    kTypeRadar = 0x39,       // Z -> G, 8, 26 lub 28 B
     // Silnik ekranu (Guition -> ZEGAR ESP32 -> STM32). Lustro kontraktu
     // ZEGAR-ESP32 (Esptogution.h: kTypeStepperCmd/State + sub-komendy).
     // Zmieniasz tu = zmieniasz tam.
