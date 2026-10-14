@@ -6,9 +6,10 @@
 
 namespace {
 
-constexpr lv_coord_t kSwipeMinDistancePx = 40;
-constexpr uint32_t kSwipeMaxTimeMs = 1000;
-constexpr lv_coord_t kSwipeBottomZonePx = 90;
+constexpr float kSwipeMinDistanceRatio = 0.073f;
+constexpr uint32_t kSwipeMaxTimeMs = 1500;
+constexpr float kSwipeMaxHorizontalRatio = 0.7f;
+constexpr float kSwipeBottomZoneRatio = 1.0f / 6.0f;
 
 static const char * const kTag = "CUSTOM_GESTURE";
 
@@ -24,6 +25,19 @@ static inline int abs_int(int value) {
     return (value < 0) ? -value : value;
 }
 
+static int get_screen_height() {
+    const int height = lv_display_get_vertical_resolution(nullptr);
+    return (height > 0) ? height : 480;
+}
+
+static int get_min_swipe_distance() {
+    return static_cast<int>(get_screen_height() * kSwipeMinDistanceRatio);
+}
+
+static int get_bottom_zone_px() {
+    return static_cast<int>(get_screen_height() * kSwipeBottomZoneRatio);
+}
+
 static lv_indev_t * get_active_pointer_indev() {
     lv_indev_t * indev = lv_indev_active();
     if (indev && lv_indev_get_type(indev) == LV_INDEV_TYPE_POINTER) {
@@ -33,12 +47,7 @@ static lv_indev_t * get_active_pointer_indev() {
 }
 
 static bool is_bottom_zone_press(const lv_point_t &point) {
-    int screen_height = lv_display_get_vertical_resolution(nullptr);
-    if (screen_height <= 0) {
-        screen_height = 480;
-    }
-
-    const int bottom_limit = screen_height - kSwipeBottomZonePx;
+    const int bottom_limit = get_screen_height() - get_bottom_zone_px();
     return point.y >= bottom_limit;
 }
 
@@ -64,11 +73,11 @@ static void stop_tracking() {
 
 static bool is_valid_swipe(const lv_point_t &end_point) {
     const int dy = g_gesture.start_point.y - end_point.y;
-    const int dx = end_point.x - g_gesture.start_point.x;
+    const int dx = abs_int(end_point.x - g_gesture.start_point.x);
     const uint32_t duration_ms = lv_tick_elaps(g_gesture.start_time);
 
-    return (dy >= kSwipeMinDistancePx) &&
-           (abs_int(dx) <= dy) &&
+    return (dy >= get_min_swipe_distance()) &&
+           (dx <= static_cast<int>(dy * kSwipeMaxHorizontalRatio)) &&
            (duration_ms <= kSwipeMaxTimeMs);
 }
 

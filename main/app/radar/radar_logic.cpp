@@ -27,6 +27,9 @@ RadarCache s_cache;
 
 bool s_built = false;
 bool s_was_on_screen = false;
+// Watchdog ramek radaru: ZEGAR moze zamilknac (restart STM32 / pad linku) —
+// po 3 s bez 0x39 HMI pokazuje OFFLINE/"---" zamiast zamrozonych danych.
+uint32_t s_radar_last_ms = 0U;
 
 // Ochrona pending (jak home/target w geometrii): po kliknieciu przycisku
 // przyjmujemy TYLKO potwierdzenie z STM32 — stare echo w locie nie cofa
@@ -72,7 +75,13 @@ void radar_timer_cb(lv_timer_t *t) {
     }
 
     // Push ze strony ZEGAR-a (250 ms) — ekran tylko odswieza cache.
-    radar_ui_sync(s_cache.presence, s_cache.mov_dist, s_cache.mov_energy,
+    // Watchdog: cisza > 3 s (restart STM32 / pad linku) = OFFLINE dla HMI.
+    uint8_t presence = s_cache.presence;
+    if (s_radar_last_ms == 0U ||
+        (uint32_t)(lv_tick_get() - s_radar_last_ms) > 3000U) {
+        presence = 0x80U; // LINK-BAD
+    }
+    radar_ui_sync(presence, s_cache.mov_dist, s_cache.mov_energy,
                   s_cache.stat_dist, s_cache.stat_energy, s_cache.detect_dist,
                   s_cache.mov_gates, s_cache.stat_gates, s_cache.sens);
 }
@@ -88,6 +97,7 @@ void radar_init(void) {
 void radar_set_remote_state(uint8_t presence, uint16_t mov_dist, uint8_t mov_energy,
                             uint16_t stat_dist, uint8_t stat_energy, uint16_t detect_dist,
                             const uint8_t *mov_gates, const uint8_t *stat_gates) {
+    s_radar_last_ms = lv_tick_get();
     s_cache.presence = presence;
     s_cache.mov_dist = mov_dist;
     s_cache.mov_energy = mov_energy;
