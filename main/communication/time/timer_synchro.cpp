@@ -222,6 +222,10 @@ void invalidatePeerState() {
     s_stopwatchState.valid = false;
     s_timerState.valid = false;
     s_segModeValid = false;
+    /* Tryb 7-seg: ZEGAR po restarcie ZAWSZE startuje w trybie zegara —
+     * bez resetu konsument dostalby raz stary tryb jako "swiezy resync"
+     * (echo 0x18 i tak przyjdzie w pushu po HELLO, a to domyka luke). */
+    s_segMode = kSegModeClock;
     s_editLocked = false;
     s_stopwatchDirty = true;
     s_timerDirty = true;

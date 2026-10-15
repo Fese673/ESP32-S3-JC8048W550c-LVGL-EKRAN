@@ -47,6 +47,7 @@
     "ui_image_kfe_gry.c",
     "ui_image_kfe_humiditys.c",
     "ui_image_kfe_info.c",
+    "ui_image_kfe_info_p.c",
     "ui_image_kfe_jasno__.c",
     "ui_image_kfe_log.c",
     "ui_image_kfe_menu.c",
