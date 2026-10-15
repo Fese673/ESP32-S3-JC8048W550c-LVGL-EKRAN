@@ -36,6 +36,7 @@
 extern "C" {
 #include "sunton_esp32_8048s050c.h"
 void music_ui_handler_init(void);
+void project_info_ui_handler_init(void);
 }
 
 extern "C" void get_flow_global_variable_text(uint32_t var_id, char *buf, size_t buf_size) {
@@ -339,6 +340,7 @@ extern "C" void app_main(void)
         bpm_chart_handler_init();
         weather_icon_handler_init();
         music_ui_handler_init();
+        project_info_ui_handler_init();
         screen_geometry_init();
         radar_init();
         main_ui_init();

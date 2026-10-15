@@ -65,6 +65,7 @@ extern const lv_img_dsc_t img_kfe_ustawienia;
 extern const lv_img_dsc_t img_kfe_jasno__;
 extern const lv_img_dsc_t img_kfe_geometria_ekranu;
 extern const lv_img_dsc_t img_kfe_radar;
+extern const lv_img_dsc_t img_kfe_info_p;
 
 #ifndef EXT_IMG_DESC_T
 #define EXT_IMG_DESC_T
@@ -74,7 +75,7 @@ typedef struct _ext_img_desc_t {
 } ext_img_desc_t;
 #endif
 
-extern const ext_img_desc_t images[58];
+extern const ext_img_desc_t images[59];
 
 #ifdef __cplusplus
 }

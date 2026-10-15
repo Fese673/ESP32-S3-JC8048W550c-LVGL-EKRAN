@@ -26,7 +26,8 @@ enum ScreensEnum {
     SCREEN_ID_INFO = 13,
     SCREEN_ID_GEOMETRIA_EKRANU = 14,
     SCREEN_ID_RADAR = 15,
-    _SCREEN_ID_LAST = 15
+    SCREEN_ID_PROJECT_INFO = 16,
+    _SCREEN_ID_LAST = 16
 };
 
 typedef struct _objects_t {
@@ -45,6 +46,7 @@ typedef struct _objects_t {
     lv_obj_t *info;
     lv_obj_t *geometria_ekranu;
     lv_obj_t *radar;
+    lv_obj_t *project_info;
     lv_obj_t *weather_in;
     lv_obj_t *pressure_in_5;
     lv_obj_t *co2_in_6;
@@ -141,10 +143,11 @@ typedef struct _objects_t {
     lv_obj_t *obj29;
     lv_obj_t *obj30;
     lv_obj_t *obj31;
-    lv_obj_t *seconds_text_19;
     lv_obj_t *obj32;
-    lv_obj_t *minutes_text_20;
+    lv_obj_t *seconds_text_19;
     lv_obj_t *obj33;
+    lv_obj_t *minutes_text_20;
+    lv_obj_t *obj34;
     lv_obj_t *hour_text_20;
     lv_obj_t *info_bell_of_icon_on_3;
     lv_obj_t *info_bell_of_icon_off_3;
@@ -156,11 +159,11 @@ typedef struct _objects_t {
     lv_obj_t *wifi_password_input;
     lv_obj_t *wifi_list;
     lv_obj_t *wifi_status_labe;
-    lv_obj_t *obj34;
-    lv_obj_t *seconds_text_16;
     lv_obj_t *obj35;
-    lv_obj_t *minutes_text_17;
+    lv_obj_t *seconds_text_16;
     lv_obj_t *obj36;
+    lv_obj_t *minutes_text_17;
+    lv_obj_t *obj37;
     lv_obj_t *hour_text_17;
     lv_obj_t *info_bell_of_icon_on_4;
     lv_obj_t *info_bell_of_icon_off_4;
@@ -168,21 +171,21 @@ typedef struct _objects_t {
     lv_obj_t *info_ble_off_icon_4;
     lv_obj_t *info_wifi_on_icon_4;
     lv_obj_t *info_wifi_off_icon_4;
-    lv_obj_t *obj37;
-    lv_obj_t *seconds_text_13;
     lv_obj_t *obj38;
-    lv_obj_t *minutes_text_14;
+    lv_obj_t *seconds_text_13;
     lv_obj_t *obj39;
+    lv_obj_t *minutes_text_14;
+    lv_obj_t *obj40;
     lv_obj_t *hour_text_14;
     lv_obj_t *start_stop_minutnik_button;
     lv_obj_t *start_stop_stoper_button;
     lv_obj_t *reset_stoper_button;
     lv_obj_t *minutes_stoper_label;
     lv_obj_t *seconds_stoper_label;
-    lv_obj_t *obj40;
-    lv_obj_t *ms_stoper_label;
     lv_obj_t *obj41;
+    lv_obj_t *ms_stoper_label;
     lv_obj_t *obj42;
+    lv_obj_t *obj43;
     lv_obj_t *add_alarm;
     lv_obj_t *start_stop_label_stoper;
     lv_obj_t *start_stop_label_minutnik;
@@ -195,11 +198,11 @@ typedef struct _objects_t {
     lv_obj_t *info_wifi_on_icon_6;
     lv_obj_t *info_wifi_off_icon_6;
     lv_obj_t *log_terminal;
-    lv_obj_t *obj43;
-    lv_obj_t *seconds_text_14;
     lv_obj_t *obj44;
-    lv_obj_t *minutes_text_15;
+    lv_obj_t *seconds_text_14;
     lv_obj_t *obj45;
+    lv_obj_t *minutes_text_15;
+    lv_obj_t *obj46;
     lv_obj_t *hour_text_15;
     lv_obj_t *info_bell_of_icon_on_7;
     lv_obj_t *info_bell_of_icon_off_7;
@@ -207,11 +210,11 @@ typedef struct _objects_t {
     lv_obj_t *info_ble_off_icon_7;
     lv_obj_t *info_wifi_on_icon_7;
     lv_obj_t *info_wifi_off_icon_7;
-    lv_obj_t *obj46;
-    lv_obj_t *seconds_text_10;
     lv_obj_t *obj47;
-    lv_obj_t *minutes_text_11;
+    lv_obj_t *seconds_text_10;
     lv_obj_t *obj48;
+    lv_obj_t *minutes_text_11;
+    lv_obj_t *obj49;
     lv_obj_t *hour_text_11;
     lv_obj_t *tm_odczuwalna_weather;
     lv_obj_t *_wind_weather;
@@ -230,11 +233,11 @@ typedef struct _objects_t {
     lv_obj_t *info_ble_off_icon_8;
     lv_obj_t *info_wifi_on_icon_8;
     lv_obj_t *info_wifi_off_icon_8;
-    lv_obj_t *obj49;
-    lv_obj_t *seconds_text_17;
     lv_obj_t *obj50;
-    lv_obj_t *minutes_text_18;
+    lv_obj_t *seconds_text_17;
     lv_obj_t *obj51;
+    lv_obj_t *minutes_text_18;
+    lv_obj_t *obj52;
     lv_obj_t *hour_text_18;
     lv_obj_t *bpm_chart;
     lv_obj_t *info_bell_of_icon_on_9;
@@ -243,11 +246,11 @@ typedef struct _objects_t {
     lv_obj_t *info_ble_off_icon_9;
     lv_obj_t *info_wifi_on_icon_9;
     lv_obj_t *info_wifi_off_icon_9;
-    lv_obj_t *obj52;
-    lv_obj_t *seconds_text_18;
     lv_obj_t *obj53;
-    lv_obj_t *minutes_text_26;
+    lv_obj_t *seconds_text_18;
     lv_obj_t *obj54;
+    lv_obj_t *minutes_text_26;
+    lv_obj_t *obj55;
     lv_obj_t *hour_text_26;
     lv_obj_t *info_bell_of_icon_on_10;
     lv_obj_t *info_bell_of_icon_off_10;
@@ -255,11 +258,11 @@ typedef struct _objects_t {
     lv_obj_t *info_ble_off_icon_10;
     lv_obj_t *info_wifi_on_icon_10;
     lv_obj_t *info_wifi_off_icon_10;
-    lv_obj_t *obj55;
-    lv_obj_t *seconds_text_22;
     lv_obj_t *obj56;
-    lv_obj_t *minutes_text_27;
+    lv_obj_t *seconds_text_22;
     lv_obj_t *obj57;
+    lv_obj_t *minutes_text_27;
+    lv_obj_t *obj58;
     lv_obj_t *hour_text_27;
     lv_obj_t *info_bell_of_icon_on_11;
     lv_obj_t *info_bell_of_icon_off_11;
@@ -267,11 +270,11 @@ typedef struct _objects_t {
     lv_obj_t *info_ble_off_icon_11;
     lv_obj_t *info_wifi_on_icon_11;
     lv_obj_t *info_wifi_off_icon_11;
-    lv_obj_t *obj58;
-    lv_obj_t *seconds_text_23;
     lv_obj_t *obj59;
-    lv_obj_t *minutes_text_28;
+    lv_obj_t *seconds_text_23;
     lv_obj_t *obj60;
+    lv_obj_t *minutes_text_28;
+    lv_obj_t *obj61;
     lv_obj_t *hour_text_28;
     lv_obj_t *info_bell_of_icon_on_12;
     lv_obj_t *info_bell_of_icon_off_12;
@@ -279,11 +282,11 @@ typedef struct _objects_t {
     lv_obj_t *info_ble_off_icon_12;
     lv_obj_t *info_wifi_on_icon_12;
     lv_obj_t *info_wifi_off_icon_12;
-    lv_obj_t *obj61;
-    lv_obj_t *seconds_text_20;
     lv_obj_t *obj62;
-    lv_obj_t *minutes_text_29;
+    lv_obj_t *seconds_text_20;
     lv_obj_t *obj63;
+    lv_obj_t *minutes_text_29;
+    lv_obj_t *obj64;
     lv_obj_t *hour_text_29;
     lv_obj_t *info_bell_of_icon_on_13;
     lv_obj_t *info_bell_of_icon_off_13;
@@ -291,11 +294,11 @@ typedef struct _objects_t {
     lv_obj_t *info_ble_off_icon_13;
     lv_obj_t *info_wifi_on_icon_13;
     lv_obj_t *info_wifi_off_icon_13;
-    lv_obj_t *obj64;
-    lv_obj_t *seconds_text_24;
     lv_obj_t *obj65;
-    lv_obj_t *minutes_text_30;
+    lv_obj_t *seconds_text_24;
     lv_obj_t *obj66;
+    lv_obj_t *minutes_text_30;
+    lv_obj_t *obj67;
     lv_obj_t *hour_text_30;
     lv_obj_t *info_bell_of_icon_on_14;
     lv_obj_t *info_bell_of_icon_off_14;
@@ -303,6 +306,18 @@ typedef struct _objects_t {
     lv_obj_t *info_ble_off_icon_14;
     lv_obj_t *info_wifi_on_icon_14;
     lv_obj_t *info_wifi_off_icon_14;
+    lv_obj_t *obj68;
+    lv_obj_t *seconds_text_25;
+    lv_obj_t *obj69;
+    lv_obj_t *minutes_text_31;
+    lv_obj_t *obj70;
+    lv_obj_t *hour_text_31;
+    lv_obj_t *info_bell_of_icon_on_15;
+    lv_obj_t *info_bell_of_icon_off_15;
+    lv_obj_t *info_ble_on_icon_15;
+    lv_obj_t *info_ble_off_icon_15;
+    lv_obj_t *info_wifi_on_icon_15;
+    lv_obj_t *info_wifi_off_icon_15;
 } objects_t;
 
 extern objects_t objects;
@@ -372,6 +387,10 @@ void tick_screen_geometria_ekranu();
 void create_screen_radar();
 void delete_screen_radar();
 void tick_screen_radar();
+
+void create_screen_project_info();
+void delete_screen_project_info();
+void tick_screen_project_info();
 
 void create_screen_by_id(enum ScreensEnum screenId);
 void delete_screen_by_id(enum ScreensEnum screenId);

@@ -86,8 +86,13 @@ void stopwatch_ui_sync_start_stop_label(void) {
 }
 
 // Ustawia wiersz [min][:][sek][:][setne] w kontenerze: dobiera font (bebas35->bebas30)
-// i letter_space (2->0), centruje i pozycjonuje separatory obj40/obj42. Przelicza
+// i letter_space (2->0), centruje i pozycjonuje separatory obj41/obj43. Przelicza
 // tylko gdy dirty (zmiana liczby cyfr/szerokości) — nie w każdym ticku 20 ms.
+//
+// UWAGA: nazwy objNN nadaje EEZ i zmieniają się przy każdym eksporcie.
+// Dlatego przed ruszeniem separatorów weryfikujemy, że naprawdę leżą w wierszu
+// stopera (ten sam parent co cyfry) — inaczej stoper_apply_layout() potrafił
+// wyrwać dwukropek z pigułki zegara w nagłówku (obj40) i go popsuć.
 static void stoper_apply_layout(void) {
     if (!s_layout_dirty) return;
     if (!s_min_label || !s_sec_label || !s_cs_label) return;
@@ -100,8 +105,19 @@ static void stoper_apply_layout(void) {
     if (avail_w <= 0) return;
 
     lv_obj_t *digits[3] = { s_min_label, s_sec_label, s_cs_label };
-    lv_obj_t *colon1 = objects.obj40;
-    lv_obj_t *colon2 = objects.obj42;
+    lv_obj_t *colon1 = objects.obj41;
+    lv_obj_t *colon2 = objects.obj43;
+
+    // Guard przed rozjazdem numeracji EEZ: separatory muszą być labelami
+    // w tym samym kontenerze co cyfry. W przeciwnym razie nie ruszamy niczego.
+    if (colon1 && (!lv_obj_check_type(colon1, &lv_label_class) ||
+                   lv_obj_get_parent(colon1) != parent)) {
+        colon1 = NULL;
+    }
+    if (colon2 && (!lv_obj_check_type(colon2, &lv_label_class) ||
+                   lv_obj_get_parent(colon2) != parent)) {
+        colon2 = NULL;
+    }
 
     static const uint32_t kFontSize[3] = { 35, 35, 30 };
     static const int32_t kLetterSpace[3] = { 2, 0, 0 };

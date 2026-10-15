@@ -111,6 +111,8 @@ static int16_t get_back_target_screen(int16_t current_screen) {
             return SCREEN_ID_MENU;
         case SCREEN_ID_RADAR:
             return SCREEN_ID_MENU;
+        case SCREEN_ID_PROJECT_INFO:
+            return SCREEN_ID_MENU;
         default:
             return SCREEN_ID_MAIN;
     }

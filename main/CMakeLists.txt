@@ -91,6 +91,7 @@ idf_component_register(
                     "./services/sntp"
                     "./services/bpm"
                     "./services/sensor"
+                    "./services/project_info"
                     "./utils/log"
                     "./app"
                     "./app/clock"

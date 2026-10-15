@@ -137,6 +137,14 @@ static ScreenNotificationWidgets get_widgets_for_screen(int16_t screen_id) {
       w.wifi_on = objects.info_wifi_on_icon_14;
       w.wifi_off = objects.info_wifi_off_icon_14;
       break;
+    case SCREEN_ID_PROJECT_INFO:
+      w.bell_on = objects.info_bell_of_icon_on_15;
+      w.bell_off = objects.info_bell_of_icon_off_15;
+      w.ble_on = objects.info_ble_on_icon_15;
+      w.ble_off = objects.info_ble_off_icon_15;
+      w.wifi_on = objects.info_wifi_on_icon_15;
+      w.wifi_off = objects.info_wifi_off_icon_15;
+      break;
     default:
       break;
   }
