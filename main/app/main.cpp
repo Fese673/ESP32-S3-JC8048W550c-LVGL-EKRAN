@@ -17,6 +17,7 @@
 #include "flappy_bird.h"
 #include "screen_geometry/screen_geometry.h"
 #include "app/radar/radar.h"
+#include "zegar_mode/zegar_mode_ui.h"
 #include "services/sensor/sensors_wiki.h"
 #include "driver/i2c_master.h"
 #include "driver/gpio.h"
@@ -234,12 +235,6 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
         // Apply premium styling to all switches & sliders globally on the newly loaded screen
         style_widgets_recursive(lv_scr_act());
 
-        // Dynamiczna rejestracja gestu Swipe Up na każdym załadowanym subekranie
-        if (current_screen_id != SCREEN_ID_MAIN) {
-            ESP_LOGI(TAG, "Zarejestrowano gesty Swipe Up na aktywnym ekranie ID: %d", (int)current_screen_id);
-            gesture_register_recursive(lv_scr_act());
-        }
-
         if (current_screen_id == SCREEN_ID_MENU || current_screen_id == SCREEN_ID_USTAWIENIA) {
             CommunicationProtocol::requestDeviceSettings();
             CommunicationProtocol::requestSystemResources();
@@ -250,6 +245,7 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
         if (current_screen_id == SCREEN_ID_ZEGAR) {
             ESP_LOGI(TAG, "Entering ZEGAR screen, requesting alarm list from Zegar...");
             CommunicationProtocol::TimerSync::requestAlarmList();
+            zegar_mode_ui_init(); // kolka trybu 7-seg (stoper/minutnik)
         }
         if (current_screen_id == SCREEN_ID_ZASOBY_SYSTEMU) {
             zasoby_sliders_create(lv_scr_act());
@@ -265,6 +261,12 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
         }
         if (current_screen_id == SCREEN_ID_CZUJNIKI) {
             sensors_wiki_init(objects.czujniki);
+        }
+
+        // Dynamiczna rejestracja gestu Swipe Up na każdym załadowanym subekranie
+        if (current_screen_id != SCREEN_ID_MAIN && current_screen_id != SCREEN_ID_GRY_TEST) {
+            ESP_LOGI(TAG, "Zarejestrowano gesty Swipe Up na aktywnym ekranie ID: %d", (int)current_screen_id);
+            gesture_register_recursive(lv_scr_act());
         }
     }
 
@@ -282,6 +284,7 @@ static void ui_tick_timer_cb(lv_timer_t *timer)
     clock_ui_update();
     stopwatch_ui_sync_start_stop_label();
     timer_ui_sync_start_stop_label();
+    zegar_mode_ui_tick(); // echo trybu 7-seg z ZEGARA + rollback pending
     notification_logic_refresh();
     alarm_popup_tick();
     CommunicationProtocol::updateUi();

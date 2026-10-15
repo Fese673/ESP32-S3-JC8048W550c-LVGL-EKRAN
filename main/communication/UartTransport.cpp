@@ -125,6 +125,10 @@ void handleFrame(uint8_t type, const uint8_t *payload, uint16_t payloadLength) {
     case kTypeStopwatchState:
         TimerSync::handleStopwatchStatePayload(payload, payloadLength);
         break;
+    case kTypeSegModeState:
+        // Tryb 7-seg: echo z ZEGARA (kolka przy STOPER/MINUTNIK).
+        TimerSync::handleSegModeStatePayload(payload, payloadLength);
+        break;
     case kTypeHelloAck:
         onHelloAckReceived(payload, payloadLength);
         onPeerHelloAckReceived();

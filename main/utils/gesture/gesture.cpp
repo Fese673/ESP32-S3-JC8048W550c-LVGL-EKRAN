@@ -15,11 +15,12 @@ static const char * const kTag = "CUSTOM_GESTURE";
 
 struct GestureState {
     bool tracking;
+    bool pressing_seen;
     lv_point_t start_point;
     uint32_t start_time;
 };
 
-static GestureState g_gesture { false, { 0, 0 }, 0 };
+static GestureState g_gesture { false, false, { 0, 0 }, 0 };
 
 static inline int abs_int(int value) {
     return (value < 0) ? -value : value;
@@ -63,6 +64,7 @@ static bool is_control_surface(lv_obj_t *obj) {
 
 static void start_tracking(const lv_point_t &point) {
     g_gesture.tracking = true;
+    g_gesture.pressing_seen = false;
     g_gesture.start_point = point;
     g_gesture.start_time = lv_tick_get();
 }
@@ -120,19 +122,46 @@ static void handle_press_event(lv_indev_t * indev) {
     lv_point_t start_point;
     lv_indev_get_point(indev, &start_point);
 
-    if (!is_bottom_zone_press(start_point)) {
-        return;
-    }
-
-    if (is_control_surface(lv_indev_get_active_obj())) {
+    if (!is_bottom_zone_press(start_point) ||
+        is_control_surface(lv_indev_get_active_obj())) {
+        stop_tracking();
         return;
     }
 
     start_tracking(start_point);
 }
 
+static void handle_pressing_event(lv_indev_t * indev, lv_event_t * e) {
+    if (!g_gesture.tracking) {
+        return;
+    }
+
+    if (lv_indev_get_scroll_obj(indev) != nullptr ||
+        is_control_surface(lv_indev_get_active_obj())) {
+        stop_tracking();
+        return;
+    }
+
+    if (!g_gesture.pressing_seen) {
+        g_gesture.pressing_seen = true;
+        return;
+    }
+
+    lv_point_t current_point;
+    lv_indev_get_point(indev, &current_point);
+
+    if (is_valid_swipe(current_point)) {
+        action_action_swipe_up(e);
+    }
+}
+
 static void handle_release_event(lv_indev_t * indev, lv_event_t * e) {
     if (!g_gesture.tracking) {
+        return;
+    }
+
+    if (lv_indev_get_scroll_obj(indev) != nullptr) {
+        stop_tracking();
         return;
     }
 
@@ -157,12 +186,21 @@ static void gesture_event_cb(lv_event_t * e) {
         case LV_EVENT_PRESSED:
             handle_press_event(indev);
             break;
+        case LV_EVENT_PRESSING:
+            handle_pressing_event(indev, e);
+            break;
         case LV_EVENT_RELEASED:
             handle_release_event(indev, e);
             break;
         case LV_EVENT_PRESS_LOST:
-            // Utrata trackingu (np. panel przestal sledzic palec) NIE jest
-            // swipe'em — bez tego nawigacja odpalala sie przypadkowo.
+            // PRESS_LOST po przepieciu na inny widget w trakcie przeciagania
+            // nie przerywa gestu; konczymy tylko przy scrollu lub puszczeniu palca.
+            if (lv_indev_get_scroll_obj(indev) != nullptr ||
+                lv_indev_get_state(indev) == LV_INDEV_STATE_RELEASED) {
+                stop_tracking();
+            }
+            break;
+        case LV_EVENT_INDEV_RESET:
             stop_tracking();
             break;
         default:
@@ -204,8 +242,10 @@ extern "C" void gesture_register_recursive(lv_obj_t * obj) {
 
     lv_obj_remove_event_cb(obj, gesture_event_cb);
     lv_obj_add_event_cb(obj, gesture_event_cb, LV_EVENT_PRESSED, NULL);
+    lv_obj_add_event_cb(obj, gesture_event_cb, LV_EVENT_PRESSING, NULL);
     lv_obj_add_event_cb(obj, gesture_event_cb, LV_EVENT_RELEASED, NULL);
     lv_obj_add_event_cb(obj, gesture_event_cb, LV_EVENT_PRESS_LOST, NULL);
+    lv_obj_add_event_cb(obj, gesture_event_cb, LV_EVENT_INDEV_RESET, NULL);
 
     uint32_t child_cnt = lv_obj_get_child_cnt(obj);
     for (uint32_t i = 0; i < child_cnt; i++) {

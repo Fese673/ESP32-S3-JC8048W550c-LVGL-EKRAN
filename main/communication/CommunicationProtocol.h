@@ -50,6 +50,8 @@ namespace CommunicationProtocol {
     kTypeAlarmAction    = 0x14,
     kTypeStopwatchState = 0x15,
     kTypeStopwatchCmd   = 0x16,
+    kTypeSegModeCmd     = 0x17,
+    kTypeSegModeState   = 0x18,
     kTypeAck = 0xFF
  };
 

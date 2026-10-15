@@ -42,6 +42,7 @@ set(SOURCES_APP_CPP
     ./app/screen_geometry/screen_geometry_logic.cpp
     ./app/radar/radar_logic.cpp
     ./app/radar/radar_ui.cpp
+    ./app/zegar_mode/zegar_mode_ui.cpp
     ./app/main_handler.cpp
     ./app/main.cpp
     ./app/weather/weather_icon_handler.c

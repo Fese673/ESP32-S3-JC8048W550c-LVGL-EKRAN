@@ -57,6 +57,11 @@ static volatile bool s_editLockDirty = false;
 
 static volatile bool s_alarmListDirty = false;
 
+// Tryb 7-seg: ostatnie echo z ZEGARA (0=zegar, 1=stoper, 2=minutnik).
+static uint8_t s_segMode = 0;
+static bool s_segModeValid = false;
+static volatile bool s_segModeDirty = false;
+
 // ─── Send functions ───────────────────────────────────────────────────
 
 static void sendRaw(uint8_t type, const uint8_t *payload, uint16_t len) {
@@ -123,6 +128,17 @@ void requestAlarmList() {
     sendRaw(0x10, payload, 1); // 0x10 is kTypeRequest
 }
 
+void sendSegModeCmd(uint8_t mode) {
+    if (mode > kSegModeTimer) return; // 0/1/2
+    uint8_t payload[1] = { mode };
+    sendRaw(kTypeSegModeCmd, payload, 1);
+}
+
+void requestSegMode() {
+    uint8_t payload[1] = { kTypeSegModeState };
+    sendRaw(0x10, payload, 1); // 0x10 is kTypeRequest
+}
+
 // ─── State access ─────────────────────────────────────────────────────
 
 TimerState getLastTimerState() {
@@ -137,6 +153,14 @@ StopwatchState getLastStopwatchState() {
     StopwatchState copy = s_stopwatchState;
     unlock();
     return copy;
+}
+
+bool getLastSegMode(uint8_t &mode) {
+    lock();
+    const bool valid = s_segModeValid;
+    if (valid) mode = s_segMode;
+    unlock();
+    return valid;
 }
 
 // ─── Payload handlers ─────────────────────────────────────────────────
@@ -175,6 +199,16 @@ void handleEditLockPayload(const uint8_t *payload, uint16_t len) {
     lock();
     s_editLocked = (len >= 1 && payload[0] != 0);
     s_editLockDirty = true;
+    unlock();
+}
+
+void handleSegModeStatePayload(const uint8_t *payload, uint16_t len) {
+    if (!payload || len < 1) return;
+    if (payload[0] > kSegModeTimer) return; // 0/1/2 — inne ignorujemy
+    lock();
+    s_segMode = payload[0];
+    s_segModeValid = true;
+    s_segModeDirty = true;
     unlock();
 }
 
@@ -248,6 +282,17 @@ bool consumeAlarmListDirty() {
     lock();
     bool dirty = s_alarmListDirty;
     if (dirty) s_alarmListDirty = false;
+    unlock();
+    return dirty;
+}
+
+bool consumeSegMode(uint8_t &mode) {
+    lock();
+    bool dirty = s_segModeDirty;
+    if (dirty) {
+        mode = s_segMode;
+        s_segModeDirty = false;
+    }
     unlock();
     return dirty;
 }
