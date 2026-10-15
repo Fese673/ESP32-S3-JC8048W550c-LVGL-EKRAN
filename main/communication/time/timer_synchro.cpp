@@ -212,6 +212,24 @@ void handleSegModeStatePayload(const uint8_t *payload, uint16_t len) {
     unlock();
 }
 
+void invalidatePeerState() {
+    lock();
+    /* Wszystkie stany z ZEGARA traca waznosc po jego restarcie: stoper nie
+     * moze dalej zyc (korekcja dryfu przypinalaby wyswietlacz do starej
+     * wartosci), edycja alarmow nie moze zostac zablokowana na stale, a
+     * tryb 7-seg wraca do prawdy (ZEGAR po restarcie zawsze = zegar).
+     * Swiezy, pelny stan przysle ZEGAR w odpowiedzi na nasze HELLO. */
+    s_stopwatchState.valid = false;
+    s_timerState.valid = false;
+    s_segModeValid = false;
+    s_editLocked = false;
+    s_stopwatchDirty = true;
+    s_timerDirty = true;
+    s_segModeDirty = true;
+    s_editLockDirty = true;
+    unlock();
+}
+
 void handleAlarmListPayload(const uint8_t *payload, uint16_t len) {
     if (!payload || len < 1) return;
     int count = payload[0];

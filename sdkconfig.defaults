@@ -55,8 +55,11 @@ CONFIG_SPIRAM_RODATA=y
 CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=0
 
-# LVGL performance diagnostics (UART-only, no UI impact — disable for release)
-CONFIG_LV_PERF_DIAG=y
-CONFIG_LV_PERF_DIAG_INTERVAL_MS=1000
-CONFIG_LV_PERF_DIAG_HEARTBEAT_SKIP=4
+# LVGL performance diagnostics (UART-only). Wylaczone w release: timer 1 ms
+# (budzi task LVGL praktycznie co 1-2 ms) + log co 1 s to realny narzut
+# CPU/pradu. Diagnostyka zostaje w buildzie serwisowym (wlaczana recznie).
+# CONFIG_LV_PERF_DIAG is not set
+
+# Produkcja: tylko WARN+ (INFO to szum i narzut na UART).
+CONFIG_LOG_DEFAULT_LEVEL_WARN=y
 

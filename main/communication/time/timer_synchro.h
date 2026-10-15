@@ -87,6 +87,16 @@ void applyEditLockToUi(bool locked);
 
 void tick();  // pending cmd timeout, periodic housekeeping
 
+// ─── Invalidation (peer restart) ──────────────────────────────────────
+
+// Unieważnia wszystkie stany otrzymane z ZEGARA (stoper/timer/lock/segmode).
+// Wołane po wykryciu restartu ZEGARA (nowy bootId w HELLO_ACK): stare dane
+// nie mogą dalej uchodzić za prawdę (stoper "RUNNING" przywrócony do żywej
+// korekcji dryfu = zamrożony/kłamliwy licznik; zablokowana edycja alarmów
+// po restarcie = trwała blokada UI). Świeży stan przyjdzie w pełnym pushu
+// po HELLO.
+void invalidatePeerState();
+
 // ─── Status checks ────────────────────────────────────────────────────
 
 bool isTimerRinging();  // ostatni stan timera to RINGING

@@ -1,4 +1,5 @@
 #include "communication/CommunicationState.h"
+#include "communication/time/timer_synchro.h"
 #include "services/bpm/bpm_service.h"
 #include <stdio.h>
 #include <string.h>
@@ -10,6 +11,12 @@
 #include "freertos/semphr.h"
 
 namespace CommunicationProtocol {
+
+// Forward declaration zamiast #include "communication/CommHandshake.h" —
+// tamten naglowek eksportuje CommunicationProtocol::currentMs(), co tworzy
+// ambigu z lokalna (anonimowa) definicja currentMs() w tym pliku.
+void sendHello();
+
 namespace {
 
 constexpr char kTag[] = "COMM_STATE";
@@ -880,6 +887,14 @@ void onHelloAckReceived(const uint8_t *payload, uint16_t payloadLength) {
     }
     // Defer resetUi() (calls eez::flow::setGlobalVariable) to LVGL task
     setResetUiPending();
+
+    // PELNY RE-SYNC: stany czasu/stopera/locka z ZEGARA sa po jego restarcie
+    // nieaktualne — uniewazniamy je lokalnie i wysylamy HELLO, na ktore
+    // ZEGAR odpowiada pushem wszystkich stanow (stoper/timer/segmode/alarmy/
+    // ustawienia). Bez tego HMI klamalo nawet do 300 s, a blokada edycji
+    // alarmow zostawala na stale.
+    TimerSync::invalidatePeerState();
+    sendHello();
   }
 
   s_peerBootIdLocal = peerBootId;
