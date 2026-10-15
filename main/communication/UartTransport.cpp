@@ -109,6 +109,10 @@ void handleFrame(uint8_t type, const uint8_t *payload, uint16_t payloadLength) {
     case kTypeStepperState:
         applyStepperStatePayload(payload, payloadLength);
         break;
+    case kTypeConfig:
+        // Panel "Ustawienia WiFi": skan 0x81 / test hasla 0x82 / info 0x83.
+        applyWifiConfigPayload(payload, payloadLength);
+        break;
     case kTypeAlarmList:
         TimerSync::handleAlarmListPayload(payload, payloadLength);
         break;
@@ -129,7 +133,6 @@ void handleFrame(uint8_t type, const uint8_t *payload, uint16_t payloadLength) {
         ESP_LOGI(kTag, "Received HELLO from peer (keep-alive)");
         break;
     case kTypeRequest:
-    case kTypeConfig:
     case kTypeAck:
         ESP_LOGI(kTag, "Control frame type=0x%02X", type);
         break;
@@ -241,9 +244,18 @@ void sendRawFrame(uint8_t type, uint8_t sequence, const uint8_t *payload, uint16
     msg.data[1 + cobsLen] = 0x00;
     msg.length = cobsLen + 2;
 
-    if (xQueueSend(s_txQueue, &msg, 0) != pdTRUE) {
-        ESP_LOGW(kTag, "TX queue full, dropping frame type=0x%02X", type);
+    // Ramki provisioning (0x11): krotka proba doreczenia zamiast zrzutu —
+    // zgubiony SET_CRED to 25 s czekania panelu, a kolejka oproznia sie w ms.
+    uint8_t attempts = (type == kTypeConfig) ? 8U : 1U;
+    while (attempts-- > 0U) {
+        if (xQueueSend(s_txQueue, &msg, 0) == pdTRUE) {
+            return;
+        }
+        if (attempts > 0U) {
+            vTaskDelay(1);
+        }
     }
+    ESP_LOGW(kTag, "TX queue full, dropping frame type=0x%02X", type);
 }
 
 bool ingestByte(uint8_t byte) {

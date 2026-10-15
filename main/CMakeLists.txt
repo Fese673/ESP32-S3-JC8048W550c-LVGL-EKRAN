@@ -67,7 +67,7 @@ file(GLOB_RECURSE SOURCES_UI_CPP
 
 
 set(SOURCES_WIFI_SET_C
-    ./setting_wifi/set_wifi.c
+    ./setting_wifi/set_wifi.cpp
 )
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DEEZ_PLATFORM_ESP32 -DEEZ_FOR_LVGL -DLV_LVGL_H_INCLUDE_SIMPLE")

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <sys/time.h>
 #include "esp_timer.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -41,6 +42,38 @@ volatile bool s_bleDirty = false;
 // Sensor Bell status
 uint8_t s_sensorBellValue = 0;
 volatile bool s_bellDirty = false;
+
+// ── Panel "Ustawienia WiFi" (0x11): akumulatory ramek provisioning ──
+// Wszystko na statycznych buforach (zero alokacji w RX tasku — ramka po
+// ramce, wielokrotne skany nie moga wyciekac pamieci).
+constexpr uint8_t kWifiScanMax = 12;
+struct WifiScanAccum {
+  WifiScanEntry entries[kWifiScanMax];
+  uint8_t count = 0;
+  uint8_t total = 0;
+  uint8_t status = 0xFF;
+  uint8_t expected = 0; // nastepny oczekiwany index chunka (ciaglosc!)
+  bool complete = false;
+  volatile bool dirty = false;
+};
+WifiScanAccum s_wifiScan;
+
+struct WifiCredResultState {
+  uint8_t code = 0;
+  uint16_t reason = 0;
+  char ssid[33] = {};
+  volatile bool dirty = false;
+};
+WifiCredResultState s_wifiCred;
+
+struct WifiInfoState {
+  uint8_t wifiOn = 0;
+  uint8_t btMode = 0;
+  uint8_t connected = 0;
+  char ssid[33] = {};
+  volatile bool dirty = false;
+};
+WifiInfoState s_wifiInfo;
 
 // Music state
 struct MusicMetadataState {
@@ -462,6 +495,21 @@ void applyTimePayload(const uint8_t *payload, uint16_t payloadLength) {
                                (static_cast<uint32_t>(payload[2]) << 16U) |
                                (static_cast<uint32_t>(payload[3]) << 24U);
   const uint8_t valid = payload[4];
+
+  // ZEGAR jest wzorcem czasu (ujednolicone WiFi: ekran nie ma wlasnego SNTP).
+  // Ramka 0x03 przychodzi co sekunde — ustawiamy zegar systemowy, wiec oba
+  // urzadzenia chodza co do sekundy tak samo. Prog 2020-09-13: nigdy nie
+  // adoptujemy "1970" z niezsynchronizowanego ZEGARA.
+  if (valid != 0U && unixSeconds > 1600000000UL) {
+    static uint32_t s_lastAppliedS = 0;
+    if (unixSeconds != s_lastAppliedS) {
+      s_lastAppliedS = unixSeconds;
+      struct timeval tv = {};
+      tv.tv_sec = static_cast<time_t>(unixSeconds);
+      tv.tv_usec = 0;
+      settimeofday(&tv, nullptr);
+    }
+  }
 
   lockSnapshot();
   s_snapshot.timeUnixSeconds = unixSeconds;
@@ -890,6 +938,194 @@ void applyStatusBellPayload(const uint8_t *payload, uint16_t payloadLength) {
   s_sensorBellValue = payload[0];
   s_bellDirty = true;
   unlockSnapshot();
+}
+
+// Panel "Ustawienia WiFi" (0x11): ramki wynikow z ZEGARA.
+// 0x81 skan (paginowany), 0x82 test hasla, 0x83 info. Kazda ramka jest
+// walidowana dlugosciowo przed skopiowaniem (obrona przed smieciami).
+void applyWifiConfigPayload(const uint8_t *payload, uint16_t payloadLength) {
+  if (payload == nullptr || payloadLength < 1) return;
+
+  switch (payload[0]) {
+  case kCfgRespScan: { // [status][total][index][count] + n*[rssi i8][flags][len][ssid]
+    if (payloadLength < 5) return;
+    const uint8_t status = payload[1];
+    const uint8_t total = payload[2];
+    const uint8_t index = payload[3];
+    const uint8_t count = payload[4];
+
+    lockSnapshot();
+    if (index == 0) {
+      // Nowy skan: wyczysc wszystko (zero resztek poprzedniego — inaczej
+      // brakujacy chunk pokazalby stare nazwy jako swiezy wynik).
+      s_wifiScan.count = 0;
+      s_wifiScan.expected = 0;
+      s_wifiScan.complete = false;
+      memset(s_wifiScan.entries, 0, sizeof(s_wifiScan.entries));
+    }
+    s_wifiScan.status = status;
+    s_wifiScan.total = total;
+
+    if (status != 0 || count == 0) {
+      s_wifiScan.complete = true;
+      s_wifiScan.dirty = true;
+      unlockSnapshot();
+      return;
+    }
+
+    // Ciaglosc: chunki musza przychodzic dokladnie w kolejnosci (UART jej
+    // pilnuje). Luka = zgubiona ramka -> natychmiastowy blad zamiast listy
+    // z dziurami wypelnionymi starymi danymi.
+    if (index != s_wifiScan.expected) {
+      ESP_LOGW(kTag, "WiFi scan chunk gap: got=%u expected=%u", (unsigned)index,
+               (unsigned)s_wifiScan.expected);
+      s_wifiScan.status = 7; // kResError (lustro WifiProvisioning.h)
+      s_wifiScan.count = 0;
+      s_wifiScan.complete = true;
+      s_wifiScan.dirty = true;
+      unlockSnapshot();
+      return;
+    }
+
+    uint16_t off = 5;
+    bool malformed = false;
+    for (uint8_t i = 0; i < count; ++i) {
+      if (payloadLength < static_cast<uint16_t>(off + 3)) {
+        malformed = true;
+        break;
+      }
+      const int8_t rssi = static_cast<int8_t>(payload[off]);
+      const uint8_t flags = payload[off + 1];
+      const uint8_t len = payload[off + 2];
+      if (len > 32 ||
+          payloadLength < static_cast<uint16_t>(off + 3 + len)) {
+        malformed = true;
+        break;
+      }
+      const uint16_t pos = static_cast<uint16_t>(index) + i;
+      if (pos < kWifiScanMax) {
+        WifiScanEntry &e = s_wifiScan.entries[pos];
+        memcpy(e.ssid, payload + off + 3, len);
+        e.ssid[len] = '\0';
+        e.rssi = rssi;
+        e.open = (flags & kCfgNetOpen) ? 1U : 0U;
+        if (s_wifiScan.count < static_cast<uint8_t>(pos + 1)) {
+          s_wifiScan.count = static_cast<uint8_t>(pos + 1);
+        }
+      }
+      off = static_cast<uint16_t>(off + 3 + len);
+    }
+
+    if (malformed) {
+      s_wifiScan.status = 7; // kResError
+      s_wifiScan.count = 0;
+      s_wifiScan.complete = true;
+      s_wifiScan.dirty = true;
+      unlockSnapshot();
+      return;
+    }
+
+    s_wifiScan.expected = static_cast<uint8_t>(index + count);
+    if (s_wifiScan.expected >= total) {
+      s_wifiScan.complete = true;
+      s_wifiScan.dirty = true;
+    }
+    unlockSnapshot();
+    break;
+  }
+
+  case kCfgRespCred: { // [code][reason u16 LE][len][ssid]
+    if (payloadLength < 5) return;
+    lockSnapshot();
+    s_wifiCred.code = payload[1];
+    // (reason = diagnostyka; UI uzywa kodu)
+    s_wifiCred.reason = static_cast<uint16_t>(payload[2]) |
+                        (static_cast<uint16_t>(payload[3]) << 8U);
+    const uint8_t len = payload[4];
+    if (len <= 32 && payloadLength >= static_cast<uint16_t>(5 + len)) {
+      memcpy(s_wifiCred.ssid, payload + 5, len);
+      s_wifiCred.ssid[len] = '\0';
+    } else {
+      s_wifiCred.ssid[0] = '\0';
+    }
+    s_wifiCred.dirty = true;
+    unlockSnapshot();
+    break;
+  }
+
+  case kCfgRespInfo: { // [wifiOn][btMode][connected][len][ssid]
+    if (payloadLength < 5) return;
+    lockSnapshot();
+    s_wifiInfo.wifiOn = payload[1];
+    s_wifiInfo.btMode = payload[2];
+    s_wifiInfo.connected = payload[3];
+    const uint8_t len = payload[4];
+    if (len <= 32 && payloadLength >= static_cast<uint16_t>(5 + len)) {
+      memcpy(s_wifiInfo.ssid, payload + 5, len);
+      s_wifiInfo.ssid[len] = '\0';
+    } else {
+      s_wifiInfo.ssid[0] = '\0';
+    }
+    s_wifiInfo.dirty = true;
+    unlockSnapshot();
+    break;
+  }
+
+  default:
+    break;
+  }
+}
+
+bool consumeWifiScan(uint8_t &status, uint8_t &count, WifiScanEntry *out, uint8_t outMax) {
+  lockSnapshot();
+  // Czekamy na KOMPLETNA liste (wszystkie chunki 0x81 doszly).
+  const bool ready = s_wifiScan.dirty && s_wifiScan.complete;
+  if (ready) {
+    status = s_wifiScan.status;
+    const uint8_t n = (s_wifiScan.count < outMax) ? s_wifiScan.count : outMax;
+    count = n;
+    if (out != nullptr) {
+      memcpy(out, s_wifiScan.entries, sizeof(WifiScanEntry) * n);
+    }
+    s_wifiScan.dirty = false;
+    s_wifiScan.complete = false;
+  }
+  unlockSnapshot();
+  return ready;
+}
+
+bool consumeWifiCredResult(uint8_t &code, uint16_t &reason, char *ssid, size_t ssidSize) {
+  lockSnapshot();
+  const bool dirty = s_wifiCred.dirty;
+  if (dirty) {
+    code = s_wifiCred.code;
+    reason = s_wifiCred.reason;
+    if (ssid != nullptr && ssidSize > 0) {
+      strncpy(ssid, s_wifiCred.ssid, ssidSize - 1);
+      ssid[ssidSize - 1] = '\0';
+    }
+    s_wifiCred.dirty = false;
+  }
+  unlockSnapshot();
+  return dirty;
+}
+
+bool consumeWifiInfo(uint8_t &wifiOn, uint8_t &btMode, uint8_t &connected,
+                     char *ssid, size_t ssidSize) {
+  lockSnapshot();
+  const bool dirty = s_wifiInfo.dirty;
+  if (dirty) {
+    wifiOn = s_wifiInfo.wifiOn;
+    btMode = s_wifiInfo.btMode;
+    connected = s_wifiInfo.connected;
+    if (ssid != nullptr && ssidSize > 0) {
+      strncpy(ssid, s_wifiInfo.ssid, ssidSize - 1);
+      ssid[ssidSize - 1] = '\0';
+    }
+    s_wifiInfo.dirty = false;
+  }
+  unlockSnapshot();
+  return dirty;
 }
 
 bool consumeWifiStatus(bool &connected, int8_t &rssi, uint8_t *ip) {

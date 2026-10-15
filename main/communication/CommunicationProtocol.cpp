@@ -12,6 +12,7 @@
 #include "app/alarm_logic.h"
 #include "app/alarm_ui.h"
 #include "app/alarm/alarm_popup.h"
+#include <string.h>
 #include <time.h>
 
 namespace CommunicationProtocol {
@@ -219,6 +220,37 @@ void sendStepperSetOnOff(bool en) {
   payload[0] = 0x0D;
   payload[1] = en ? 1 : 0;
   sendRawFrame(kTypeStepperCmd, 0, payload, sizeof(payload));
+}
+
+void sendWifiScanRequest() {
+  uint8_t payload[1] = { kCfgSubScanReq };
+  sendRawFrame(kTypeConfig, 0, payload, sizeof(payload));
+}
+
+void sendWifiSetCredentials(const char* ssid, const char* password) {
+  if (ssid == nullptr) return;
+  const size_t ssidLen = strnlen(ssid, 33);
+  if (ssidLen == 0 || ssidLen > 32) return;
+  size_t passLen = (password != nullptr) ? strnlen(password, 65) : 0;
+  if (passLen > 64) passLen = 64;
+
+  uint8_t payload[2 + 32 + 1 + 64]; // 99 B < 128 limitu
+  size_t n = 0;
+  payload[n++] = kCfgSubSetCred;
+  payload[n++] = static_cast<uint8_t>(ssidLen);
+  memcpy(payload + n, ssid, ssidLen);
+  n += ssidLen;
+  payload[n++] = static_cast<uint8_t>(passLen);
+  if (passLen > 0) {
+    memcpy(payload + n, password, passLen);
+    n += passLen;
+  }
+  sendRawFrame(kTypeConfig, 0, payload, static_cast<uint16_t>(n));
+}
+
+void sendWifiInfoRequest() {
+  uint8_t payload[1] = { kCfgSubInfoReq };
+  sendRawFrame(kTypeConfig, 0, payload, sizeof(payload));
 }
 
 void sendStepperSetSpeed(uint16_t speed) {

@@ -28,6 +28,8 @@
 #include "log.h"
 #include "utils/comm_log/comm_log.h"
 #include <stdatomic.h>
+#include <stdlib.h>
+#include <time.h>
 #include "nvs.h"
 
 extern "C" {
@@ -294,8 +296,15 @@ extern "C" void app_main(void)
     log_init();
     comm_log_init();
 
+    /* Ujednolicone WiFi: ekran nie laczy sie samodzielnie (WIFI_ENABLE=0
+     * w wifi_service.c) — jest tylko HMI. wifi_service_init() zostaje dla
+     * nvs_flash_init() (jasnosc, ustawienia). */
     wifi_service_init();
-    // SNTP is started automatically by wifi_service when GOT_IP is received
+
+    /* Strefa czasu dla zegara. Czas (co do sekundy) plynie z ZEGARA ramka
+     * 0x03 i jest tu ustawiany przez settimeofday() w applyTimePayload(). */
+    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
+    tzset();
 
     sunton_esp32s3_backlight_init();
 

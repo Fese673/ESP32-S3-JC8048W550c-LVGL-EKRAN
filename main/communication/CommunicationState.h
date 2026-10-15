@@ -50,6 +50,21 @@ void applyMusicEQStatePayload(const uint8_t *payload, uint16_t payloadLength);
 void applyRadioModePayload(const uint8_t *payload, uint16_t payloadLength);
 void applyStepperStatePayload(const uint8_t *payload, uint16_t payloadLength);
 void applyRadarPayload(const uint8_t *payload, uint16_t payloadLength);
+void applyWifiConfigPayload(const uint8_t *payload, uint16_t payloadLength);
+
+// ── Panel "Ustawienia WiFi" (0x11): wyniki provisioning z ZEGARA ──
+struct WifiScanEntry {
+  char ssid[33];
+  int8_t rssi;
+  uint8_t open;
+};
+// Skan (sklejony z paginowanych ramek 0x81): true RAZ na kompletna liste.
+bool consumeWifiScan(uint8_t &status, uint8_t &count, WifiScanEntry *out, uint8_t outMax);
+// Wynik testu hasla (0x82): true RAZ na ramke.
+bool consumeWifiCredResult(uint8_t &code, uint16_t &reason, char *ssid, size_t ssidSize);
+// Info o ZEGARZE (0x83): true RAZ na ramke.
+bool consumeWifiInfo(uint8_t &wifiOn, uint8_t &btMode, uint8_t &connected,
+                     char *ssid, size_t ssidSize);
 
 OutdoorWeatherSnapshot getLocalOutdoorWeather();
 void setLocalOutdoorWeather(const OutdoorWeatherSnapshot& ow);

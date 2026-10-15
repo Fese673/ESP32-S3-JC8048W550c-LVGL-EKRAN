@@ -15,7 +15,15 @@
 
 static const char *TAG = "WifiService";
 
-#define WIFI_ENABLED 1 /* 0 = WiFi off (frees ~100KB PSRAM), 1 = normal */
+/* Ujednolicone WiFi (V3.0): wlascicielem sieci jest ZEGAR ESP32.
+ * Ekran jest TYLKO HMI — panel "Ustawienia WiFi" wysyla dane po kablu
+ * (COBS 0x11), nie laczy sie samodzielnie i nie odpala SNTP. Czas plynie
+ * z ZEGARA ramka 0x03 (co 1 s, co do sekundy) i ustawia zegar systemowy.
+ * 1 = stare zachowanie (wlasne WiFi ekranu, tylko do debugowania). */
+#ifndef WIFI_ENABLE
+#define WIFI_ENABLE 0
+#endif
+#define WIFI_ENABLED WIFI_ENABLE
 
 #define WIFI_WORKER_STACK 4096
 #define WIFI_WORKER_PRIORITY 2

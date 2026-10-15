@@ -53,6 +53,17 @@ namespace CommunicationProtocol {
     kTypeAck = 0xFF
  };
 
+ // 0x11 kTypeConfig — panel "Ustawienia WiFi" (lustro ZEGAR-ESP32
+ // Esptogution.h: stale kWifiSub / kWifiResp — zmieniasz tu = zmieniasz tam).
+ // G -> Z: [sub][args]; Z -> G: [sub|0x80][args].
+ constexpr uint8_t kCfgSubScanReq = 0x01; // [] prosba o skan
+ constexpr uint8_t kCfgSubSetCred = 0x02; // [len][ssid][len][pass] test+zapis
+ constexpr uint8_t kCfgSubInfoReq = 0x03; // [] stan WiFi + zapisany SSID
+ constexpr uint8_t kCfgRespScan = 0x81;   // [status][total][index][count]+n*[rssi i8][flags][len][ssid]
+ constexpr uint8_t kCfgRespCred = 0x82;   // [code][reason u16 LE][len][ssid]
+ constexpr uint8_t kCfgRespInfo = 0x83;   // [wifiOn][btMode][connected][len][ssid]
+ constexpr uint8_t kCfgNetOpen = 0x01;    // flaga sieci: otwarta (bez hasla)
+
  // Stany maszyny synchronizacji
  enum PeerSyncState {
    kSyncBooting          = 0,
@@ -204,6 +215,15 @@ void sendStepperSetOnOff(bool en);
 // (RELEASED suwaka / klik presetu), nie w trakcie przeciagania.
 void sendStepperSetSpeed(uint16_t speed);
 void requestStepperState();
+
+/* ── Panel "Ustawienia WiFi" (0x11 kTypeConfig) ────────────────────────
+ * Ujednolicone WiFi (V3.0): ekran jest TYLKO HMI (WIFI_ENABLE=0). Skan,
+ * test hasla, zapis i przelaczenie robi ZEGAR; wszystko leci po kablu.
+ * Lustro protokolu: ZEGAR-ESP32 Esptogution.h (stale kWifiSub / kWifiResp).
+ * Odpowiedzi: 0x81 skan (paginowany), 0x82 wynik testu, 0x83 info. */
+void sendWifiScanRequest();
+void sendWifiSetCredentials(const char* ssid, const char* password);
+void sendWifiInfoRequest();
 
 }  // namespace CommunicationProtocol
 
