@@ -1,6 +1,29 @@
 # Guition JC8048W550 — Panel sterujący
 
-Firmware dla wyświetlacza **Guition JC8048W550** (800×480 RGB, GT911 touch) na **ESP32-S3** z **LVGL 9.4.0** i **ESP-IDF 6.0.1**. Steruje pracą systemu złożonego z dwóch płytek ESP32.
+Firmware dla wyświetlacza **Guition JC8048W550** (800×480 RGB, GT911 touch) na **ESP32-S3** z **LVGL 9.4.0** i **ESP-IDF 6.0.1**. Steruje pracą systemu złożonego z dwóch płytek ESP32 (panel + sensor) przez UART COBS/CRC.
+
+[![ESP-IDF 6.0.1](https://img.shields.io/badge/ESP--IDF-6.0.1-blue?logo=espressif)](https://docs.espressif.com/projects/esp-idf/en/latest/)
+[![LVGL 9.4.0](https://img.shields.io/badge/LVGL-9.4.0-green?logo=lvgl)](https://docs.lvgl.io/)
+[![Target: esp32s3](https://img.shields.io/badge/target-esp32s3-orange)](https://www.espressif.com/en/products/socs/esp32-s3)
+[![EEZ Studio](https://img.shields.io/badge/UI-EEZ%20Studio-gray)](https://github.com/eez-open/studio)
+
+---
+
+## Spis treści
+
+- [Architektura](#architektura)
+- [Zadania FreeRTOS](#zadania-freertos)
+- [Wymagania](#wymagania)
+- [Szybki start](#szybki-start)
+- [Projektowanie UI](#projektowanie-ui)
+- [Struktura projektu](#struktura-projektu)
+- [Kluczowe pliki](#kluczowe-pliki)
+- [Instrukcja obsługi — ekrany (16)](#instrukcja-obsługi-ekrany-16)
+- [Komunikacja UART](#komunikacja-uart)
+- [Uwagi techniczne](#uwagi-techniczne)
+- [Walidacja struktury](#walidacja-struktury)
+
+---
 
 ## Architektura
 
@@ -12,10 +35,12 @@ Firmware dla wyświetlacza **Guition JC8048W550** (800×480 RGB, GT911 touch) na
 └──────────────────────┘                    └──────────────────────┘
 ```
 
-**Panel (ten repo)** — LVGL + EEZ Flow, zarządzanie ekranami, animacje, interakcja, obsługa alarmu/stoper/mutnika/pogody/radaru/gry.
+**Panel (ten repo)** — LVGL + EEZ Flow, zarządzanie ekranami, animacje, interakcja, alarmy, stoper, minutnik, pogoda, radar, gra, muzyka.
 **Sensor** (osobne repo `ZEGAR-ESP32`) — zbiera dane z czujników i przesyła przez UART w ramkach COBS z sumą CRC16.
 
-### Zadania FreeRTOS
+---
+
+## Zadania FreeRTOS
 
 | Task | Core | Priorytet | Stack | Opis |
 |------|------|-----------|-------|------|
@@ -25,11 +50,15 @@ Firmware dla wyświetlacza **Guition JC8048W550** (800×480 RGB, GT911 touch) na
 | Clock | 0 | 3 | 4096 | Aktualizacja czasu |
 | WiFi worker | 0 | 2 | 4096 | Connect/disconnect, asynchroniczny |
 
+---
+
 ## Wymagania
 
 - ESP-IDF 6.0.1
 - Target: `esp32s3`
 - Python + narzędzia ESP-IDF w PATH
+
+---
 
 ## Szybki start
 
@@ -47,6 +76,8 @@ python build_guition.py        # build
 python flash_guition.py        # build + flash (port COM12, 115200)
 ```
 
+---
+
 ## Projektowanie UI
 
 Interfejs edytowany w **EEZ Studio** (`PROJEKT_UI_EZZ_STUDIO/src/ui`).  
@@ -54,23 +85,41 @@ Eksport → `copy_ui.py` (sync do `main/ui/ui/`) → build.
 
 `main/ui/ui/` jest auto-generowane — **nie edytować ręcznie**.
 
-## Struktura `main/`
+---
+
+## Struktura projektu
 
 ```
-main/
-├── app/               # Logika: clock, timer, stopwatch, alarm, notification,
-│   │                  # weather, game (flappy bird), screen_geometry, radar,
-│   │                  # zegar_mode, main_handler, zasoby_sliders
-├── communication/     # UART COBS/CRC, handshake, CommUiMapper, timer_synchro
-├── services/          # bpm (MAX30102 chart), wifi, sntp, time, music, sensor
-├── hal/display/       # Inicjalizacja LCD (sunton_esp32_8048s050c), dotyk GT911
-├── ui/ui/             # Auto-generowane z EEZ Studio
-├── custom_icons/      # Ikony pogody i niestandardowe (generate_icons.py)
-├── setting_wifi/      # Ekran konfiguracji WiFi (HMI tylko)
-├── diagnostics/       # lv_perf_diag — wydajność LVGL + heap (UART)
-├── utils/             # log, comm_log, gesture
-└── eez-framework/     # EEZ Flow runtime dla LVGL
+.
+├── CMakeLists.txt
+├── build_guition.py
+├── copy_ui.py
+├── flash_guition.py
+├── sdkconfig.defaults
+├── parts.csv
+├── scan_project_map.py
+├── MAPA_PROJEKTU.md
+├── README.md
+├── ERROR_ARCHIVE/
+├── PROJEKT_UI_EZZ_STUDIO/
+├── PRZYKŁAD/
+├── SCALE_PHOTO/
+└── main/
+    ├── app/               # clock, timer, stopwatch, alarm, notification,
+    │   │                  # weather, game, screen_geometry, radar,
+    │   │                  # zegar_mode, main_handler, zasoby_sliders
+    ├── communication/     # UART COBS/CRC, handshake, CommUiMapper, timer_synchro
+    ├── services/          # bpm (MAX30102), wifi, sntp, time, music, sensor
+    ├── hal/display/       # LCD (sunton_esp32_8048s050c), dotyk GT911
+    ├── ui/ui/             # Auto-generowane z EEZ Studio
+    ├── custom_icons/      # Ikony pogody i niestandardowe
+    ├── setting_wifi/      # Ekran konfiguracji WiFi (HMI tylko)
+    ├── diagnostics/       # lv_perf_diag — wydajność LVGL + heap
+    ├── utils/             # log, comm_log, gesture
+    └── eez-framework/     # EEZ Flow runtime dla LVGL
 ```
+
+---
 
 ## Kluczowe pliki
 
@@ -84,15 +133,7 @@ main/
 | `main/ui/ui/ui.c/h` | Auto-generowane z EEZ Studio |
 | `main/app/safe_label.h` | `lv_label_set_text` → statyczny bufor 64 B/label (eliminacja fragmentacji SRAM) |
 
-## Uwagi techniczne
-
-- Core 1 wyłącznie LVGL; Core 0 — UART, clock, WiFi worker, NVS.
-- Flash write blokuje PSRAM przy aktywnym RGB — zapis NVS (jasność) asynchroniczny w worker task na Core 0.
-- `safe_label.h` injectowane przez CMake (`-include`) do wszystkich plików w `main/`.
-- `CONFIG_LV_PERF_DIAG` wyłączone w release (zero narzutu, no-op stuby); włączane ręcznie w buildzie serwisowym.
-- Logi produkcji: tylko WARN+ (`CONFIG_LOG_DEFAULT_LEVEL_WARN`).
-- PARTICJA: `parts.csv` (NVS 0x9000, OTA 0x10000/0x750000, SPIFFS 0xE90000).
-- Walidacja struktury: `python scan_project_map.py --validate`.
+---
 
 ## Instrukcja obsługi — ekrany (16)
 
@@ -117,3 +158,30 @@ main/
 
 **Sterowanie:** dotyk GT911, gesty Swipe Up (dostępne na większości ekranów poza GŁÓWNYM i GRY TEST). Alarmy i minutaż sterowane z poziomu ekranu ZEGAR.
 
+---
+
+## Komunikacja UART
+
+- Prędkość: 115200 bd
+- Ramki: COBS + CRC16
+- Sensor → Panel: dane z czujników, czas, BPM, pogoda, alarmy
+- Panel → Sensor: ustawienia urządzenia, żądania stanu, komendy sterowania
+
+---
+
+## Uwagi techniczne
+
+- Core 1 wyłącznie LVGL; Core 0 — UART, clock, WiFi worker, NVS.
+- Flash write blokuje PSRAM przy aktywnym RGB — zapis NVS (jasność) asynchroniczny w worker task na Core 0.
+- `safe_label.h` injectowane przez CMake (`-include`) do wszystkich plików w `main/`.
+- `CONFIG_LV_PERF_DIAG` wyłączone w release (zero narzutu, no-op stuby); włączane ręcznie w buildzie serwisowym.
+- Logi produkcji: tylko WARN+ (`CONFIG_LOG_DEFAULT_LEVEL_WARN`).
+- PARTICJA: `parts.csv` (NVS 0x9000, OTA 0x10000/0x750000, SPIFFS 0xE90000).
+
+---
+
+## Walidacja struktury
+
+```bash
+python scan_project_map.py --validate
+```
